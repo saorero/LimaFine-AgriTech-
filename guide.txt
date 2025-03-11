@@ -1,0 +1,47 @@
+///TEXT FILE CAN BE DELETED ANYTIME
+//holdingcode.py is also useless just acts as a file to hold orginal files
+// HeroIcons used for SVG
+//DEPLOYMENT --Render FILES CREATED requirements.txt and Procfile also edited settings.py pip freeze > requirements.txt
+
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/saorero/Recommender.git 
+git branch -M main
+git push -u origin main
+
+#TO ANOTHER BRANCH
+git checkout your-branch-name IF THE BRANCH EXISTS
+git checkout -b your-branch-name IF THE BRANCH DOES NOT EXIST
+git add .
+git commit -m "Commit message for changes"
+git push -u origin your-branch-name 
+
+postgres--Azerty@12
+•	npx tailwindcss -i ./static/src/input.css -o ./static/src/output.css --minify 
+•	python manage.py collectstatic --noinput
+•	python manage.py compress --force Deleting old cache directory after rebuilding and changes does not reflect
+…then now you can collect static…This command is run after you have rebuilt that is npx…command . 
+You can also run it after collection   
+•	rm -rf static/CACHE/*  To remove unused hash files in CACHE then you have to rebuild again
+
+onion,rice,cofee SHOULD CHANGE THAT PATTERN CHECK THE CROP MODEL SO WEATHER DOES NOT CONTRIBUTE
+MUCH???FIND OUT IF THIS IS THE CASE AND ALSO TOMATO IS VERY WANTING
+-- Could be the case of areas that had not co-ordinates and therefore goes with the default co-ordinates thats why you are seeing a repetition
+
+
+//original Databases set up in settings.pyDATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+SERVER NAME for MY postgres--- PostgreSQL 17
+User- postgres Azerty@12 
+Django SuperuserMe created it ---admin, Azerty@12   //USE THIS TO access django admin
+Command Azerty@123 ***not sure though i used a diff password to access postgre cmd
+
+E-commerce for farmers to sell their produce
+
+

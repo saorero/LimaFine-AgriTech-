@@ -1,0 +1,147 @@
+<!-- Compress library helps in combining all inline styles into one compressed css or js file -->
+{% load compress %} 
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crop Recommender</title>
+    <!-- Allows use of font awesome in the project keyo -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Allows importing a new font style Google Fonts feb -->
+    <link href="https://fonts.googleapis.com/css2?family=Italianno&display=swap" rel="stylesheet">
+
+    {% compress css %}
+    <link
+      rel="stylesheet"
+      href="{% static 'src/output.css' %}?v={% now 'U' %}"
+    />
+    {% endcompress %}
+
+    <!-- KEYO -->
+    <style>
+      /* For smooth menu animations */
+      .menu-icons {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <!-- KEYO -->
+  </head>
+  
+  <header class="bg-teal-600 w-full py-4">
+    <div class="absolute top-0 left-0 p-4">
+      <img
+        src="{% static 'Images/cropIcon.png' %}"
+        alt="Icon"
+        class="h-14 w-14"
+      />
+    </div>
+
+    <div class="text-center">
+      <h1 class="text-white font-bold text-4xl p-2 ">{% block title %}Crop Recommender {% endblock %} </h1>
+    </div>
+
+     <!--Profile Icon Redirects to login -->
+    <div class="absolute right-4 top-2 text-white p-2 rounded-lg cursor-pointer" onclick="window.location.href='{% url 'login' %}';">
+      <i class="fa-solid fa-circle-user fa-xl"></i>
+    </div>
+  
+  
+
+  </header>
+ 
+
+  <!-- custom-bg Is the predefine background set for the project @keyo -->
+  <body
+    class="bg-custom-bg bg-cover bg-center bg-no-repeat min-h-screen flex flex-col"
+  >
+    <!-- <body> -->
+
+    {% block content %} {% endblock content %}
+  </body>
+
+  <!-- Footer Section (Menu) -->
+  <footer class="fixed bottom-4 left-4">
+    <div class="flex items-center space-x-4">
+      <button
+        id="menuButton"
+        class="w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center text-white text-lg shadow-md focus:outline-none animate-flicker"
+      >
+        Menu
+      </button>
+
+      <!-- Menu Icons inside a single rounded box -->
+      <div
+        id="menuIcons"
+        class="menu-icons opacity-0 invisible flex flex-row items-center space-x-4 bg-teal-600 rounded-full p-2 shadow-md"
+      >
+        <!-- Icons -->
+
+         <!-- Deals with prediction App (Homepage) -->
+        <a href="{% url 'Homepage' %}" class="w-8 h-8 flex items-center justify-center">
+          <i class="fa-solid fa-house fa-xl"></i>
+        </a>
+
+        <!-- Deals with the agriBot APP -->
+        <a href="{% url 'agriBot' %}" class="w-8 h-8 flex items-center justify-center"> 
+          <i class="fa-solid fa-comments fa-xl"></i>
+        </a>
+
+        <a href="#" class="w-8 h-8 flex items-center justify-center">
+          <i class="fa-solid fa-book fa-xl" ></i>
+        </a>
+        <a href="#" class="w-8 h-8 flex items-center justify-center">
+          <i
+            class="fa-solid fa-cloud-sun-rain fa-xl"
+           
+          ></i>
+        </a>
+        <a href="#" class="w-8 h-8 flex items-center justify-center">
+          <img src="{% static 'Images/marketIcon.png' %}" alt="market" class="w-8 h-8" >
+        <!-- Handles feed app -->
+        </a>
+        <a href="{% url 'feed' %}" class="w-8 h-8 flex items-center justify-center">
+          <img src="{% static 'Images/newsFeed.png' %}" alt="feed" class="w-8 h-8">
+        </a>
+        
+
+      </div>
+
+      <!-- Menu Button -->
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script>
+    // Menu Toggle Functionality
+    const menuButton = document.getElementById("menuButton");
+    const menuIcons = document.getElementById("menuIcons");
+
+    menuButton.addEventListener("click", () => {
+      // Flickers before the first click
+      menuButton.classList.remove("animate-flicker");
+
+      // Toggle visibility and animation
+      const isVisible = menuIcons.classList.contains("opacity-100");
+      if (isVisible) {
+        menuIcons.classList.remove("opacity-100", "translate-y-0");
+        menuIcons.classList.add("opacity-0", "invisible", "-translate-y-4");
+        // menuButton.classList.add('animate-flicker'); // flickering
+      } else {
+        menuIcons.classList.remove("opacity-0", "invisible", "-translate-y-4");
+        menuIcons.classList.add("opacity-100", "translate-y-0");
+        // menuButton.classList.remove('animate-flicker'); //stops flickering
+      }
+    });
+  </script>
+</html>
