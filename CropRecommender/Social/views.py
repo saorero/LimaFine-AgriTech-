@@ -19,7 +19,7 @@ def signup(request):
     else:
         form = SignUpForm()
 
-    return render(request, 'social/auth.html', {
+    return render(request, 'auth.html', {
         'form': form,
         'title': 'Sign Up',
         'button_text': 'Sign Up',
@@ -41,7 +41,7 @@ def user_login(request):
     else:
         form = AuthenticationForm()
 
-    return render(request, 'Social/auth.html', {
+    return render(request, 'auth.html', {
         'form': form,
         'title': 'Login',
         'button_text': 'Login',
@@ -68,10 +68,12 @@ def unfollow_user(request, user_id):
     return redirect('feed')
 
 
-# THIRD SECTION
-# def feed(request): ORIGINAL WITHOUT THE FILTER
+
+
+# def feed(request):
 #     filter_type = request.GET.get('filter', 'all')
 
+#     # Filter posts based on 'following' filter
 #     if filter_type == 'following':
 #         following = request.user.userprofile.following.all()
 #         posts = Post.objects.filter(user__userprofile__in=following).order_by('-created_at')
@@ -88,18 +90,31 @@ def unfollow_user(request, user_id):
 #     else:
 #         form = PostForm()
 
+#     # Get filter role from the GET request, default is 'all'
+#     filter_role = request.GET.get('role', 'all')
+
+#     # Get all user profiles excluding the current user
 #     all_profiles = UserProfile.objects.exclude(user=request.user)
 #     following_ids = request.user.userprofile.following.values_list('id', flat=True)
-#     suggestions = all_profiles.exclude(id__in=following_ids)[:5]
 
-#     return render(request, 'Social/post.html', {
+#     # Suggest people who are not already followed and apply the role filter
+#     if filter_role == 'all':
+#         suggestions = all_profiles.exclude(id__in=following_ids)[:5]  # Show all suggestions
+#     else:
+#         suggestions = all_profiles.exclude(id__in=following_ids).filter(role=filter_role)[:5]  # Filter by role
+
+#     # List of available roles for the filter (adjust as needed)
+#     all_roles = ['trader', 'farmer', 'researcher']
+
+#     return render(request, 'social.html', {
 #         'posts': posts,
 #         'form': form,
 #         'filter_type': filter_type,
 #         'suggestions': suggestions,
-#         'action': 'feed'
+#         'action': 'feed',
+#         'all_roles': all_roles,  # Add roles to the context for the filter dropdown
+#         'filter_role': filter_role,  # Add the selected role filter to the context
 #     })
-
 
 def feed(request):
     filter_type = request.GET.get('filter', 'all')
@@ -112,7 +127,7 @@ def feed(request):
         posts = Post.objects.all().order_by('-created_at')
 
     if request.method == 'POST':
-        form = PostForm(request.POST)
+        form = PostForm(request.POST, request.FILES)  # Handle file uploads
         if form.is_valid():
             post = form.save(commit=False)
             post.user = request.user
@@ -137,7 +152,7 @@ def feed(request):
     # List of available roles for the filter (adjust as needed)
     all_roles = ['trader', 'farmer', 'researcher']
 
-    return render(request, 'Social/post.html', {
+    return render(request, 'social.html', {
         'posts': posts,
         'form': form,
         'filter_type': filter_type,
@@ -145,9 +160,7 @@ def feed(request):
         'action': 'feed',
         'all_roles': all_roles,  # Add roles to the context for the filter dropdown
         'filter_role': filter_role,  # Add the selected role filter to the context
-    })
-
-
+         })
 
 @login_required
 def edit_post(request, post_id):
@@ -160,7 +173,7 @@ def edit_post(request, post_id):
     else:
         form = PostForm(instance=post)
     
-    return render(request, 'Social/post.html', {'form': form, 'post': post, 'action': 'edit'})
+    return render(request, 'social.html', {'form': form, 'post': post, 'action': 'edit'})
 
 @login_required
 def delete_post(request, post_id):
@@ -169,5 +182,5 @@ def delete_post(request, post_id):
         post.delete()
         return redirect('feed')
 
-    return render(request, 'Social/post.html', {'post': post, 'action': 'delete'})
+    return render(request, 'social.html', {'post': post, 'action': 'delete'})
 

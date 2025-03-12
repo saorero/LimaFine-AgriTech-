@@ -50,4 +50,9 @@ class SignUpForm(UserCreationForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['content']
+        fields = ['content', 'file'] #file can be part of the post
+    
+    #KEYO 11 Custom deign of the file upload
+    def __init__(self, *args, **kwargs):
+        super(PostForm, self).__init__(*args, **kwargs)
+        self.fields['file'].widget.attrs.update({'class': 'w-full mt-2 border p-2 rounded'})
