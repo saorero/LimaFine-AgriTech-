@@ -12,6 +12,7 @@ urlpatterns = [
     path('unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
     path('edit/<int:post_id>/', views.edit_post, name='edit_post'),
     path('delete/<int:post_id>/', views.delete_post, name='delete_post'),
+    path('like/<int:post_id>/', views.likePost, name='likePost'),#likePost view ajax request
     # Add this line for profile_modal
     path('profile_modal/', views.feed, name='profile_modal'),
 ]

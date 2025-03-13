@@ -45,8 +45,11 @@
                
                 <div class="flex-1 bg-white shadow-2xl p-4 mr-4">
                     <div class="flex justify-end space-x-3 mb-4">
-                        <a href="?filter=all" class="p-2 {% if filter_type == 'all' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">All</a>
+                                           
                         <a href="?filter=following" class="p-2 {% if filter_type == 'following' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">Following</a>
+                        <a href="?filter=mePosts" class="p-2 {% if filter_type == 'mePosts' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">My Posts</a>
+                        <a href="?filter=all" class="p-2 {% if filter_type == 'all' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">All</a>  
+
                     </div>
             
                     {% if action == 'edit' %}
@@ -68,13 +71,16 @@
                         <!-- Socisl Feed Display -->
                         {% for post in posts %}
                         <!-- Displays the content of each post -->
-                            <div class="border-b-4 border-teal-700 p-4 mt-2 mb-2 flex items-start justify-between rounded-3xl bg-gray-200  border-l-2">
-                                <!-- Post Content on the Left -->
-                                <div class="shadow-2xl rounded-3xl p-4 bg-gray-100">
+                        <div class="border-b-4 border-teal-700 p-4 mt-2 mb-2 flex flex-col rounded-3xl bg-gray-200 border-l-2">
+    
+                            <!-- Post Content and Edit/Delete button Div -->
+                            <div class="flex justify-between items-start">
+                                <!-- Content for post -->
+                                <div class="shadow-2xl rounded-3xl p-4 bg-gray-100 flex-1">
                                     <p><strong>@{{ post.user.username }}</strong> <span class="text-xs">({{ post.created_at }})</span></p>
                                     <p>{{ post.content }}</p>
                         
-                                    <!-- Uploaded files are displayed -->
+                                    <!-- Uploaded files are displayed if there is an uploaded file in the post -->
                                     {% if post.file %}
                                         {% if post.file.url|lower|slice:'-3:' == 'pdf' %}
                                             <a href="{{ post.file.url }}" target="_blank" class="text-teal-700 underline">View File</a>
@@ -84,16 +90,37 @@
                                     {% endif %}
                                 </div>
                         
-                                <!-- Edit & Delete post buttons on the right side of the content -->
+                                <!-- Edit & delete buttons (Only for the post owner) -->
                                 {% if post.user == user %}
                                     <div class="flex space-x-3">
-                                        <button onclick="openPopup('edit-popup-{{ post.id }}')" class="text-teal-700 ml-3 hover:text-teal-300" alt = "edit" title="Edit" ><i class="fa-solid fa-pen-to-square"></i></button> 
-                                        <button onclick="openPopup('delete-popup-{{ post.id }}')" class="text-teal-700 hover:text-red-600" alt = "Delete" title="Delete" ><i class="fa-solid fa-trash-can"></i></button>
+                                        <button onclick="openPopup('edit-popup-{{ post.id }}')" class="text-teal-700 ml-3 hover:text-teal-300" alt="edit" title="Edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button> 
+                                        <button onclick="openPopup('delete-popup-{{ post.id }}')" class="text-teal-700 hover:text-red-600" alt="Delete" title="Delete">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
                                     </div>
                                 {% endif %}
                             </div>
-            
-                            <!-- End of post feed -->
+                        
+                            <!-- Another post row for comment, like and flag a post -->
+                            <div class="flex justify-end items-center mt-3 space-x-6 text-gray-600">
+                                <!-- Like button -->
+                                <button onclick="likePost({{ post.id }})" class="hover:text-red-500 flex items-center">
+                                    <i id="like-icon-{{ post.id }}" class="fa-solid fa-heart"></i><span id="like-count-{{ post.id }}" class="ml-1">{{ post.totalLikes }}</span>
+                                </button>
+                               
+                                <!-- Comment button -->
+                                <button class="hover:text-teal-700 flex items-center"><i class="fa-solid fa-comment"></i><span class="ml-1">Comment</span></button>                             
+                                                        
+                                <!-- flag button -->
+                                <button class="hover:text-yellow-500 flex items-center"><i class="fa-solid fa-flag"></i><span class="ml-1">Report</span></button>                                    
+                                    
+                                </button>
+                            </div>
+                        
+                        </div>
+                          
                             <!-- Edit Post Popup -->
                             <div id="edit-popup-{{ post.id }}" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
                                 <div class="bg-white p-6 rounded-xl shadow-lg w-96 backdrop-blur-xl">
@@ -253,5 +280,26 @@
 
     function closePopup(popupId) {
         document.getElementById(popupId).classList.add('hidden');
+    }
+
+    function likePost(postId) {
+        fetch(`/social/like/${postId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.liked) {
+                document.getElementById(`like-icon-${postId}`).classList.add("text-red-500");
+            } else {
+                document.getElementById(`like-icon-${postId}`).classList.remove("text-red-500");
+            }
+            document.getElementById(`like-count-${postId}`).innerText = data.likesCount;
+        })
+        .catch(error => console.error('Error:', error));
     }
 </script>

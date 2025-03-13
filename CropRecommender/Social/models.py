@@ -31,5 +31,26 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+   
+    # Function to keep count of the number of likes related to a post and returns it
+    def totalLikes(self):
+        return self.likes.count()
+    
+    
     def __str__(self):
         return f"{self.user.username} - {self.content[:20]}"
+
+
+# Model that keep track of replies
+class Like(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
+
+    class Meta:
+        unique_together = ('user', 'post')# Ensures that a user can only like a post once
+
+    def __str__(self):
+        return f"{self.user.username} liked {self.post.user.username}'s post"
+
+
+
