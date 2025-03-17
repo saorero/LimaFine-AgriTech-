@@ -121,7 +121,9 @@ STATICFILES_DIRS = [
 
 # @KEYO Compressor Configuration
 COMPRESS_ROOT = BASE_DIR / 'static'
-COMPRESS_ENABLED = True
+# COMPRESS_ENABLED = True #CAUSING UNEXPLAINED PROBLEMS COMMENTED OUT to be safe
+# COMPRESS_OFFLINE = True #precompress files before deployment
+
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",#the first two were added to assist in locating output.css
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",

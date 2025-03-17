@@ -5,10 +5,10 @@ from .forms import SignUpForm, PostForm #import theSignUp form class defined in 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm #Django predefined Authentication logic/class
 from django.contrib.auth.decorators import login_required #user needs to be logged in
-from .models import Post, UserProfile, Like
+from .models import Post, UserProfile, Like, Comment #models/table importation
 from django.http import JsonResponse #for likes
-# Create your views here.
 
+# Create your views here.
 # Sign up form called in this function
 def signup(request):
     if request.method == 'POST':
@@ -62,13 +62,34 @@ def follow_user(request, user_id):
     request.user.userprofile.following.add(profile_to_follow)
     return redirect('feed')
 
+
+# SECTION 2.1 17th endpoints to get followed and following users List and also to unfollow users
 @login_required
-def unfollow_user(request, user_id):
-    profile_to_unfollow = get_object_or_404(UserProfile, user__id=user_id)
-    request.user.userprofile.following.remove(profile_to_unfollow)
-    return redirect('feed')
+def getFollowers(request, user_id):
+    print(f"Debug: Fetching followers for user_id {user_id}") 
+    user_profile = get_object_or_404(UserProfile, user_id=user_id)
+    followers = [{"id": u.user.id, "username": u.user.username} for u in user_profile.followers.all()]
+    return JsonResponse({"followers": followers})
+
+@login_required
+def getFollowing(request, user_id):
+    user_profile = get_object_or_404(UserProfile, user_id=user_id)
+    following = [{"id": u.user.id, "username": u.user.username} for u in user_profile.following.all()]
+    return JsonResponse({"following": following})
+
+@login_required
+def unfollowUser(request, user_id):
+    user_to_unfollow = get_object_or_404(UserProfile, user_id=user_id)
+    user_profile = request.user.userprofile  # Get the current user's profile
+
+    if user_to_unfollow in user_profile.following.all():
+        user_profile.following.remove(user_to_unfollow)
+        return JsonResponse({"success": True, "message": f"Unfollowed {user_to_unfollow.user.username}"})
+        # return console.log("Unfollowed user successfully")
+    return JsonResponse({"success": False, "message": "User not found in following list"}, status=400)
 
 
+# Social media feed
 @login_required
 def feed(request):
     filter_type = request.GET.get('filter', 'all')
@@ -120,6 +141,7 @@ def feed(request):
         'filter_role': filter_role,  # Add the selected role filter to the context
          })
 
+# editing posts and deleting
 @login_required
 def edit_post(request, post_id):
     post = get_object_or_404(Post, id=post_id, user=request.user)
@@ -143,7 +165,7 @@ def delete_post(request, post_id):
     return render(request, 'social.html', {'post': post, 'action': 'delete'})
 
 
-# THIRD SECTION Post Icon logic
+# THIRD SECTION Post Icon logic 13 (Like and comment)
 @login_required
 def likePost(request, post_id):
     post = get_object_or_404(Post, id=post_id)
@@ -156,3 +178,52 @@ def likePost(request, post_id):
         
         liked = True 
     return JsonResponse({'liked': liked, 'likesCount': post.totalLikes()})
+
+# # To handle the comment section of posts 17
+@login_required
+def addComment(request, post_id):
+    if request.method == "POST":
+        post = get_object_or_404(Post, id=post_id) #gets the post being commented on
+        content = request.POST.get("content")
+        parentId = request.POST.get("parentId")  # To handle replies
+
+        # prevents empty comment
+        if not content:
+            return JsonResponse({"error": "Comment cannot be empty"}, status=400)
+
+        parentComment = None
+        if parentId:
+            try:
+                parentComment = Comment.objects.get(id=parentId)
+            except Comment.DoesNotExist:
+                return JsonResponse({"error": "No parent comment"}, status=404)
+
+        # DB of comment creation, new row
+        comment = Comment.objects.create(
+            user=request.user,
+            post=post,
+            content=content,
+            parent=parentComment #if its a reply
+        )
+
+        return JsonResponse({
+            "id": comment.id,  # for DOM Manipulation
+            "user": request.user.username,
+            "content": comment.content,
+            "created_at": comment.created_at.strftime("%Y-%m-%d %H:%M"),
+            "parentId": parentId if parentId else None, #if its a reply
+        })
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+# View for the profile modal
+def profileView(request):
+    user_profile = UserProfile.objects.get(user=request.user)
+    data = {
+        'username': user_profile.user.username,
+        # 'email': user_profile.user.email,
+        'county': user_profile.county,
+        'phoneNo': user_profile.phoneNo,
+        'role': user_profile.get_role_display(),  # Get human-readable role
+        # 'followers': user_profile.followers.count(),
+    }
+    return JsonResponse(data)  # Send JSON response

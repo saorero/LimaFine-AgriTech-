@@ -1,11 +1,17 @@
 {% load static %}
+{% load compress %} 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if action == 'edit' %}Edit Post{% elif action == 'delete' %}Delete Post{% else %}Social Feed{% endif %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  
+    <!-- {% compress css %} -->
+    <link rel="stylesheet" href="{% static 'src/output.css' %}?v={% now 'U' %}" />
+    <!-- {% endcompress %} -->
+    
     <!-- Allows use of font awesome in the project keyo -->
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
@@ -15,7 +21,7 @@
 <body class="bg-gray-300">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <div id="sidebar" class="w-56 bg-teal-700 shadow-lg p-4 ">
+        <div id="sidebar" class="w-56 bg-teal-700 shadow-lg p-4 transition-all duration-300">
         
             <button onclick="toggleSidebar()" class="mb-4 text-white">&#9776;</button>
             <ul class="text-white shadow-2xl">
@@ -23,17 +29,15 @@
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cloud-sun-rain fa-xl  mr-2 "></i><span id="forecast-text">Forecast</span></li>
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-book fa-xl mr-2 "></i><span id="learning-text">Learning Hub</span></li>
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-comments fa-xl mr-2 "></i><span id="botText">AgriBot</span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cart-shopping fa-xl mr-2 "></i><span id="marketText">Market</span></li>
-                <li class="my-2 flex items-center py-4 cursor-pointer" onclick="togglePostPopup()">
-                    <i class="fa-solid fa-marker fa-xl mr-2 "></i><span id="post-text">Post</span>
-                </li>
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cart-shopping fa-xl mr-2 "></i><span id="marketText">Market</span></li>             
+                <li class="my-2 flex items-center py-4 "><i class="fa-solid fa-people-arrows fa-xl mr-2"></i><span id="feed-text"><a href="{% url 'feed' %}">SocialFeed</a></span></li>
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i><span id="logout-text"><a href="{% url 'logout' %}" >Logout</a></span></li>
             </ul>
         </div>
         
         <div class="flex-1 flex flex-col">
             <!-- Header of the social page -->
-            <header class="bg-white shadow-md p-4 flex justify-between items-center">
+            <header class="bg-gray-200 shadow-md p-4 flex justify-between items-center">
                 <h2>Welcome, {{ user.username }}!</h2>
                 <div class="flex items-center">
                     <button onclick="toggleProfilePopup()" class="mr-2">👤</button>
@@ -43,32 +47,22 @@
             <!-- Main Content -->
             <div class="flex flex-1 p-4">
                
-                <div class="flex-1 bg-white shadow-2xl p-4 mr-4">
-                    <div class="flex justify-end space-x-3 mb-4">
-                                           
+                <!-- Centered display Div -->
+                <div class="flex-1 bg-white shadow-2xl p-4 mr-4 rounded-t-3xl">
+                    <!-- Div for Filtering post display -->
+                    
+                    <div class="flex justify-start space-x-3 mb-4">       
+                        
+                        <li class="flex items-center cursor-pointer rounded-2xl bg-gray-200 p-2 " onclick="togglePostPopup()">
+                            <i class="fa-solid fa-marker "></i><span id="post-text">Post</span>
+                        </li>                                 
                         <a href="?filter=following" class="p-2 {% if filter_type == 'following' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">Following</a>
                         <a href="?filter=mePosts" class="p-2 {% if filter_type == 'mePosts' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">My Posts</a>
                         <a href="?filter=all" class="p-2 {% if filter_type == 'all' %}bg-teal-700 text-white{% else %}bg-gray-200 text-black{% endif %} rounded-2xl">All</a>  
-
                     </div>
             
-                    {% if action == 'edit' %}
-                        <h2>Edit Post</h2>
-                        <form method="post">
-                            {% csrf_token %}
-                            {{ form.as_p }}
-                            <button type="submit" class="bg-teal-500 text-white px-4 py-2 mt-2 rounded">Save</button>
-                        </form>
-                    {% elif action == 'delete' %}
-                        <h2>Delete Post</h2>
-                        <p>Are you sure you want to delete this post?</p>
-                        <p>{{ post.content }}</p>
-                        <form method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="bg-gray-500 text-white px-4 py-2 mt-2 rounded">Delete</button>
-                        </form>
-                    {% else %}
-                        <!-- Socisl Feed Display -->
+                   
+                        <!-- Social Feed posts Display -->
                         {% for post in posts %}
                         <!-- Displays the content of each post -->
                         <div class="border-b-4 border-teal-700 p-4 mt-2 mb-2 flex flex-col rounded-3xl bg-gray-200 border-l-2">
@@ -103,24 +97,58 @@
                                 {% endif %}
                             </div>
                         
-                            <!-- Another post row for comment, like and flag a post -->
+                            <!-- Another post row:- comment, like and flag a post -->
                             <div class="flex justify-end items-center mt-3 space-x-6 text-gray-600">
                                 <!-- Like button -->
-                                <button class="hover:text-red-500 flex items-center"><i class="fa-solid fa-heart"></i><span class="ml-1">Like</span></button>                                                  
+                                <button onclick="likePost({{ post.id }})" class="hover:text-red-500 flex items-center">
+                                    <i id="like-icon-{{ post.id }}" class="fa-solid fa-heart"></i><span id="like-count-{{ post.id }}" class="ml-1">{{ post.totalLikes }}</span>
+                                </button>
                                
-                                <!-- Comment button -->
-                                <button class="hover:text-teal-700 flex items-center"><i class="fa-solid fa-comment"></i><span class="ml-1">Comment</span></button>                             
-                                                        
+                                <!-- Comment button for opening post comment section-->
+                                <button onclick="openCommentPopup({{ post.id }})" class="hover:text-teal-500 flex items-center">
+                                    <i class="fa-solid fa-comment"></i>
+                                    <span id="comment-count-{{ post.id }}" class="ml-1">{{ post.comments.count }}</span>Comments
+                                </button>                                  
+                                
                                 <!-- flag button -->
                                 <button class="hover:text-yellow-500 flex items-center"><i class="fa-solid fa-flag"></i><span class="ml-1">Report</span></button>                                    
-                                    
-                                </button>
+                                                                   
                             </div>
-                        
-                        </div>
-                          
-                            <!-- Edit Post Popup -->
-                            <div id="edit-popup-{{ post.id }}" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+
+                            <!-- Comments Section (Hidden by default) -->
+                            <div id="comment-popup-{{ post.id }}" class="hidden mt-4">
+                                
+                                <div class="flex justify-start space-x-3">
+                                    <button onclick="closeCommentPopup({{ post.id }})" class="hover:text-teal-700 flex items-center text-black" title="Close Comments"><i class="fa-regular fa-circle-xmark"></i></button> <!-- Closes the comment section -->
+                                    <button onclick="openCommentModal({{ post.id }}) " class="hover:bg-teal-700 hover:text-white flex items-center bg-gray-300 rounded-3xl p-2">MeComment</button> <!-- Allows one to comment -->  
+                                </div>
+                                
+                                                                                                   
+                                <!-- Display Comments -->
+                                {% for comment in post.comments.all %}
+                                    {% if not comment.parent %} <!-- Only show top-level comments -->
+                                        <div id="comment-{{ comment.id }}" class="p-2 bg-gray-100 rounded-lg mt-2">
+                                            <p><strong>@{{ comment.user.username }}</strong> ({{ comment.created_at }}):</p>
+                                            <p>{{ comment.content }}</p>
+                                            <button onclick="openReplyModal({{ post.id }}, {{ comment.id }})" class="text-teal-500">Reply</button>
+
+                                            <!-- Replies to this comment -->
+                                            <div id="replies-{{ comment.id }}" class="ml-6">
+                                                {% for reply in comment.replies.all %}
+                                                    <div class="p-2 bg-gray-300 rounded-lg mt-2">
+                                                        <p><strong>@{{ reply.user.username }}</strong> ({{ reply.created_at }}):</p>
+                                                        <p>{{ reply.content }}</p>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>                        
+                        </div>                           
+                                                  
+                        <!-- Edit Post Popup modal-->
+                        <div id="edit-popup-{{ post.id }}" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
                                 <div class="bg-white p-6 rounded-xl shadow-lg w-96 backdrop-blur-xl">
                                     <h1 class="italic">Post editing...</h1>
                                     <form method="post" action="{% url 'edit_post' post.id %}">
@@ -132,10 +160,10 @@
                                         </div>
                                     </form>
                                 </div>
-                            </div>
+                        </div>
             
-                            <!-- Delete Post Popup -->
-                            <div id="delete-popup-{{ post.id }}" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+                        <!-- Delete Post Popup modal -->
+                        <div id="delete-popup-{{ post.id }}" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
                                 <div class="bg-white p-6 rounded-xl shadow-lg w-96 backdrop-blur-xl">
                                     <h1 class="italic">Are you sure you want to delete?</h1>
                                     <p class=" text-teal-600">{{ post.content }}</p>
@@ -147,23 +175,43 @@
                                         </div>
                                     </form>
                                 </div>
-                            </div>
+                        </div>
             
                         {% empty %}
                             <p>No posts yet.</p>
                         {% endfor %}
-                    {% endif %}
+                  
                 </div> 
                 
-                <!-- People to Follow -->
+                <!-- People to Follow logic-->
                 <div class="w-64 bg-white shadow-lg p-4 rounded-3xl">
                      <!-- Follow & Followers -->
-                    <div class="flex items-center space-x-4 mb-4">
+                    <!-- <div class="flex items-center space-x-4 mb-4">
                         <p><strong>Followers:</strong> {{ user.userprofile.followers.count }}</p>
                         <p><strong>Following:</strong> {{ user.userprofile.following.count }}</p>
-                    </div>
+                    </div>              -->
+                    <!-- Follow & Followers -->
+                     <!-- NOW -->
+                        <div class="flex items-center space-x-4 mb-4 text-teal-700  p-1 ">
+                            <!-- <p><strong>Followers:</strong> {{ user.userprofile.followers.count }}</p> -->
+                            <button onclick="toggleFollowers({{ user.id }})" class="hover:bg-teal-700 hover:text-white rounded-2xl p-1">Followers:{{ user.userprofile.followers.count }} </button>
 
-                    
+                            <!-- <p><strong>Following:</strong> {{ user.userprofile.following.count }}</p> -->
+                            <button onclick="toggleFollowing({{ user.id }})" class="hover:bg-teal-700 hover:text-white rounded-2xl p-1">Following:{{ user.userprofile.following.count }}</button>
+                        </div>
+
+                        <!-- Followers List -->
+                        <div id="followers-list" class="hidden mt-2 p-4 bg-gray-100 rounded">
+                            <h3 class="font-semibold">Followers</h3>
+                            <ul id="followers-container"></ul>
+                        </div>
+
+                        <!-- Following List -->
+                        <div id="following-list" class="hidden mt-2 p-4 bg-gray-100 rounded">
+                            <h3 class="font-semibold">Following</h3>
+                            <ul id="following-container"></ul>
+                        </div>
+                        <!-- NOW -->
                     <h1><strong>People to follow</strong></h1>
 
                     <!-- Filter by role logic-->
@@ -198,7 +246,7 @@
         </div>
     </div>
 
-    <!-- Post Popup -->
+    <!-- Post Popup Modal -->
     <div id="post-popup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
         <div class="bg-white p-6 rounded-xl shadow-lg w-96 backdrop-blur-sm">
             <h2 class="text-teal-700"> <strong>Create Post</strong></h2>
@@ -224,25 +272,95 @@
     </div>
 
 
-    <!-- Profile Popup -->
-    <div id="profile-popup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-6 rounded shadow-lg">
-            <h2>Profile Details</h2>
+    <!-- Profile Popup Modal -->
+    <!-- <div id="profile-popup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-4 rounded shadow-xl w-80">
+            <strong>Profile Details</strong>
             <p>Username: <span id="profile-username">{{ user.username }}</span></p>
-            <button onclick="toggleProfilePopup()" class="bg-red-500 text-white px-4 py-2 mt-2 rounded">Close</button>
+            <p>Role: <span id="profileRole"></span></p>
+            <div >
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i><span id="logout-text"><a href="{% url 'logout' %}" >Logout</a></span></li>
+                <button onclick="toggleProfilePopup()" class="bg-teal-700 text-white p-1 mt-2 rounded">Close</button>
+                
+            </div>
+            
+        </div>
+    </div> -->
+
+    <!-- Profile Popup Modal 5PM -->
+    <div id="profile-popup" class="hidden fixed inset-0  bg-gray-100 bg-opacity-50 flex items-center justify-center ">
+        <div class="bg-white p-4 shadow-xl w-80 backdrop-blur-xl rounded-3xl">
+
+            <h2 class="text-teal-700 text-center font-bold">Profile Details</h2>
+            <p><strong>Username:</strong> <span id="profile-username"></span></p>
+            <!-- <p><strong>Email:</strong> <span id="profile-email"></span></p> -->
+            <p><strong>County:</strong> <span id="profile-county"></span></p>
+            <p><strong>Phone Number:</strong> <span id="profile-phone"></span></p>
+            <p><strong>Role:</strong> <span id="profile-role"></span></p>
+            <!-- <p><strong>Followers:</strong> <span id="profile-followers"></span></p> -->
+    
+            <div class="flex justify-end space-x-3 ">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <a href="{% url 'logout' %}" id="logout-text" class="text-teal-700">Logout</a>
+                </div>
+                <button onclick="toggleProfilePopup()" class="bg-teal-200 text-black  p-2 rounded-2xl">Close</button>
+            </div>
         </div>
     </div>
-    
+
+
+    <!-- Comment Modal Popup -->
+    <div id="comment-modal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+        <div class="bg-white p-4 rounded-lg shadow-lg w-96">
+            <h2 class="text-lg font-bold mb-2">Write a Comment</h2>
+            <textarea id="comment-modal-input" class="w-full p-2 border rounded" placeholder="Write a comment..."></textarea>
+            <div class="flex justify-end mt-3">
+                <button onclick="submitComment()" class="bg-teal-500 text-white px-4 py-2 rounded">Submit</button>
+                <button onclick="closeCommentModal()" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply Modal PopUp-->
+        <div id="reply-modal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+            <div class="bg-white p-4 rounded-lg shadow-lg w-96">
+                <h2 class="text-lg font-bold mb-2">Write a Reply</h2>
+                <textarea id="reply-modal-input" class="w-full p-2 border rounded" placeholder="Write a reply..."></textarea>
+                <div class="flex justify-end mt-3">
+                    <button onclick="submitReply()" class="bg-teal-500 text-white px-4 py-2 rounded">Submit</button>
+                    <button onclick="closeReplyModal()" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+                </div>
+            </div>
+        </div>    
 </body>
 </html>
 
 <script>
+    // function toggleSidebar() {
+    //     document.getElementById('sidebar').classList.toggle('w-16');
+    //     let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText','marketText', 'feed-text', 'logout-text'];
+    //     textElements.forEach(id => { document.getElementById(id).classList.toggle('hidden'); 
+    //                                     document.getElementById(id).classList.toggle('my-2');});
+    // }
     function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('w-16');
-        let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText','marketText', 'post-text', 'logout-text'];
-        textElements.forEach(id => { document.getElementById(id).classList.toggle('hidden'); 
-                                        document.getElementById(id).classList.toggle('my-2');});
+        let sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('w-56'); // Full width
+        sidebar.classList.toggle('w-16'); // Collapsed width
+
+        let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText', 'marketText', 'feed-text', 'logout-text'];
+        textElements.forEach(id => {
+            let element = document.getElementById(id);
+            if (sidebar.classList.contains('w-16')) {
+                element.classList.add('hidden');  // Hide text
+                element.parentElement.classList.add('py-7');  // Increase space
+            } else {
+                element.classList.remove('hidden');  // Show text
+                element.parentElement.classList.remove('py-7');  // Reset space
+            }
+        });
     }
+
 
     // Toggle the visibility of the post popup
     function togglePostPopup() {
@@ -262,6 +380,19 @@
 
     function toggleProfilePopup() {
         document.getElementById('profile-popup').classList.toggle('hidden');
+        // NOW 5PM
+        fetch('/social/profile/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('profile-username').textContent = data.username;
+            //document.getElementById('profile-email').textContent = data.email;
+            document.getElementById('profile-county').textContent = data.county;
+            document.getElementById('profile-phone').textContent = data.phoneNo;
+            document.getElementById('profile-role').textContent = data.role;
+            // document.getElementById('profile-followers').textContent = data.followers;
+
+           
+        });
     }
 
     // Handles the display of the file name
@@ -279,4 +410,251 @@
     function closePopup(popupId) {
         document.getElementById(popupId).classList.add('hidden');
     }
+
+        // Liking functionalities
+    function likePost(postId) {
+        fetch(`/social/like/${postId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.liked) {
+                document.getElementById(`like-icon-${postId}`).classList.add("text-red-500");
+            } else {
+                document.getElementById(`like-icon-${postId}`).classList.remove("text-red-500");
+            }
+            document.getElementById(`like-count-${postId}`).innerText = data.likesCount;
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // COMMENT HANDLING 13
+
+            let currentPostId = null;
+            let currentCommentId = null;
+
+            // Open Comment Modal
+            function openCommentModal(postId) {
+                currentPostId = postId;
+                document.getElementById("comment-modal").classList.remove("hidden");
+            }
+
+            // Close Comment Modal
+            function closeCommentModal() {
+                document.getElementById("comment-modal").classList.add("hidden");
+                document.getElementById("comment-modal-input").value = "";
+            }
+
+            // Submit Comment
+            function submitComment() {
+                let content = document.getElementById("comment-modal-input").value;
+                let csrfToken = "{{ csrf_token }}";
+
+                fetch(`/social/comment/${currentPostId}/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: `content=${encodeURIComponent(content)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.error) {
+                        // Append new comment to comment section dynamically
+                        let commentSection = document.getElementById(`comment-popup-${currentPostId}`);
+                        let newComment = `
+                            <div class="ml-4 p-2 bg-gray-200 rounded-lg mt-2">
+                                <p><strong>@${data.user}</strong> (${data.created_at}):</p>
+                                <p>${data.content}</p>
+                                <button onclick="openReplyModal(${data.parentId || 'null'})" class="text-teal-500">Reply</button>
+                            </div>`;
+                        commentSection.insertAdjacentHTML("beforeend", newComment);
+
+                        // Update comment count
+                        let commentCount = document.getElementById(`comment-count-${currentPostId}`);
+                        commentCount.innerText = parseInt(commentCount.innerText) + 1;
+
+                        closeCommentModal();
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            }
+
+
+            // Open Reply Modal
+            function openReplyModal(postId, commentId) {
+                currentPostId = postId;  // Store post ID for reply
+                currentCommentId = commentId;  // Store comment ID
+                document.getElementById("reply-modal").classList.remove("hidden");
+            }
+
+
+            // Close Reply Modal
+            function closeReplyModal() {
+                document.getElementById("reply-modal").classList.add("hidden");
+                document.getElementById("reply-modal-input").value = "";
+            }
+
+            // Submit Reply
+            function submitReply() {
+                let content = document.getElementById("reply-modal-input").value;
+                let csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;  // Get CSRF token dynamically
+
+                if (!content) {
+                    alert("Reply content cannot be empty!");
+                    return;
+                }
+
+                if (!currentPostId || !currentCommentId) {
+                    console.error("Error: Missing post or comment ID.");
+                    return;
+                }
+
+                fetch(`/social/comment/${currentPostId}/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: `content=${encodeURIComponent(content)}&parentId=${currentCommentId}`
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.error) {
+                        // Append new reply dynamically under the parent comment
+                        let parentCommentReplies = document.getElementById(`replies-${currentCommentId}`);
+                        if (!parentCommentReplies) {
+                            // If the replies container doesn't exist, create it
+                            const parentComment = document.getElementById(`comment-${currentCommentId}`);
+                            parentComment.insertAdjacentHTML("beforeend", `<div id="replies-${currentCommentId}" class="ml-6"></div>`);
+                            parentCommentReplies = document.getElementById(`replies-${currentCommentId}`);
+                        }
+
+                        let newReply = `
+                            <div class="p-2 bg-gray-300 rounded-lg mt-2">
+                                <p><strong>@${data.user}</strong> (${data.created_at}):</p>
+                                <p>${data.content}</p>
+                            </div>
+                        `;
+                        parentCommentReplies.insertAdjacentHTML("beforeend", newReply);
+
+                        closeReplyModal();
+                    } else {
+                        console.error("Error from server:", data.error);
+                        alert("Failed to submit reply: " + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("An error occurred while submitting the reply.");
+                });
+            }
+
+
+        function openCommentPopup(postId) {
+        document.getElementById(`comment-popup-${postId}`).classList.remove("hidden");
+        }
+
+        function closeCommentPopup(postId) {
+            document.getElementById(`comment-popup-${postId}`).classList.add("hidden");
+        }
+// SECTION FOR FOLLOWING LIST AND FOLLOWERS LIST AND UNFOLLOWING
+
+// Toggle followers list
+function toggleFollowers(userId) {
+    let followersList = document.getElementById("followers-list");
+    let container = document.getElementById("followers-container");
+
+    if (!followersList.classList.contains("hidden")) {
+        followersList.classList.add("hidden");
+        return;
+    }
+
+    fetch(`/social/followers/${userId}/`)
+        .then(response => response.json())
+        .then(data => {
+            container.innerHTML = data.followers.length 
+                ? data.followers.map(user => `<li>@${user.username}</li>`).join("")
+                : "<p>No followers yet.</p>";
+            followersList.classList.remove("hidden");
+        })
+        .catch(error => console.error("Error fetching followers:", error));
+}
+
+// Toggle following list with unfollow option
+function toggleFollowing(userId) {
+    let followingList = document.getElementById("following-list");
+    let container = document.getElementById("following-container");
+
+    if (!followingList.classList.contains("hidden")) {
+        followingList.classList.add("hidden");
+        return;
+    }
+
+    fetch(`/social/following/${userId}/`)
+        .then(response => response.json())
+        .then(data => {
+            container.innerHTML = data.following.length 
+                ? data.following.map(user => `
+                    <li>
+                        @${user.username} 
+                        <button onclick="unfollowUser(${user.id})" class="text-red-500">Unfollow</button>
+                    </li>
+                `).join("")
+                : "<p>Not following anyone.</p>";
+            followingList.classList.remove("hidden");
+        })
+        .catch(error => console.error("Error fetching following list:", error));
+}
+
+// Unfollow user
+function unfollowUser(userId) {
+
+    fetch(`/social/unfollow/${userId}/`, { method: "POST",
+        headers: {
+                "X-CSRFToken": getCookie("csrftoken"), // Ensure you send CSRF token getCookie functionality
+                "Content-Type": "application/json"
+            },
+            credentials: "include" // Ensures cookies are sent with request
+
+     })
+
+    
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                toggleFollowing(userId);
+                // alert(data.message);
+            }
+        })
+        .catch(error => console.error("Error unfollowing user:", error));
+}
+
+//  Function to extract CSRF token from cookies and add it to Unfollow request headers SPECIAL FUNCTION
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}  
+
 </script>

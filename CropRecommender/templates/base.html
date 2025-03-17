@@ -71,9 +71,7 @@
   <!-- Footer Section (Menu) -->
   <footer class="fixed bottom-4 left-4">
     <div class="flex items-center space-x-4">
-      <button
-        id="menuButton"
-        class="w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center text-white text-lg shadow-md focus:outline-none animate-flicker"
+      <button  id="menuButton" class="w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center text-white text-lg shadow-md focus:outline-none animate-flicker"
       >
         Menu
       </button>
@@ -105,11 +103,11 @@
           ></i>
         </a>
         <a href="#" class="w-8 h-8 flex items-center justify-center">
-          <img src="{% static 'Images/marketIcon.png' %}" alt="market" class="w-8 h-8" >
+          <i class="fa-solid fa-cart-shopping fa-xl"></i>
         <!-- Handles feed app -->
         </a>
         <a href="{% url 'feed' %}" class="w-8 h-8 flex items-center justify-center">
-          <img src="{% static 'Images/newsFeed.png' %}" alt="feed" class="w-8 h-8">
+          <i class="fa-solid fa-people-arrows fa-xl"></i>
         </a>
         
 

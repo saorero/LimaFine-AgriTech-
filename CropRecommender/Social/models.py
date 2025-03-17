@@ -41,7 +41,7 @@ class Post(models.Model):
         return f"{self.user.username} - {self.content[:20]}"
 
 
-# Model that keep track of replies
+# Model that keep track of likes 13
 class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
@@ -53,4 +53,14 @@ class Like(models.Model):
         return f"{self.user.username} liked {self.post.user.username}'s post"
 
 
+# Model to keep track of comments made on a post
+class Comment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment by {self.user.username} on {self.post.id}"
 
