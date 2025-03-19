@@ -1,58 +1,21 @@
+{% extends "base2.html" %}  
 {% load static %}
-{% load compress %} 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
-  
-    <!-- {% compress css %} -->
-    <link rel="stylesheet" href="{% static 'src/output.css' %}?v={% now 'U' %}" />
-    <!-- {% endcompress %} -->
-    
-    <!-- Allows use of font awesome in the project keyo -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-</head>
-<body class="bg-gray-300">
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div id="sidebar" class="w-56 bg-teal-700 shadow-lg p-4 transition-all duration-300">
-        
-            <button onclick="toggleSidebar()" class="mb-4 text-white">&#9776;</button>
-            <ul class="text-white shadow-2xl">
-                <li class="my-2 flex items-center py-4 "><i class="fa-solid fa-house fa-xl mr-2 "></i><span id="home-text"><a href="{% url 'Homepage' %}">Home</a></span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cloud-sun-rain fa-xl  mr-2 "></i><span id="forecast-text">Forecast</span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-book fa-xl mr-2 "></i><span id="learning-text">Learning Hub</span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-comments fa-xl mr-2 "></i><span id="botText">AgriBot</span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cart-shopping fa-xl mr-2 "></i><span id="marketText">Market</span></li>             
-                <li class="my-2 flex items-center py-4 "><i class="fa-solid fa-people-arrows fa-xl mr-2"></i><span id="feed-text"><a href="{% url 'feed' %}">SocialFeed</a></span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i><span id="logout-text"><a href="{% url 'logout' %}" >Logout</a></span></li>
-            </ul>
-        </div>
-        
+{% block content %}
         <div class="flex-1 flex flex-col">
-            <!-- Header of the social page -->
-            <header class="bg-gray-200 shadow-md p-4 flex justify-between items-center">
+            <!--Social Page top-->
+            <div class="bg-gray-200 shadow-md p-4 flex justify-between items-center">
                 <h2>Welcome, {{ user.username }}!</h2>
                 <div class="flex items-center">
                     <button onclick="toggleProfilePopup()" class="mr-2">👤</button>
                 </div>
-            </header>
+            </div>
 
             <!-- Main Content -->
-            <div class="flex flex-1 p-4">
-               
-                <!-- Centered display Div -->
+            <div class="flex flex-1 p-4">               
+                <!-- Center display Div for posts -->
                 <div class="flex-1 bg-white shadow-2xl p-4 mr-4 rounded-t-3xl">
-                    <!-- Div for Filtering post display -->
-                    
-                    <div class="flex justify-start space-x-3 mb-4">       
-                        
+                    <!-- Div for Filtering displayed posts -->                    
+                    <div class="flex justify-start space-x-3 mb-4">     
                         <li class="flex items-center cursor-pointer rounded-2xl bg-gray-200 p-2 " onclick="togglePostPopup()">
                             <i class="fa-solid fa-marker "></i><span id="post-text">Post</span>
                         </li>                                 
@@ -62,7 +25,7 @@
                     </div>
             
                    
-                        <!-- Social Feed posts Display -->
+                        <!-- Displays the posts at the center-->
                         {% for post in posts %}
                         <!-- Displays the content of each post -->
                         <div class="border-b-4 border-teal-700 p-4 mt-2 mb-2 flex flex-col rounded-3xl bg-gray-200 border-l-2">
@@ -97,7 +60,7 @@
                                 {% endif %}
                             </div>
                         
-                            <!-- Another post row:- comment, like and flag a post -->
+                            <!-- Comment, like and flag post row (another row)-->
                             <div class="flex justify-end items-center mt-3 space-x-6 text-gray-600">
                                 <!-- Like button -->
                                 <button onclick="likePost({{ post.id }})" class="hover:text-red-500 flex items-center">
@@ -154,8 +117,8 @@
                                     <form method="post" action="{% url 'edit_post' post.id %}">
                                         {% csrf_token %}
                                         <textarea name="content" class="w-full h-24 border rounded focus:outline-none focus:ring focus:border-teal-500">{{ post.content }}</textarea>
-                                        <div class="flex justify-end mt-4">
-                                            <button type="button" onclick="closePopup('edit-popup-{{ post.id }}')" class="text-teal-700 mr-2">Cancel</button>
+                                        <div class="flex justify-end mt-4">                                            
+                                            <button type="button" onclick="closePopup('edit-popup-{{ post.id }}')" class="text-teal-700 mr-2" title="Cancel"><i class="fa-regular fa-circle-xmark"></i></button>
                                             <button type="submit" class="bg-teal-200 text-black px-2 py-2 rounded-3xl hover:bg-teal-700 hover:text-white">Save</button>
                                         </div>
                                     </form>
@@ -170,7 +133,7 @@
                                     <form method="post" action="{% url 'delete_post' post.id %}">
                                         {% csrf_token %}
                                         <div class="flex justify-end mt-4">
-                                            <button type="button" onclick="closePopup('delete-popup-{{ post.id }}')" class="text-teal-700 mr-2">Cancel</button>
+                                            <button type="button" onclick="closePopup('delete-popup-{{ post.id }}')" class="text-teal-700 mr-2" title="Cancel"><i class="fa-regular fa-circle-xmark"></i></button>
                                             <button type="submit" class="bg-teal-200 text-black px-2 py-2 rounded-3xl hover:bg-red-700">Delete</button>
                                         </div>
                                     </form>
@@ -179,24 +142,14 @@
             
                         {% empty %}
                             <p>No posts yet.</p>
-                        {% endfor %}
-                  
+                        {% endfor %}                  
                 </div> 
                 
                 <!-- People to Follow logic-->
-                <div class="w-64 bg-white shadow-lg p-4 rounded-3xl">
-                     <!-- Follow & Followers -->
-                    <!-- <div class="flex items-center space-x-4 mb-4">
-                        <p><strong>Followers:</strong> {{ user.userprofile.followers.count }}</p>
-                        <p><strong>Following:</strong> {{ user.userprofile.following.count }}</p>
-                    </div>              -->
-                    <!-- Follow & Followers -->
-                     <!-- NOW -->
-                        <div class="flex items-center space-x-4 mb-4 text-teal-700  p-1 ">
-                            <!-- <p><strong>Followers:</strong> {{ user.userprofile.followers.count }}</p> -->
-                            <button onclick="toggleFollowers({{ user.id }})" class="hover:bg-teal-700 hover:text-white rounded-2xl p-1">Followers:{{ user.userprofile.followers.count }} </button>
-
-                            <!-- <p><strong>Following:</strong> {{ user.userprofile.following.count }}</p> -->
+                <div class="w-64 bg-white shadow-lg p-4 rounded-3xl">                    
+                    <!-- Follow & Followers -->                    
+                        <div class="flex items-center space-x-4 mb-4 text-teal-700  p-1 ">                         
+                            <button onclick="toggleFollowers({{ user.id }})" class="hover:bg-teal-700 hover:text-white rounded-2xl p-1">Followers:{{ user.userprofile.followers.count }} </button>                   
                             <button onclick="toggleFollowing({{ user.id }})" class="hover:bg-teal-700 hover:text-white rounded-2xl p-1">Following:{{ user.userprofile.following.count }}</button>
                         </div>
 
@@ -244,8 +197,9 @@
                 </div>
             </div>
         </div>
-    </div>
-
+{% endblock content %}
+   
+{% block modalsContent %}    
     <!-- Post Popup Modal -->
     <div id="post-popup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
         <div class="bg-white p-6 rounded-xl shadow-lg w-96 backdrop-blur-sm">
@@ -271,53 +225,35 @@
         </div>
     </div>
 
-
-    <!-- Profile Popup Modal -->
-    <!-- <div id="profile-popup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-4 rounded shadow-xl w-80">
-            <strong>Profile Details</strong>
-            <p>Username: <span id="profile-username">{{ user.username }}</span></p>
-            <p>Role: <span id="profileRole"></span></p>
-            <div >
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i><span id="logout-text"><a href="{% url 'logout' %}" >Logout</a></span></li>
-                <button onclick="toggleProfilePopup()" class="bg-teal-700 text-white p-1 mt-2 rounded">Close</button>
-                
-            </div>
-            
-        </div>
-    </div> -->
-
-    <!-- Profile Popup Modal 5PM -->
+    <!-- Profile Popup Modal-->
     <div id="profile-popup" class="hidden fixed inset-0  bg-gray-100 bg-opacity-50 flex items-center justify-center ">
-        <div class="bg-white p-4 shadow-xl w-80 backdrop-blur-xl rounded-3xl">
-
-            <h2 class="text-teal-700 text-center font-bold">Profile Details</h2>
-            <p><strong>Username:</strong> <span id="profile-username"></span></p>
-            <!-- <p><strong>Email:</strong> <span id="profile-email"></span></p> -->
-            <p><strong>County:</strong> <span id="profile-county"></span></p>
-            <p><strong>Phone Number:</strong> <span id="profile-phone"></span></p>
-            <p><strong>Role:</strong> <span id="profile-role"></span></p>
-            <!-- <p><strong>Followers:</strong> <span id="profile-followers"></span></p> -->
+            <div class="bg-white p-4 shadow-xl w-80 backdrop-blur-xl rounded-3xl">
     
-            <div class="flex justify-end space-x-3 ">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <a href="{% url 'logout' %}" id="logout-text" class="text-teal-700">Logout</a>
+                <h2 class="text-teal-700 text-center font-bold">Profile Details</h2>
+                <p><strong>Username:</strong> <span id="profile-username"></span></p>               
+                <p><strong>County:</strong> <span id="profile-county"></span></p>
+                <p><strong>Phone Number:</strong> <span id="profile-phone"></span></p>
+                <p><strong>Role:</strong> <span id="profile-role"></span></p>
+                       
+                <div class="flex justify-end space-x-3 ">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <a href="{% url 'logout' %}" id="logout-text" class="text-teal-700">Logout</a>
+                    </div>
+                    <button onclick="toggleProfilePopup()" class="hover:bg-teal-700 hover:text-white text-black  p-2 rounded-2xl"><i class="fa-regular fa-circle-xmark"></i></button>
                 </div>
-                <button onclick="toggleProfilePopup()" class="bg-teal-200 text-black  p-2 rounded-2xl">Close</button>
             </div>
-        </div>
     </div>
 
-
+   
     <!-- Comment Modal Popup -->
     <div id="comment-modal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
         <div class="bg-white p-4 rounded-lg shadow-lg w-96">
             <h2 class="text-lg font-bold mb-2">Write a Comment</h2>
             <textarea id="comment-modal-input" class="w-full p-2 border rounded" placeholder="Write a comment..."></textarea>
-            <div class="flex justify-end mt-3">
-                <button onclick="submitComment()" class="bg-teal-500 text-white px-4 py-2 rounded">Submit</button>
-                <button onclick="closeCommentModal()" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+            <div class="flex justify-end mt-3 space-x-3">
+                <button onclick="submitComment()" class="hover:bg-teal-700 text-teal-700  rounded-3xl  hover:text-white" title="submit"><i class="fa-solid fa-circle-check fa-xl"></i></button>
+                <button onclick="closeCommentModal()" class=" hover:bg-teal-700 text-teal-700 rounded-3xl  hover:text-white"><i class="fa-regular fa-circle-xmark fa-xl"></i></button>
             </div>
         </div>
     </div>
@@ -327,41 +263,20 @@
             <div class="bg-white p-4 rounded-lg shadow-lg w-96">
                 <h2 class="text-lg font-bold mb-2">Write a Reply</h2>
                 <textarea id="reply-modal-input" class="w-full p-2 border rounded" placeholder="Write a reply..."></textarea>
-                <div class="flex justify-end mt-3">
-                    <button onclick="submitReply()" class="bg-teal-500 text-white px-4 py-2 rounded">Submit</button>
-                    <button onclick="closeReplyModal()" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+                <div class="flex justify-end mt-3 space-x-1">
+                    <button onclick="submitReply()" class="hover:bg-teal-700 text-teal-700  rounded-3xl  hover:text-white p-2" title="submit"><i class="fa-solid fa-circle-check fa-xl"></i></button>
+                    <button onclick="closeReplyModal()" class="ml-2 hover:bg-teal-700 text-teal-700 hover:text-white px-4 py-2 rounded-3xl"><i class="fa-regular fa-circle-xmark fa-xl"></i></button>
                 </div>
             </div>
-        </div>    
-</body>
-</html>
+        </div>
+{% endblock modalsContent %}  
+
+
+
+   
+{% block script %}
 
 <script>
-    // function toggleSidebar() {
-    //     document.getElementById('sidebar').classList.toggle('w-16');
-    //     let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText','marketText', 'feed-text', 'logout-text'];
-    //     textElements.forEach(id => { document.getElementById(id).classList.toggle('hidden'); 
-    //                                     document.getElementById(id).classList.toggle('my-2');});
-    // }
-    function toggleSidebar() {
-        let sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('w-56'); // Full width
-        sidebar.classList.toggle('w-16'); // Collapsed width
-
-        let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText', 'marketText', 'feed-text', 'logout-text'];
-        textElements.forEach(id => {
-            let element = document.getElementById(id);
-            if (sidebar.classList.contains('w-16')) {
-                element.classList.add('hidden');  // Hide text
-                element.parentElement.classList.add('py-7');  // Increase space
-            } else {
-                element.classList.remove('hidden');  // Show text
-                element.parentElement.classList.remove('py-7');  // Reset space
-            }
-        });
-    }
-
-
     // Toggle the visibility of the post popup
     function togglePostPopup() {
         document.getElementById('post-popup').classList.toggle('hidden');
@@ -380,7 +295,7 @@
 
     function toggleProfilePopup() {
         document.getElementById('profile-popup').classList.toggle('hidden');
-        // NOW 5PM
+       
         fetch('/social/profile/')
         .then(response => response.json())
         .then(data => {
@@ -658,3 +573,5 @@ function getCookie(name) {
 }  
 
 </script>
+
+{% endblock script %}
