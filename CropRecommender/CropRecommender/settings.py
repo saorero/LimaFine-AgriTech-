@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     'compressor',#static file minimizer app @KEYO
     'agriBot',
     'Social',# For user socialization
+    'resource', #Resource Hub
+    'storages', #for google cloud storage
 
 ]
 
@@ -103,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Nairobi' #specific timezone to use
 
 USE_I18N = True
 

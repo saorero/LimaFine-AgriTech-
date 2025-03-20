@@ -1,7 +1,12 @@
+AIzaSyCr_qmPHd8KjokbV8Ww90v8evqrk8Zrwl4  ---YouTube API key
+
+
+
 ///TEXT FILE CAN BE DELETED ANYTIME
 //holdingcode.py is also useless just acts as a file to hold orginal files
 // HeroIcons used for SVG
-//DEPLOYMENT --Render FILES CREATED requirements.txt and Procfile also edited settings.py pip freeze > requirements.txt
+///DEPLOYMENT --Render FILES CREATED requirements.txt and Procfile also edited settings.py pip freeze > requirements.txt
+
 
 git init
 git add .

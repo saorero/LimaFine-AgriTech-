@@ -1,0 +1,87 @@
+{% extends "base2.html" %}  
+{% load static %}
+
+{% block content %} 
+<!-- The MENU Button -->
+<div class="flex items-center justify-between w-full px-2 ">
+    <!-- Menu Button -->
+    <button id="menuButton" class="w-14 h-14 rounded-full text-black shadow-md focus:outline-none animate-flicker" onclick="hubMenu()">
+        <i class="fa-brands fa-opencart fa-xl"></i>
+    </button>               
+
+    <!-- Centered Menu (Responsive) -->
+    <div class="flex-1 flex justify-start">
+        <div id="menuIcons" class="menu-icons opacity-0 invisible flex flex-row items-center justify-around shadow-md w-auto text-teal-700 rounded-xl 
+        bg-gray-200 md:bg-transparent md:relative absolute top-20 left-1/2 transform -translate-x-1/2 md:top-auto md:left-auto md:translate-x-0 
+        flex-wrap md:flex-nowrap overflow-x-auto md:overflow-visible">        
+            <a href="{% url 'Homepage' %}" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Events</a>
+            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Articles</a>
+            <a href="{% url 'videoSection' %}" id="videoShow" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Videos</a>
+            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Community Summaries</a>
+            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Learn</a>   
+        </div>
+    </div>
+</div>
+
+<!-- VIDEO SECTION -->
+<h1>{{ message }}</h1>
+<div class="container mx-auto p-4" id="">
+    <h2 class="text-2xl font-bold text-center text-teal-700">Agricultural Videos</h2>
+    
+    <!-- Search Form -->
+    <form method="GET" class="flex justify-center my-4 ">
+        <input type="text" name="q" placeholder="Search videos..." class="p-2 border rounded-l-md focus:outline-none">
+        <button type="submit" class="p-2 bg-teal-700 text-white rounded-r-md">Search</button>
+    </form>
+    
+    <!-- Video Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        
+        {% for video in videos %}
+        <div class="bg-white shadow-md rounded-lg p-2">
+            <a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank">
+                <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="w-full h-auto rounded-md">
+                <p class="mt-2 text-sm font-semibold">{{ video.title }}</p>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+
+{% endblock content %}
+
+{% block script %}
+<script>
+   
+    function hubMenu(){
+        const menuButton = document.getElementById("menuButton");
+        const menuIcons = document.getElementById("menuIcons");
+
+        menuButton.classList.remove("animate-flicker");
+         // Toggle visibility and animation
+        const isVisible = menuIcons.classList.contains("opacity-100");
+        if (isVisible) {
+            menuIcons.classList.remove("opacity-100", "translate-y-0");
+            menuIcons.classList.add("opacity-0", "invisible", "-translate-y-4");
+            menuButton.classList.add('animate-flicker'); // flickering
+        } else {
+            menuIcons.classList.remove("opacity-0", "invisible", "-translate-y-4");
+            menuIcons.classList.add("opacity-100", "translate-y-0");
+           
+        }
+
+    }
+
+    // VIDEOS
+    // function showVideos() {
+    // document.getElementById("videoSection").classList.toggle("hidden");
+    
+    // }
+    // document.getElementById("videoShow").addEventListener("click", showVideos);
+   
+</script>
+
+{% endblock script %}

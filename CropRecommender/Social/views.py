@@ -7,6 +7,7 @@ from django.contrib.auth.forms import AuthenticationForm #Django predefined Auth
 from django.contrib.auth.decorators import login_required #user needs to be logged in
 from .models import Post, UserProfile, Like, Comment #models/table importation
 from django.http import JsonResponse #for likes
+from django.utils import timezone #for timzone
 
 # Create your views here.
 # Sign up form called in this function
@@ -205,12 +206,12 @@ def addComment(request, post_id):
             content=content,
             parent=parentComment #if its a reply
         )
-
+        
         return JsonResponse({
             "id": comment.id,  # for DOM Manipulation
             "user": request.user.username,
             "content": comment.content,
-            "created_at": comment.created_at.strftime("%Y-%m-%d %H:%M"),
+            "created_at": timezone.localtime(comment.created_at).strftime("%Y-%m-%d %H:%M"),  # Convert to local timezone
             "parentId": parentId if parentId else None, #if its a reply
         })
     return JsonResponse({"error": "Invalid request"}, status=400)

@@ -26,6 +26,7 @@ module.exports = {
 
       backgroundImage: {
         'custom-bg': "url('/static/Images/background2.png')", // predefined custom background for this project
+       
       },
 
       // Allows me to import a new fontStyle feb

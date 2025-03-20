@@ -11,55 +11,52 @@
 </head>
 <body class="bg-gray-300">
     <div class="flex h-screen">
-        <!-- Sidebar Remains for the other pages-->
-        <div id="sidebar" class="w-56 bg-teal-700 shadow-lg p-4 transition-all duration-300">        
-            <button onclick="toggleSidebar()" class="mb-4 text-white">&#9776;</button>
-            <ul class="text-white shadow-2xl">
-                <li class="my-2 flex items-center py-4 "><i class="fa-solid fa-house fa-xl mr-2 "></i><span id="home-text"><a href="{% url 'Homepage' %}">Home</a></span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cloud-sun-rain fa-xl  mr-2 "></i><span id="forecast-text">Forecast</span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-book fa-xl mr-2 "></i><span id="learning-text">Resource Hub</span></li>                
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-comments fa-xl mr-2 "></i><span id="botText"><a href="{% url 'agriBot' %}">AgriBot</a></span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cart-shopping fa-xl mr-2 "></i><span id="marketText">Market</span></li>             
-                <li class="my-2 flex items-center py-4 "><i class="fa-solid fa-people-arrows fa-xl mr-2"></i><span id="feed-text"><a href="{% url 'feed' %}">Community</a></span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i><span id="logout-text"><a href="{% url 'logout' %}" >Logout</a></span></li>
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-16 lg:w-16 bg-teal-700 shadow-lg p-4 transition-all duration-300">        
+            <button onclick="toggleSidebar()" class="mb-4 "><i class="fa-solid fa-seedling fa-xl"></i></button>
+            <ul class="text-white shadow-2xl space-y-4">
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-house fa-xl mr-2"></i><span id="home-text" class="hidden"><a href="{% url 'Homepage' %}">Home</a></span></li>
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cloud-sun-rain fa-xl mr-2"></i><span id="forecast-text" class="hidden">Forecast</span></li>
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-book fa-xl mr-2"></i><span id="learning-text" class="hidden"><a href="{% url 'hub' %}">Resource Hub</a></span></li>                
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-comments fa-xl mr-2"></i><span id="botText" class="hidden"><a href="{% url 'agriBot' %}">AgriBot</a></span></li>
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cart-shopping fa-xl mr-2"></i><span id="marketText" class="hidden">Market</span></li>             
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-people-arrows fa-xl mr-2"></i><span id="feed-text" class="hidden"><a href="{% url 'feed' %}">Community</a></span></li>
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i><span id="logout-text" class="hidden"><a href="{% url 'logout' %}">Logout</a></span></li>
             </ul>
         </div>
         
-        <!-- Main Area the middle -->
+        <!-- Main Area -->
         <div class="flex-1 flex flex-col">
-            <!--Social Page top-->
+            <!-- Social Page Top -->
             <div class="bg-gray-200 shadow-md p-4 flex justify-between items-center">
-                <h2>Welcome, {{ user.username }}!</h2>
+                <h2 class="text-lg md:text-xl">Welcome, {{ user.username }}!</h2>
                 <div class="flex items-center">
                     <button onclick="toggleProfilePopup()" class="mr-2">👤</button>
                 </div>
             </div>
             {% block content %} 
             {% endblock content %}
-
         </div>
-        
-        
     </div>
-       <!-- Profile Popup Modal-->
-        <div id="profile-popup" class="hidden fixed inset-0  bg-gray-100 bg-opacity-50 flex items-center justify-center ">
-                <div class="bg-white p-4 shadow-xl w-80 backdrop-blur-xl rounded-3xl">
-
-                    <h2 class="text-teal-700 text-center font-bold">Profile Details</h2>
-                    <p><strong>Username:</strong> <span id="profile-username"></span></p>               
-                    <p><strong>County:</strong> <span id="profile-county"></span></p>
-                    <p><strong>Phone Number:</strong> <span id="profile-phone"></span></p>
-                    <p><strong>Role:</strong> <span id="profile-role"></span></p>
-                        
-                    <div class="flex justify-end space-x-3 ">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                            <a href="{% url 'logout' %}" id="logout-text" class="text-teal-700">Logout</a>
-                        </div>
-                        <button onclick="toggleProfilePopup()" class="hover:bg-teal-700 hover:text-white text-black  p-2 rounded-2xl"><i class="fa-regular fa-circle-xmark"></i></button>
-                    </div>
+    
+    <!-- Profile Popup Modal -->
+    <div id="profile-popup" class="hidden fixed inset-0 bg-gray-100 bg-opacity-50  flex items-center justify-center">
+        <div class="bg-white p-4 shadow-xl w-11/12 md:w-80 backdrop-blur-xl rounded-3xl">
+            <h2 class="text-teal-700 text-center font-bold">Profile Details</h2>
+            <p><strong>Username:</strong> <span id="profile-username"></span></p>               
+            <p><strong>County:</strong> <span id="profile-county"></span></p>
+            <p><strong>Phone Number:</strong> <span id="profile-phone"></span></p>
+            <p><strong>Role:</strong> <span id="profile-role"></span></p>
+            <div class="flex justify-end space-x-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <a href="{% url 'logout' %}" id="logout-text" class="text-teal-700">Logout</a>
                 </div>
+                <button onclick="toggleProfilePopup()" class="hover:bg-teal-700  hover:text-white text-black p-2 rounded-2xl"><i class="fa-regular fa-circle-xmark"></i></button>
+            </div>
         </div>
+    </div>
+   
     {% block modalsContent %}
     {% endblock modalsContent %}
    
@@ -70,40 +67,35 @@
 
 <script>
 // Scripts for the navbar
-     function toggleSidebar() {
-        let sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('w-56'); // Full width
-        sidebar.classList.toggle('w-16'); // Collapsed width
+function toggleSidebar() {
+    let sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('w-16'); // Collapsed width
+    sidebar.classList.toggle('lg:w-56'); // Expanded width on large screens
 
-        let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText', 'marketText', 'feed-text', 'logout-text'];
-        textElements.forEach(id => {
-            let element = document.getElementById(id);
-            if (sidebar.classList.contains('w-16')) {
-                element.classList.add('hidden');  // Hide text
-                element.parentElement.classList.add('py-7');  // Increase space
-            } else {
-                element.classList.remove('hidden');  // Show text
-                element.parentElement.classList.remove('py-7');  // Reset space
-            }
-        });
-    } 
+    let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText', 'marketText', 'feed-text', 'logout-text'];
+    textElements.forEach(id => {
+        let element = document.getElementById(id);
+        if (sidebar.classList.contains('w-16')) {
+            element.classList.add('hidden');  // Hide text
+            element.parentElement.classList.add('py-6');  // Increase space
+        } else {
+            element.classList.remove('hidden');  // Show text
+            element.parentElement.classList.remove('py-6');  // Reset space
+        }
+    });
+} 
 
-    // Function for the profile details pop up
-    function toggleProfilePopup() {
-        document.getElementById('profile-popup').classList.toggle('hidden');
-       
-        fetch('/social/profile/')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('profile-username').textContent = data.username;
-            //document.getElementById('profile-email').textContent = data.email;
-            document.getElementById('profile-county').textContent = data.county;
-            document.getElementById('profile-phone').textContent = data.phoneNo;
-            document.getElementById('profile-role').textContent = data.role;
-            // document.getElementById('profile-followers').textContent = data.followers;
-
-           
-        });
-    }
-    
+// Function for the profile details pop up
+function toggleProfilePopup() {
+    document.getElementById('profile-popup').classList.toggle('hidden');
+    // document.getElementById('myElement').classList.add('flex');
+    fetch('/social/profile/')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('profile-username').textContent = data.username;
+        document.getElementById('profile-county').textContent = data.county;
+        document.getElementById('profile-phone').textContent = data.phoneNo;
+        document.getElementById('profile-role').textContent = data.role;
+    });
+}
 </script>

@@ -10,9 +10,10 @@ from django.conf.urls.static import static
 # Defining the urls of the apps you have created to contain the logic of different modules
 urlpatterns = [
     path('', include('Homepage.urls')), # Homepage module (main) urls are included
-    path('', include('agriBot.urls')), #ChatBot module
+    path('agriBot/', include('agriBot.urls')), #ChatBot module
     path('admin/', admin.site.urls),
     path('social/', include('Social.urls')), #Social media url path
+    path('resource/', include('resource.urls')),#registered resource app url path
 ]
 
 if settings.DEBUG: #Development KEYO 11

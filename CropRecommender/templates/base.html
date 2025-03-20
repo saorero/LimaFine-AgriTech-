@@ -73,7 +73,7 @@
     <div class="flex items-center space-x-4">
       <button  id="menuButton" class="w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center text-white text-lg shadow-md focus:outline-none animate-flicker"
       >
-        Menu
+        <i class="fa-brands fa-opencart fa-xl"></i>
       </button>
 
       <!-- Menu Icons inside a single rounded box -->
@@ -93,7 +93,7 @@
           <i class="fa-solid fa-comments fa-xl"></i>
         </a>
 
-        <a href="#" class="w-8 h-8 flex items-center justify-center">
+        <a href="{% url 'hub' %}" class="w-8 h-8 flex items-center justify-center">
           <i class="fa-solid fa-book fa-xl" ></i>
         </a>
         <a href="#" class="w-8 h-8 flex items-center justify-center">
@@ -132,7 +132,7 @@
       if (isVisible) {
         menuIcons.classList.remove("opacity-100", "translate-y-0");
         menuIcons.classList.add("opacity-0", "invisible", "-translate-y-4");
-        // menuButton.classList.add('animate-flicker'); // flickering
+        menuButton.classList.add('animate-flicker'); // flickering
       } else {
         menuIcons.classList.remove("opacity-0", "invisible", "-translate-y-4");
         menuIcons.classList.add("opacity-100", "translate-y-0");
