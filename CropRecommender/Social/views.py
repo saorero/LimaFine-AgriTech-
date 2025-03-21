@@ -228,3 +228,6 @@ def profileView(request):
         # 'followers': user_profile.followers.count(),
     }
     return JsonResponse(data)  # Send JSON response
+
+
+

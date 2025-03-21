@@ -1,4 +1,7 @@
 from pathlib import Path
+# Imports for google cloud storage
+import os
+from google.oauth2 import service_account
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,12 +25,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages', #for google cloud storage
     'Homepage', #main page
     'compressor',#static file minimizer app @KEYO
     'agriBot',
     'Social',# For user socialization
     'resource', #Resource Hub
-    'storages', #for google cloud storage
+    
 
 ]
 
@@ -136,8 +140,17 @@ STATICFILES_FINDERS = (
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# KEYO 11
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# KEYO 11 For storing files locally commented since post files are stored in the cloud
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = BASE_DIR / 'media'
+
+# Keyo 20th storage settings for google cloud storage
+DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+GS_BUCKET_NAME = "smart_farmer"
+GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+    os.path.join(BASE_DIR, "smart_farmersKey.json")
+)
+MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
+
 
 

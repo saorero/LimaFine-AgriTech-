@@ -28,13 +28,21 @@
                                     <p>{{ post.content }}</p>
                         
                                     <!-- Uploaded files are displayed if there is an uploaded file in the post -->
-                                    {% if post.file %}
+                                    <!-- {% if post.file %}
                                         {% if post.file.url|lower|slice:'-3:' == 'pdf' %}
                                             <a href="{{ post.file.url }}" target="_blank" class="text-teal-700 underline">View File</a>
                                         {% else %}
                                             <img src="{{ post.file.url }}" alt="Uploaded Image" class="mt-2 max-w-full h-auto rounded">
                                         {% endif %}
-                                    {% endif %}
+                                    {% endif %} -->
+                                    
+                                    <!-- checks if upload is an image or a file if the image fails to load then it is the alternative -->
+                                    {% if post.file %}
+                                        <img src="{{ post.file.url }}" alt="Uploaded Image" class="mt-2 max-w-full h-auto rounded" onerror="this.style.display='none'; document.getElementById('file-link-{{ post.id }}').style.display='inline';">
+                                        <a id="file-link-{{ post.id }}" href="{{ post.file.url }}" target="_blank" class="text-teal-700 underline" style="display:none;">File View</a>
+                                    {% endif %}                                                                     
+
+
                                 </div>
                         
                                 <!-- Edit & delete buttons (Only for the post owner) -->

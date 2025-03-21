@@ -156,3 +156,4 @@ productionfiles/
 # Django Static & Media Files (Optional)
 static/
 media/
+smart_farmersKey.json

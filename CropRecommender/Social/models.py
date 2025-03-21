@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-
+from storages.backends.gcloud import GoogleCloudStorage
 # Create your models here.
 
 class UserProfile(models.Model): # Model for Django authentication system
@@ -27,7 +27,8 @@ class UserProfile(models.Model): # Model for Django authentication system
 class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
-    file = models.FileField(upload_to='uploads/', blank=True, null=True)  # Allows image/pdf uploads 11/03/2025
+    # file = models.FileField(upload_to='uploads/', blank=True, null=True)  # Allows image/pdf uploads 11/03/2025
+    file = models.FileField(upload_to='uploads/', blank=True, null=True, storage=GoogleCloudStorage())
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

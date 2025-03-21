@@ -5,11 +5,7 @@ import random
 
 
 # Create your views here.
-# Views for Resource application
-
-
-
-
+# Views for Resource applicatio
 def fetchVideos(query="agriculture", maxResults=12):
 
     # youtubeApi = "AIzaSyCr_qmPHd8KjokbV8Ww90v8evqrk8Zrwl4"
