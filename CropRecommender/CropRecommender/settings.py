@@ -145,12 +145,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # MEDIA_ROOT = BASE_DIR / 'media'
 
 # Keyo 20th storage settings for google cloud storage
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:/Users/admin/Downloads/PROJECT/Application/RecommenderSystem/CropRecommender/smart_farmersKey.json" #authenticate user to fetch file
+
+# uploads stored in Google Cloud Storage
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = "smart_farmer"
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
     os.path.join(BASE_DIR, "smart_farmersKey.json")
 )
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
+
+
+
 
 
 

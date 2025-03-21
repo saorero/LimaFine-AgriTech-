@@ -1,183 +1,125 @@
-from pathlib import Path
-# Imports for google cloud storage
-import os
-from google.oauth2 import service_account
+{% extends "base2.html" %}  
+{% load static %}
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+{% block content %} 
+<!-- The MENU Button -->
+<div class="flex items-center justify-between w-full px-2 ">
+    <!-- Menu Button -->
+    <button id="menuButton" class="w-14 h-14 rounded-full text-black shadow-md focus:outline-none animate-flicker" onclick="hubMenu()">
+        <i class="fa-brands fa-opencart fa-xl"></i>
+    </button>               
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+    <!-- Centered Menu (Responsive) -->
+    <div class="flex-1 flex justify-start">
+        <div id="menuIcons" class="menu-icons opacity-0 invisible flex flex-row items-center justify-around shadow-md w-auto text-teal-700 rounded-xl 
+        bg-gray-200 md:bg-transparent md:relative absolute top-20 left-1/2 transform -translate-x-1/2 md:top-auto md:left-auto md:translate-x-0 
+        flex-wrap md:flex-nowrap overflow-x-auto md:overflow-visible">        
+            <a href="{% url 'Homepage' %}" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Events</a>
+            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Articles</a>
+            <a href="{% url 'videoSection' %}" id="videoShow" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Videos</a>
+            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Community Summaries</a>
+            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Learn</a>   
+        </div>
+    </div>
+</div>
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-78yh0vxpsgpsu=#*4^#i3wf!qnzufuq!vnw$5g!d^w!#h$o#op'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True#Planning  to deploy changed from tru to false @KEYO I***f i will deploy i should change it to false**
-
-ALLOWED_HOSTS = ['*']
-
-# Application definition
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'storages', #for google cloud storage
-    'Homepage', #main page
-    'compressor',#static file minimizer app @KEYO
-    'agriBot',
-    'Social',# For user socialization
-    'resource', #Resource Hub
+<!-- VIDEO SECTION -->
+<h1>{{ message }}</h1>
+<div class="container mx-auto p-4" id="">
+    <h2 class="text-2xl font-bold text-center text-teal-700">Agricultural Videos</h2>
     
+    <!-- Search Form -->
+    <form method="GET" class="flex justify-center my-4 ">
+        <input type="text" name="q" placeholder="Search videos..." class="p-2 border rounded-l-md focus:outline-none">
+        <button type="submit" class="p-2 bg-teal-700 text-white rounded-r-md">Search</button>
+    </form>
+    
+    <!-- Video Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        
+        {% for video in videos %}
+        <div class="bg-white shadow-md rounded-lg p-2">
+            <a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank">
+                <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="w-full h-auto rounded-md">
+                <p class="mt-2 text-sm font-semibold">{{ video.title }}</p>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 
-]
+<!-- Article Section 21-->
+ <div>
+    <h2 class="text-lg font-bold mb-4">Available Documents</h2>
+    
+    <!-- File list container -->
+    <div id="file-container" class="flex flex-wrap gap-4"></div>
 
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',#allows static files to run even when debug is set to true
-]
+    <!-- File preview section -->
+    <h3 id="file-name" class="mt-6 text-lg font-semibold">Click a file to preview</h3>
+    <iframe id="viewer" src="" class="w-full h-96 border rounded-lg mt-4"></iframe>
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage" #FEB Temporary for automatic updates
-WHITENOISE_AUTOREFRESH = True #Feb Keyo
-
-ROOT_URLCONF = 'CropRecommender.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR /'templates'], #Keyo square brackets to specify templating is global
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'CropRecommender.wsgi.application'
+ </div>
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+{% endblock content %}
 
-# postgres database(CropRecommender) details
+{% block script %}
+<script>
+   
+    function hubMenu(){
+        const menuButton = document.getElementById("menuButton");
+        const menuIcons = document.getElementById("menuIcons");
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'CropRecommender',
-        'USER': 'postgres',
-        'PASSWORD': 'Azerty@12',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        menuButton.classList.remove("animate-flicker");
+         // Toggle visibility and animation
+        const isVisible = menuIcons.classList.contains("opacity-100");
+        if (isVisible) {
+            menuIcons.classList.remove("opacity-100", "translate-y-0");
+            menuIcons.classList.add("opacity-0", "invisible", "-translate-y-4");
+            menuButton.classList.add('animate-flicker'); // flickering
+        } else {
+            menuIcons.classList.remove("opacity-0", "invisible", "-translate-y-4");
+            menuIcons.classList.add("opacity-100", "translate-y-0");
+           
+        }
+
     }
-}
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+    // Article Section
+    function fetchFiles() {
+            fetch('/resource/art/')
+                .then(response => response.json())
+                .then(data => {
+                    const fileContainer = document.getElementById("file-container");
+                    fileContainer.innerHTML = "";
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+                    data.files.forEach(file => {
+                        const fileBox = document.createElement("div");
+                        fileBox.className = "w-full md:w-1/3 lg:w-1/4 p-2";
+                        fileBox.innerHTML = `
+                            <div class="bg-gray-100 rounded-lg p-4 shadow-md hover:bg-gray-200 cursor-pointer transition" 
+                                 onclick="showFileContent('${file.url}', '${file.name}')">
+                                <p class="text-sm font-semibold">${file.name}</p>
+                                <p class="text-xs text-gray-500">(${file.extension})</p>
+                            </div>
+                        `;
+                        fileContainer.appendChild(fileBox);
+                    });
+                });
+        }
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
+        function showFileContent(url, name) {
+            document.getElementById("viewer").src = url;
+            document.getElementById("file-name").innerText = name;
+        }
 
-LANGUAGE_CODE = 'en-us'
+        // Fetch files every 5 seconds
+        setInterval(fetchFiles, 5000);
+        window.onload = fetchFiles;
 
-TIME_ZONE = 'Africa/Nairobi' #specific timezone to use
+    
+   
+</script>
 
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_ROOT = BASE_DIR / 'productionfiles' #KEYO to collect all static files when debug is false
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-    ] #KEYO this helps in collecting static files to productionFiles updates with the one set in static file
-
-# @KEYO Compressor Configuration
-COMPRESS_ROOT = BASE_DIR / 'static'
-# COMPRESS_ENABLED = True #CAUSING UNEXPLAINED PROBLEMS COMMENTED OUT to be safe
-# COMPRESS_OFFLINE = True #precompress files before deployment
-
-STATICFILES_FINDERS = (
-    "django.contrib.staticfiles.finders.FileSystemFinder",#the first two were added to assist in locating output.css
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    'compressor.finders.CompressorFinder',)
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# KEYO 11
-# MEDIA_URL = '/media/'
-# MEDIA_ROOT = BASE_DIR / 'media'
-
-# Keyo 20th storage settings for google cloud storage
-# DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-# GS_DEFAULT_ACL = None  # Prevents public access to uploaded files
-
-# GS_BUCKET_NAME = "smart_farmer"
-# GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-#     BASE_DIR / "thyearproject-454217-a133234a0d32.json"  # Path to your JSON key file
-#     # "thyearproject-454217-a133234a0d32.json" 
-# )
-# MEDIA_URL = f"https://storage.googleapis.com/smart_farmer/"
-
-# # Google Cloud Storage settings part 2
-# GS_CREDENTIALS =  "C:/Users/admin/Downloads/PROJECT/Application/RecommenderSystem/CropRecommender/thyearproject-454217-a133234a0d32.json"  # Path to the downloaded JSON key file
-# GS_BUCKET_NAME = "smart_farmer"  # Your bucket name
-# GS_PROJECT_ID = "thyearproject-454217"  # Your Google Cloud project ID
-
-# # Set the default file storage to Google Cloud Storage
-# DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
-
-# # Optional: Set a custom upload directory in GCS
-# GS_FILE_OVERWRITE = False  # Prevents overwriting files with the same name
-# GS_DEFAULT_ACL = "publicRead"  # Makes uploaded files publicly accessible (optional)
-
-# 21 Morning trial part 3
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    # BASE_DIR / "smart_farmersKey.json"  # Path to your JSON key file
-    "smart_farmersKey.json" 
-)
-
-
-DEFAULT_FILE_STORAGE = 'django_blog_project.gcloud.GoogleCloudMediaFileStorage'
-GS_PROJECT_ID = 'thyearproject-454217'
-GS_BUCKET_NAME = 'smart_farmer'
-MEDIA_ROOT = 'media/'
-UPLOAD_ROOT = 'media/uploads/'
-MEDIA_URL = "https://storage.googleapis.com/{}/".format(GS_BUCKET_NAME) 
-
+{% endblock script %}

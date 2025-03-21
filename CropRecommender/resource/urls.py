@@ -6,6 +6,8 @@ urlpatterns = [
     
     path('hub/', views.hub, name='hub'),
     path('videoSection/', views.videoSection, name="videoSection"),
-    path('articles/', views.articles, name="articles"),
+    path('fetchDocuments/', views.fetchDocuments, name='fetchDocuments'),
+    path('articles/', views.articleSection, name='articleSection'),#added now
+
    
 ]
