@@ -90,7 +90,7 @@ def unfollowUser(request, user_id):
     return JsonResponse({"success": False, "message": "User not found in following list"}, status=400)
 
 
-# Social media feed
+# Social media feed displays all the post made on the platform...first view to be called
 @login_required
 def feed(request):
     filter_type = request.GET.get('filter', 'all')
@@ -106,6 +106,7 @@ def feed(request):
     else:
         posts = Post.objects.all().order_by('-created_at')
 
+    # File handling logic
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)  # Handle file uploads
         if form.is_valid():
@@ -116,6 +117,7 @@ def feed(request):
     else:
         form = PostForm()
 
+    # People to follow logic
     # Get filter role from the GET request, default is 'all'
     filter_role = request.GET.get('role', 'all')
 

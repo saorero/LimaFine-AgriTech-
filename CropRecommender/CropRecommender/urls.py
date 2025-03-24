@@ -14,6 +14,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('social/', include('Social.urls')), #Social media url path
     path('resource/', include('resource.urls')),#registered resource app url path
+    path('market/', include('market.urls')),#registered Market app urls
 ]
 
 if settings.DEBUG: #Development KEYO 11
