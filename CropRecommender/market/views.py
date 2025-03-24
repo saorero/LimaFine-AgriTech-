@@ -51,35 +51,48 @@ def toggle_availability(request, listing_id):
         listing.save()
     return redirect("main")
 
-@farmer_required
+@login_required
 def main(request):
-    # Handle product listing creation
-    if request.method == "POST":
-        form = ListingForm(request.POST, request.FILES)
-        if form.is_valid():
-            listing = form.save(commit=False)
-            listing.farmer = request.user.userprofile
-            listing.save()
-            # Redirect to the same page with a query parameter to show the dashboard
-            return redirect("main")
-    else:
-        form = ListingForm(initial={'location': request.user.userprofile.county})
+    # Handle product listing creation (farmers only)
+    form = None
+    listings = None
+    marketplace_listings = productListing.objects.all()  # Default for all users
 
-    # Fetch listings for the dashboard
-    listings = productListing.objects.filter(farmer=request.user.userprofile)
+    try:
+        user_profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return HttpResponseForbidden("User profile not found. Please complete your profile.")
 
-    # Search Logic by product name or category
-    query = request.GET.get('query', '').strip()
-    if query:
-        listings = listings.filter(productName__icontains=query) #partial matching cases
-   #end of SEARCH LOGIC
+    if user_profile.role == 'farmer':
+        if request.method == "POST":
+            form = ListingForm(request.POST, request.FILES)
+            if form.is_valid():
+                listing = form.save(commit=False)
+                listing.farmer = user_profile
+                listing.save()
+                return redirect("main")
+        else:
+            form = ListingForm(initial={'location': user_profile.county})
 
-    # Pass both the form and listings to the template
+        # Fetch farmer's own listings for Dashboard
+        listings = productListing.objects.filter(farmer=user_profile)
+        query = request.GET.get('query', '').strip()
+        if query:
+            listings = listings.filter(productName__icontains=query)
+
+        # Exclude farmer's own listings from Marketplace
+        marketplace_listings = marketplace_listings.exclude(farmer=user_profile)
+
+    # Fetch Marketplace listings for all users
+    marketplace_query = request.GET.get('marketplace_query', '').strip()
+    if marketplace_query:
+        marketplace_listings = marketplace_listings.filter(productName__icontains=marketplace_query)
+
     context = {
         'message': 'Market Place',
         'form': form,
         'listings': listings,
+        'marketplace_listings': marketplace_listings,
     }
     return render(request, 'market.html', context)
-
 
