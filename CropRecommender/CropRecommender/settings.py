@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'Social',# For user socialization
     'resource', #Resource Hub
     'market', #Farmer market place
+    'widget_tweaks', #form customization pip installed
     
 
 ]
@@ -142,8 +143,8 @@ STATICFILES_FINDERS = (
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # KEYO 11 For storing files locally commented since post files are stored in the cloud
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = BASE_DIR / 'media'
 
 # Keyo 20th storage settings for google cloud storage
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:/Users/admin/Downloads/PROJECT/Application/RecommenderSystem/CropRecommender/smart_farmersKey.json" #authenticate user to fetch file
