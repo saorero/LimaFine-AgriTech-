@@ -7,20 +7,6 @@ from storages.backends.gcloud import GoogleCloudStorage
 
 # Create your models here.
 
-# Messaging feature module-for farmers a table to store messages
-class messages(models.Model):
-    sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_messages')
-    recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_messages')
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False) #tracking whether user has read the message applied in notifications
-
-    class Meta:
-        ordering = ['timestamp']
-
-    def __str__(self):
-        return f"Message from {self.sender.user.username} to {self.recipient.user.username} at {self.timestamp}"
-
 # For farmers product productproductListing
 class productListing(models.Model):
     farmer = models.ForeignKey(UserProfile, on_delete=models.CASCADE, limit_choices_to={'role': 'farmer'})
@@ -63,3 +49,15 @@ class productListing(models.Model):
 
     def __str__(self):#easy identification in admin tomatoes by akeyo
         return f"{self.productName} by {self.farmer.user.username}"
+
+# Messaging feature module-for farmers a table to store messages
+class Message(models.Model):
+    sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_messages')
+    listing = models.ForeignKey(productListing, on_delete=models.CASCADE, related_name='messages')
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Message from {self.sender.user.username} to {self.recipient.user.username} about {self.listing.productName}"

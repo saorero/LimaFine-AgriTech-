@@ -8,11 +8,16 @@
     <!-- Header -->
     <h1 class="text-3xl font-bold mb-6">{{ message }}</h1>
 
-    <!-- Tabs for switching between Dashboard, Create Listing, and Marketplace -->
-    <div class="flex border-b mb-6">
+    <!-- Tabs and Messaging Icon -->
+    <div class="flex border-b mb-6 items-center">
         <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button active-tab">Dashboard</button>
         <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Create Listing</button>
         <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Marketplace</button>
+        <button id="requestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Requests</button>
+        <button id="forecastTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Forecast</button>
+        <button id="messagesButton" class="ml-auto px-4 py-2 text-blue-500 hover:text-blue-600" title="Messages">
+            <i class="fas fa-envelope"></i>
+        </button>
     </div>
 
     <!-- Dashboard Section (for farmers only) -->
@@ -135,10 +140,8 @@
         {% endif %}
     </div>
 
-    <!-- Marketplace Section (visible to all logged-in users) -->
-  
+    <!-- Marketplace Section -->
     <div id="marketplaceSection" class="tab-content hidden">
-        <!-- Search Form -->
         <div class="mb-6">
             <form method="GET" class="flex space-x-4">
                 <div class="flex-1">
@@ -157,8 +160,6 @@
                 <p class="text-gray-600 mt-2">Showing results for: <strong>{{ request.GET.marketplace_query }}</strong></p>
             {% endif %}
         </div>
-
-        <!-- Marketplace Listings Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {% if marketplace_listings %}
                 {% for listing in marketplace_listings %}
@@ -168,7 +169,7 @@
                     </div>
                     <div class="p-3 flex flex-col flex-grow">
                         <h2 class="text-lg font-semibold line-clamp-1">{{ listing.productName }}</h2>
-                        
+                        <p class="text-gray-500 text-sm">by @{{ listing.farmer.user.username }}</p>
                         <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
                         <div class="mt-2">
                             <p class="text-gray-700 font-bold">KES: {{ listing.price }}</p>
@@ -179,25 +180,96 @@
                             <span class="text-sm font-semibold {% if listing.is_available %}text-teal-700{% else %}text-red-600{% endif %}">
                                 {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
                             </span>
-                            <!-- Placeholder for future messaging feature -->
-                            <button class="text-blue-500 hover:text-blue-600" title="Message Farmer">
+                            <button onclick="openChatModal({{ listing.id }}, '{{ listing.productName }}', '{{ listing.get_image_url }}', {{ listing.farmer.id }})" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
                                 <i class="fas fa-envelope"></i>
                             </button>
                         </div>
-                        <p class="text-gray-500 text-sm">@{{ listing.farmer.user.username }}</p> <!-- Added username here -->
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <p class="text-gray-600 col-span-full">No listings found in the marketplace. {% if request.GET.marketplace_query %}Try adjusting your search query.{% endif %}</p>
+                <p class="text-gray-600 col-span-full">No listings found in the marketplace.</p>
             {% endif %}
         </div>
     </div>
 </div>
+
 {% endblock content %}
 
 {% block modalsContent %}
-<!-- Edit and Delete Modals remain unchanged -->
+<!-- Existing Edit and Delete Modals  -->
+   <!-- EDIT Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold mb-4">Edit Listing</h2>
+        <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="listing_id" id="editListingId">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Product Category</label>
+                <select name="productCategory" id="editProductCategory" class="w-full p-2 border rounded">
+                    <option value="crop">Crop</option>
+                    <option value="dairy">Dairy product</option>
+                    <option value="meat">Meat product</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                <input type="text" name="productName" id="editProductName" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                <input type="number" name="quantity" id="editQuantity" step="0.01" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                <input type="text" name="unit" id="editUnit" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
+                <input type="number" name="price" id="editPrice" step="0.01" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea name="description" id="editDescription" class="w-full p-2 border rounded"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Location</label>
+                <input type="text" name="location" id="editLocation" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
+                <input type="file" name="image" id="editImage" class="w-full p-2 border rounded">
+                <p class="text-sm text-gray-500 mt-1">Current Image: <img id="editCurrentImage" src="" alt="Current Image" class="w-16 h-16 object-cover rounded inline-block ml-2"></p>
+                <label class="mt-2 flex items-center">
+                    <input type="checkbox" name="clear_image" id="editClearImage" class="mr-2">
+                    <span class="text-sm text-gray-700">Clear current image</span>
+                </label>
+            </div>
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
+                <button type="button" onclick="closeEditModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Listing Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-4">Delete Listing</h2>
+        <p class="text-lg mb-4">Are you sure you want to delete the listing for <strong id="deleteProductName"></strong>?</p>
+        <p class="text-gray-600 mb-4">This action cannot be undone.</p>
+        <form id="deleteForm" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="listing_id" id="deleteListingId">
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
+                <button type="button" onclick="closeDeleteModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock modalsContent %}
 
 {% block script %}
@@ -209,13 +281,14 @@
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
             contents.forEach(c => c.classList.add('hidden'));
-
             tab.classList.add('active-tab', 'border-blue-600');
-            const sectionId = tab.id.replace('Tab', 'Section');
-            document.getElementById(sectionId).classList.remove('hidden');
+            document.getElementById(tab.id.replace('Tab', 'Section')).classList.remove('hidden');
         });
     });
 
+    
+
+    // (edit/delete modals, search debounce) 
     document.getElementById("listingForm").addEventListener("submit", function(e) {
         const quantity = document.querySelector("[name='quantity']").value;
         const price = document.querySelector("[name='price']").value;
@@ -283,3 +356,5 @@
     }
 </script>
 {% endblock script %}
+
+
