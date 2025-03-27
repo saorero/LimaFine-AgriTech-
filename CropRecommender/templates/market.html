@@ -13,9 +13,11 @@
         <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button active-tab">Dashboard</button>
         <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Create Listing</button>
         <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Marketplace</button>
-        <button id="requestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Requests</button>
+        <button id="requestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Enquiry</button>
+        <button id="createRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Request</button>        
         <button id="forecastTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Forecast</button>
-        <button id="messagesButton" class="ml-auto px-4 py-2 text-blue-500 hover:text-blue-600" title="Messages">
+        
+        <button onclick="alert('Button clicked!'); openChatModal()" class="ml-auto px-4 py-2 text-teal-700 hover:text-gray-200" title="Message Farmer">
             <i class="fas fa-envelope"></i>
         </button>
     </div>
@@ -55,7 +57,8 @@
                             <h2 class="text-lg font-semibold line-clamp-1">{{ listing.productName }}</h2>
                             <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
                             <div class="mt-2">
-                                <p class="text-gray-700 font-bold">KES: {{ listing.price }}</p>
+                                <p class="text-gray-700 font-bold">KES: {{ listing.price }} per {{ listing.unit }}</p>
+                                <p class="text-gray-500 text-sm">Quantity Left: {{ listing.quantity }} {{ listing.unit }}</p>
                                 <p class="text-gray-500 text-sm">{{ listing.location }}</p>
                             </div>
                             <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
@@ -72,10 +75,10 @@
                                     </span>
                                 </form>
                                 <div class="flex space-x-2">
-                                    <button onclick="openEditModal({{ listing.id }}, '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
+                                    <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button onclick="openDeleteModal({{ listing.id }}, '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
+                                    <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
@@ -168,11 +171,13 @@
                         <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover">
                     </div>
                     <div class="p-3 flex flex-col flex-grow">
+                        <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
                         <h2 class="text-lg font-semibold line-clamp-1">{{ listing.productName }}</h2>
                         <p class="text-gray-500 text-sm">by @{{ listing.farmer.user.username }}</p>
-                        <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
+                        
                         <div class="mt-2">
-                            <p class="text-gray-700 font-bold">KES: {{ listing.price }}</p>
+                            <p class="text-gray-700 font-bold">KES: {{ listing.price }} per {{ listing.unit }}</p>
+                            <p class="text-gray-700 font-bold">Quantity left: {{ listing.quantity }}{{ listing.unit }}</p>
                             <p class="text-gray-500 text-sm">{{ listing.location }}</p>
                         </div>
                         <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
@@ -180,7 +185,10 @@
                             <span class="text-sm font-semibold {% if listing.is_available %}text-teal-700{% else %}text-red-600{% endif %}">
                                 {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
                             </span>
-                            <button onclick="openChatModal({{ listing.id }}, '{{ listing.productName }}', '{{ listing.get_image_url }}', {{ listing.farmer.id }})" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
+                            <!-- <button onclick="openChatModal({{ listing.id }}, '{{ listing.productName }}', '{{ listing.get_image_url }}', {{ listing.farmer.id }})" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
+                                <i class="fas fa-envelope"></i>
+                            </button> -->
+                            <button onclick="alert('Button clicked!'); openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
                                 <i class="fas fa-envelope"></i>
                             </button>
                         </div>
@@ -270,10 +278,50 @@
         </form>
     </div>
 </div>
+
+<!-- Chat Modal 25/04-->
+<div id="chatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Messages</h2>
+            <button onclick="closeChatModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="chatContainer" class="flex flex-1 overflow-hidden">
+            <!-- Conversations List -->
+            <div id="conversationsList" class="w-1/3 border-r overflow-y-auto max-h-[70vh]">
+                <div id="conversationItems" class="space-y-2 p-2"></div>
+            </div>
+            <!-- Chat Area -->
+            <div id="chatArea" class="w-2/3 flex flex-col hidden">
+                <div id="chatHeader" class="p-2 border-b flex items-center">
+                    <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2">
+                    <div>
+                        <h3 id="chatListingName" class="font-semibold"></h3>
+                        <p id="chatOtherUser" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
+                <div id="messagesContainer" class="flex-1 p-4 overflow-y-auto max-h-[50vh]"></div>
+                <form id="messageForm" class="p-2 border-t">
+                    <input type="hidden" id="chatListingId" name="listing_id">
+                    <input type="hidden" id="chatRecipientId" name="recipient_id">
+                    <div class="flex space-x-2">
+                        <input type="text" id="messageInput" class="flex-1 p-2 border rounded" placeholder="Type a message...">
+                        <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock modalsContent %}
 
 {% block script %}
 <script>
+
     const tabs = document.querySelectorAll('.tab-button');
     const contents = document.querySelectorAll('.tab-content');
 
@@ -286,18 +334,59 @@
         });
     });
 
-    
+    // Function to validate listing form
+    function validateListingForm(event) {
+        const quantity = document.querySelector("[name='quantity']")?.value;
+        const price = document.querySelector("[name='price']")?.value;
 
-    // (edit/delete modals, search debounce) 
-    document.getElementById("listingForm").addEventListener("submit", function(e) {
-        const quantity = document.querySelector("[name='quantity']").value;
-        const price = document.querySelector("[name='price']").value;
         if (quantity <= 0 || price <= 0) {
-            e.preventDefault();
+            event.preventDefault(); // Prevent form submission
             alert("Quantity and Price must be greater than zero!");
         }
-    });
+    }
+    
+    //Function for sending message
+    function sendMessage(event) {
+            event.preventDefault(); // Prevent default form submission
 
+            console.log('Message Debugging');
+
+            const listingId = document.getElementById('chatListingId')?.value;
+            const recipientId = document.getElementById('chatRecipientId')?.value;
+            const content = document.getElementById('messageInput')?.value;
+
+            console.log(`Sending message: listingId=${listingId}, recipientId=${recipientId}, content=${content}`);
+
+            // Ensure required fields are not empty
+            if (!listingId || !recipientId || !content.trim()) {
+                alert("Please enter a message before sending.");
+                return;
+            }
+
+            fetch('/market/messages/send/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value  // Ensure CSRF token is included
+                },
+                body: JSON.stringify({ listing_id: listingId, recipient_id: recipientId, content: content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response:', data);
+                if (data.status === 'success') {
+                    loadMessages(listingId, recipientId);
+                    document.getElementById('messageInput').value = ''; // Clear input after sending
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+            });
+        }
+   
+   
     // Edit Modal Functions
     function openEditModal(id, ProductName, productCategory, quantity, unit, price, description, location, imageUrl) {
         document.getElementById('editModal').classList.remove('hidden');
@@ -354,6 +443,125 @@
             document.querySelector('#marketplaceSection form').submit();
         }, 500));
     }
+
+    // 25/04
+    // Chat Modal Functions
+    function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+        console.log("hello")
+        document.getElementById('chatModal').classList.remove('hidden');
+        loadConversations();        
+        if (listingId && recipientId) {
+            // If a specific listing is provided, open that conversation
+            fetch(`/market/messages/${listingId}/${recipientId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('chatArea').classList.remove('hidden');
+                    document.getElementById('chatListingId').value = listingId;
+                    document.getElementById('chatRecipientId').value = recipientId;
+                    document.getElementById('chatListingName').textContent = data.listing_name;
+                    document.getElementById('chatListingImage').src = data.listing_image;
+                    document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                    loadMessages(listingId, recipientId);
+                });
+        } else {
+            // If no specific listing, ensure chat area is hidden until a conversation is selected
+            document.getElementById('chatArea').classList.add('hidden');
+        }
+    }
+
+    function closeChatModal() {
+        document.getElementById('chatModal').classList.add('hidden');
+        document.getElementById('chatArea').classList.add('hidden');
+    }
+
+    function loadConversations() {
+        fetch('/market/messages/conversations/')
+            .then(response => response.json())
+            .then(data => {
+                const conversationItems = document.getElementById('conversationItems');
+                conversationItems.innerHTML = '';
+                let unreadCount = 0;
+                data.conversations.forEach(convo => {
+                    if (convo.unread) unreadCount++;
+                    const item = document.createElement('div');
+                    item.className = `p-2 hover:bg-gray-100 cursor-pointer ${convo.unread ? 'font-bold' : ''}`;
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <img src="${convo.listing_image}" alt="${convo.listing_name}" class="w-8 h-8 object-cover rounded mr-2">
+                            <div>
+                                <p class="text-sm">${convo.listing_name}</p>
+                                <p class="text-xs text-gray-500">@${convo.other_user}: ${convo.last_message.substring(0, 20)}...</p>
+                            </div>
+                        </div>
+                    `;
+                    item.onclick = () => openConversation(convo.listing_id, convo.listing_name, convo.listing_image, convo.other_user_id);
+                    conversationItems.appendChild(item);
+                });
+                const badge = document.getElementById('unreadBadge');
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            });
+    }
+
+    function openConversation(listingId, listingName, listingImage, recipientId) {
+        document.getElementById('chatArea').classList.remove('hidden');
+        document.getElementById('chatListingId').value = listingId;
+        document.getElementById('chatRecipientId').value = recipientId;
+        document.getElementById('chatListingName').textContent = listingName;
+        document.getElementById('chatListingImage').src = listingImage;
+        document.getElementById('chatOtherUser').textContent = `@${recipientId}`; // Replace with actual username via API response
+        loadMessages(listingId, recipientId);
+    }
+
+    function loadMessages(listingId, recipientId) {
+        fetch(`/market/messages/${listingId}/${recipientId}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                const messagesContainer = document.getElementById('messagesContainer');
+                messagesContainer.innerHTML = '';
+                data.messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
+                    msgDiv.innerHTML = `
+                        <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
+                            <p class="text-sm">${msg.content}</p>
+                            <p class="text-xs text-gray-500">${msg.timestamp}</p>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(msgDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+    }
+      
+
+    //Ensure DOM has loaded before calling certain function that handle different logic
+    document.addEventListener("DOMContentLoaded", function () {
+            //MESSAGING
+            const messageForm = document.getElementById('messageForm');
+            if (messageForm) {
+                messageForm.addEventListener('submit', sendMessage);
+            } else {
+                console.error("messageForm not found in the DOM.");
+            }
+
+            // LISTING FORM
+            const listingForm = document.getElementById("listingForm");
+            if (listingForm) {
+                listingForm.addEventListener("submit", validateListingForm);
+            } else {
+                console.error("listingForm not found in the DOM.");
+            }
+
+    });
+ 
+    setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional)
+
 </script>
 {% endblock script %}
 

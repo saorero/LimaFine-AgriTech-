@@ -61,3 +61,4 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.user.username} to {self.recipient.user.username} about {self.listing.productName}"
+
