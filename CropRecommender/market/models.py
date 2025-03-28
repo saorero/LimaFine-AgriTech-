@@ -6,6 +6,19 @@ from Social.models import UserProfile
 from storages.backends.gcloud import GoogleCloudStorage
 
 # Create your models here.
+# Table that store the requests made by users 
+class ProductRequest(models.Model):
+    requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='product_requests')
+    product_name = models.CharField(max_length=100, blank=False)
+    quantity = models.FloatField()
+    unit = models.CharField(max_length=20, default="kg")
+    description = models.TextField(blank=True)
+    location = models.CharField(max_length=100, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.product_name} requested by {self.requester.user.username}"
 
 # For farmers product productproductListing
 class productListing(models.Model):
@@ -50,15 +63,16 @@ class productListing(models.Model):
     def __str__(self):#easy identification in admin tomatoes by akeyo
         return f"{self.productName} by {self.farmer.user.username}"
 
-# Messaging feature module-for farmers a table to store messages
+
+
 class Message(models.Model):
     sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_messages')
     recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_messages')
-    listing = models.ForeignKey(productListing, on_delete=models.CASCADE, related_name='messages')
+    listing = models.ForeignKey(productListing, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Message from {self.sender.user.username} to {self.recipient.user.username} about {self.listing.productName}"
+        return f"Message from {self.sender.user.username} to {self.recipient.user.username}"
 

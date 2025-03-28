@@ -12,14 +12,25 @@
     <div class="flex border-b mb-6 items-center">
         <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button active-tab">Dashboard</button>
         <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Create Listing</button>
-        <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Marketplace</button>
-        <button id="requestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Enquiry</button>
-        <button id="createRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Request</button>        
+        <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Marketplace</button>        
+        <button id="createRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">ProductRequests</button>        
         <button id="forecastTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Forecast</button>
+
+    
+        <div class="flex items-center gap-0 ml-auto">
+            <button id="myRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">MyRequests</button> 
+            <!-- Question Mark Button (Product Request) -->
+            <button id="requestButton" onclick="alert('Button clicked!');" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Product Request">
+                <i class="fa-solid fa-circle-question fa-lg"></i>
+            </button>
         
-        <button onclick="alert('Button clicked!'); openChatModal()" class="ml-auto px-4 py-2 text-teal-700 hover:text-gray-200" title="Message Farmer">
-            <i class="fas fa-envelope"></i>
-        </button>
+            <!-- Message Button (Message Farmer) -->
+            <button onclick="alert('Button clicked! DASHBOARD'); openChatModal()" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Message Farmer">
+                <i class="fas fa-envelope fa-lg "></i>
+            </button>
+        </div>
+        
+        
     </div>
 
     <!-- Dashboard Section (for farmers only) -->
@@ -185,10 +196,8 @@
                             <span class="text-sm font-semibold {% if listing.is_available %}text-teal-700{% else %}text-red-600{% endif %}">
                                 {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
                             </span>
-                            <!-- <button onclick="openChatModal({{ listing.id }}, '{{ listing.productName }}', '{{ listing.get_image_url }}', {{ listing.farmer.id }})" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
-                                <i class="fas fa-envelope"></i>
-                            </button> -->
-                            <button onclick="alert('Button clicked!'); openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
+                           
+                            <button onclick="alert('Button clicked! For MARKETPLACE'); openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
                                 <i class="fas fa-envelope"></i>
                             </button>
                         </div>
@@ -200,6 +209,57 @@
             {% endif %}
         </div>
     </div>
+</div>
+
+<!-- MyRequests Section -->
+<div id="myRequestSection" class="tab-content hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {% for request in my_requests %}
+        <div class="bg-white shadow-md rounded-lg p-4">
+            <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
+            <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
+            <p class="text-gray-600">{{ request.description }}</p>
+            <p class="text-gray-600">{{ request.location }}</p>
+            <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+            <div class="mt-2 flex space-x-2">
+                <button onclick="openEditRequestModal({{ request.id }}, '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="openDeleteRequestModal({{ request.id }}, '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ProductRequests Section (Farmers Only) -->
+{% if user.userprofile.role == 'farmer' %}
+<div id="createRequestSection" class="tab-content hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {% for request in product_requests %}
+        <!-- THIS PART IS NOT EVEN WORKING FIX THIS -->
+        <div class="bg-white shadow-md rounded-lg p-4">
+            <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
+            <p class="text-gray-600">{{ request.quantity }}  {{ request.unit }}</p>
+            <p class="text-gray-600">{{ request.description }}</p>
+            <p class="text-gray-600">{{ request.location }}</p>
+            <p class="text-gray-500 text-sm">Requested by @{{ request.requester.user.username }}</p>
+            <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+            <button onclick="alert('Button Clicked:- PRODUCT REQUEST'); openChatModal(null, '{{ request.product_name }}', '', '{{ request.requester.id }}')" class="text-blue-500 hover:text-blue-600 mt-2" title="Message Requester">
+                <i class="fas fa-envelope"></i>
+            </button>            
+
+        </div>
+        {% empty %}
+        <p class="text-gray-600 col-span-full">No product requests available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 </div>
 
 {% endblock content %}
@@ -296,7 +356,8 @@
             <!-- Chat Area -->
             <div id="chatArea" class="w-2/3 flex flex-col hidden">
                 <div id="chatHeader" class="p-2 border-b flex items-center">
-                    <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2">
+                    <!-- data has image prevents the image from showing in product requests -->
+                    <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2 " data-has-image="false"> 
                     <div>
                         <h3 id="chatListingName" class="font-semibold"></h3>
                         <p id="chatOtherUser" class="text-sm text-gray-500"></p>
@@ -317,14 +378,98 @@
         </div>
     </div>
 </div>
+
+<!-- Product Request Modal -->
+<div id="requestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-4">Request a Product</h2>
+        <form id="requestForm" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                <input type="text" id="requestProductName" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                <input type="number" id="requestQuantity" step="0.01" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                <input type="text" id="requestUnit" class="w-full p-2 border rounded" value="kg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                <textarea id="requestDescription" class="w-full p-2 border rounded"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Location</label>
+                <input type="text" id="requestLocation" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded hover:bg-teal-800">Submit Request</button>
+                <button type="button" onclick="closeRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Request Modal -->
+<div id="editRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-4">Edit Request</h2>
+        <form id="editRequestForm" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" id="editRequestId">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                <input type="text" id="editRequestProductName" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                <input type="number" id="editRequestQuantity" step="0.01" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                <input type="text" id="editRequestUnit" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                <textarea id="editRequestDescription" class="w-full p-2 border rounded"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Location</label>
+                <input type="text" id="editRequestLocation" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
+                <button type="button" onclick="closeEditRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Request Modal -->
+<div id="deleteRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-4">Delete Request</h2>
+        <p class="text-lg mb-4">Are you sure you want to delete the request for <strong id="deleteRequestProductName"></strong>?</p>
+        <p class="text-gray-600 mb-4">This action cannot be undone.</p>
+        <form id="deleteRequestForm" method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="deleteRequestId">
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
+                <button type="button" onclick="closeDeleteRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock modalsContent %}
 
 {% block script %}
 <script>
-
     const tabs = document.querySelectorAll('.tab-button');
     const contents = document.querySelectorAll('.tab-content');
-
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
@@ -333,61 +478,19 @@
             document.getElementById(tab.id.replace('Tab', 'Section')).classList.remove('hidden');
         });
     });
-
-    // Function to validate listing form
+   
+    // Function to validate the quantity and quality entered in List creation
     function validateListingForm(event) {
         const quantity = document.querySelector("[name='quantity']")?.value;
         const price = document.querySelector("[name='price']")?.value;
-
         if (quantity <= 0 || price <= 0) {
             event.preventDefault(); // Prevent form submission
             alert("Quantity and Price must be greater than zero!");
         }
     }
     
-    //Function for sending message
-    function sendMessage(event) {
-            event.preventDefault(); // Prevent default form submission
-
-            console.log('Message Debugging');
-
-            const listingId = document.getElementById('chatListingId')?.value;
-            const recipientId = document.getElementById('chatRecipientId')?.value;
-            const content = document.getElementById('messageInput')?.value;
-
-            console.log(`Sending message: listingId=${listingId}, recipientId=${recipientId}, content=${content}`);
-
-            // Ensure required fields are not empty
-            if (!listingId || !recipientId || !content.trim()) {
-                alert("Please enter a message before sending.");
-                return;
-            }
-
-            fetch('/market/messages/send/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value  // Ensure CSRF token is included
-                },
-                body: JSON.stringify({ listing_id: listingId, recipient_id: recipientId, content: content })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Response:', data);
-                if (data.status === 'success') {
-                    loadMessages(listingId, recipientId);
-                    document.getElementById('messageInput').value = ''; // Clear input after sending
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error sending message:', error);
-            });
-        }
-   
-   
-    // Edit Modal Functions
+     
+    // Edit Modal Function ...prefilled with the values initiated
     function openEditModal(id, ProductName, productCategory, quantity, unit, price, description, location, imageUrl) {
         document.getElementById('editModal').classList.remove('hidden');
         document.getElementById('editListingId').value = id;
@@ -408,7 +511,7 @@
         document.getElementById('editClearImage').checked = false;
     }
 
-    // Delete Modal Functions
+    // Delete Modal Function
     function openDeleteModal(id, ProductName) {
         document.getElementById('deleteModal').classList.remove('hidden');
         document.getElementById('deleteListingId').value = id;
@@ -420,7 +523,7 @@
         document.getElementById('deleteModal').classList.add('hidden');
     }
 
-    // Debounce function for search
+    // Debounce function that limits API calls
     function debounce(func, wait) {
         let timeout;
         return function (...args) {
@@ -429,14 +532,13 @@
         };
     }
 
-    // Auto-submit search forms on input
+    // Search functions for marketPlace and dahboard
     const dashboardSearchInput = document.querySelector('input[name="query"]');
     if (dashboardSearchInput) {
         dashboardSearchInput.addEventListener('input', debounce(function() {
             document.querySelector('#dashboardSection form').submit();
         }, 500));
     }
-
     const marketplaceSearchInput = document.querySelector('input[name="marketplace_query"]');
     if (marketplaceSearchInput) {
         marketplaceSearchInput.addEventListener('input', debounce(function() {
@@ -444,30 +546,315 @@
         }, 500));
     }
 
-    // 25/04
-    // Chat Modal Functions
-    function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-        console.log("hello")
-        document.getElementById('chatModal').classList.remove('hidden');
-        loadConversations();        
-        if (listingId && recipientId) {
-            // If a specific listing is provided, open that conversation
-            fetch(`/market/messages/${listingId}/${recipientId}/`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('chatArea').classList.remove('hidden');
-                    document.getElementById('chatListingId').value = listingId;
-                    document.getElementById('chatRecipientId').value = recipientId;
-                    document.getElementById('chatListingName').textContent = data.listing_name;
-                    document.getElementById('chatListingImage').src = data.listing_image;
-                    document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-                    loadMessages(listingId, recipientId);
-                });
-        } else {
-            // If no specific listing, ensure chat area is hidden until a conversation is selected
-            document.getElementById('chatArea').classList.add('hidden');
-        }
+    
+
+    //TOWARDS THE END  Commented the original 27/03/ new open chat
+//     function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+//     const chatModal = document.getElementById('chatModal');
+//     chatModal.classList.remove('hidden');
+//     console.log('Loading Convo'); //Debug
+//     loadConversations();
+
+//     const messageForm = document.getElementById('messageForm');
+//     if (messageForm) {
+//         messageForm.removeEventListener('submit', handleMessageSubmit);
+//         messageForm.addEventListener('submit', handleMessageSubmit);
+//     } else {
+//         console.error('messageForm not found in DOM after opening chat modal');
+//     }
+
+//     if (recipientId) {
+//         // Use 'none' for listingId if not provided (e.g., from ProductRequests)
+//         const effectiveListingId = listingId || 'none';
+//         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+//             .then(response => response.json())
+//             .then(data => {
+//                 document.getElementById('chatArea').classList.remove('hidden');
+//                 document.getElementById('chatListingId').value = effectiveListingId;
+//                 document.getElementById('chatRecipientId').value = recipientId;
+//                 document.getElementById('chatListingName').textContent = data.listing_name;
+//                 document.getElementById('chatListingImage').src = data.listing_image;
+//                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+//                 loadMessages(effectiveListingId, recipientId);
+//             });
+//     } else {
+//         document.getElementById('chatArea').classList.add('hidden');
+//     }
+// }
+
+    //TRYING THIS OUT TO LOOK LIKE THE ORIGINAL 28TH TO DELETE IF IT DOES NOT WORK
+    // function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+    // const chatModal = document.getElementById('chatModal');
+    // chatModal.classList.remove('hidden');
+    // console.log('Loading Convo trial'); //Debug
+    // loadConversations();
+
+    // if ((listingId && recipientId) || (recipientId && listingName)) {
+    //     // Use 'none' for listingId if not provided (e.g., from ProductRequests)
+    //     const effectiveListingId = listingId || 'null';
+    //     fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             document.getElementById('chatArea').classList.remove('hidden');
+    //             document.getElementById('chatListingId').value = effectiveListingId;
+    //             document.getElementById('chatRecipientId').value = recipientId;
+    //             document.getElementById('chatListingName').textContent = data.listing_name;
+    //             document.getElementById('chatListingImage').src = data.listing_image;
+    //             document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+    //             loadMessages(effectiveListingId, recipientId);
+    //         });
+    // } else {
+    //     document.getElementById('chatArea').classList.add('hidden');
+    // }
+    // }
+
+    //28TH CHANGES
+//     function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+//     const chatModal = document.getElementById('chatModal');
+//     chatModal.classList.remove('hidden');
+//     console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
+//     loadConversations();
+
+//     if (recipientId) {  // Only require recipientId to proceed
+//         const effectiveListingId = listingId || 'none';  // Use 'none' for product requests
+//         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+//             .then(response => {
+//                 if (!response.ok) {
+//                     throw new Error(`HTTP error! Status: ${response.status}`);
+//                 }
+//                 return response.json();
+//             })
+//             .then(data => {
+//                 console.log('Fetch response:', data);
+//                 document.getElementById('chatArea').classList.remove('hidden');
+//                 document.getElementById('chatListingId').value = effectiveListingId;
+//                 document.getElementById('chatRecipientId').value = recipientId;
+//                 // Use provided listingName if available (e.g., product name), else fall back to server response
+//                 document.getElementById('chatListingName').textContent = listingName || data.listing_name;
+//                 document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
+//                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+//                 loadMessages(effectiveListingId, recipientId);
+//             })
+//             .catch(error => {
+//                 console.error('Error fetching messages:', error);
+//                 alert('Failed to load chat. Check console for details.');
+//             });
+//     } else {
+//         document.getElementById('chatArea').classList.add('hidden');
+//     }
+// }
+
+
+
+// function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+//     const chatModal = document.getElementById('chatModal');
+//     chatModal.classList.remove('hidden');
+//     console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
+//     loadConversations();
+
+//     if (recipientId) {
+//         const effectiveListingId = listingId || 'none';  // Ensure 'none' for product requests
+//         currentConversation = null;
+//         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+//             .then(response => {
+//                 if (!response.ok) {
+//                     throw new Error(`HTTP error! Status: ${response.status}`);
+//                 }
+//                 return response.json();
+//             })
+//             .then(data => {
+//                 console.log('Fetch response:', data);
+//                 document.getElementById('chatArea').classList.remove('hidden');
+//                 document.getElementById('chatListingId').value = effectiveListingId;
+//                 document.getElementById('chatRecipientId').value = recipientId;
+//                 document.getElementById('chatListingName').textContent = listingName || data.listing_name;
+//                 document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
+//                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+//                 loadMessages(effectiveListingId, recipientId);
+//             })
+//             .catch(error => {
+//                 console.error('Error fetching messages:', error);
+//                 alert('Failed to load chat. Check console for details.');
+//             });
+//     } else {
+//         document.getElementById('chatArea').classList.add('hidden');
+//         currentConversation = null;
+//     }
+// }
+
+//Original as of 28th at 12:45
+function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+    const chatModal = document.getElementById('chatModal');
+    chatModal.classList.remove('hidden');
+    console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
+    loadConversations();
+
+    if (recipientId) {
+        const effectiveListingId = listingId || 'none';  // Use 'none' for product requests
+        fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Fetch response:', data);
+                document.getElementById('chatArea').classList.remove('hidden');
+                document.getElementById('chatListingId').value = effectiveListingId;
+                document.getElementById('chatRecipientId').value = recipientId;
+                document.getElementById('chatListingName').textContent = listingName || data.listing_name;
+                document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
+                document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                loadMessages(effectiveListingId, recipientId);
+            })
+            .catch(error => {
+                console.error('Error fetching messages:', error);
+                alert('Failed to load chat. Check console for details.');
+            });
+    } else {
+        document.getElementById('chatArea').classList.add('hidden');
     }
+}
+
+function handleMessageSubmit(e) {
+    e.preventDefault();
+    const listingId = document.getElementById('chatListingId').value || 'none';  // Default to 'none'
+    const recipientId = document.getElementById('chatRecipientId').value;
+    const content = document.getElementById('messageInput').value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    console.log(`Preparing to send: listingId=${listingId}, recipientId=${recipientId}, content="${content}"`);
+
+    if (!recipientId || !content) {
+        console.error('Invalid form data:', { listingId, recipientId, content });
+        alert('Please ensure all fields are filled correctly.');
+        return;
+    }
+
+    fetch('/market/messages/send/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            listing_id: listingId === 'none' ? null : listingId,
+            recipient_id: recipientId,
+            content: content
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP error! Status: ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.status === 'success') {
+            loadMessages(listingId, recipientId);
+            document.getElementById('messageInput').value = '';
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error.message);
+        alert('Failed to send message. Check the console for details.');
+    });
+}
+
+//END OF 28 CHANGES
+
+//28TH loadmessage
+function loadMessages(listingId, recipientId) {
+    const effectiveListingId = listingId || 'none';  // Ensure it's never undefined
+    const conversationKey = `${effectiveListingId}-${recipientId}`;
+    if (currentConversation === conversationKey) {
+        console.log('Skipping duplicate loadMessages call for:', conversationKey);
+        return;
+    }
+    currentConversation = conversationKey;
+
+    fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.innerHTML = '';
+            data.messages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
+                msgDiv.innerHTML = `
+                    <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
+                        <p class="text-sm">${msg.content}</p>
+                        <p class="text-xs text-gray-500">${msg.timestamp}</p>
+                    </div>
+                `;
+                messagesContainer.appendChild(msgDiv);
+            });
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        })
+        .catch(error => {
+            console.error('Error loading messages:', error);
+        });
+}
+
+// Original Load message
+// function loadMessages(listingId, recipientId) {
+//     fetch(`/market/messages/${listingId}/${recipientId}/`)
+//         .then(response => response.json())
+//         .then(data => {
+//             document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+//             const messagesContainer = document.getElementById('messagesContainer');
+//             messagesContainer.innerHTML = '';
+//             data.messages.forEach(msg => {
+//                 const msgDiv = document.createElement('div');
+//                 msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
+//                 msgDiv.innerHTML = `
+//                     <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
+//                         <p class="text-sm">${msg.content}</p>
+//                         <p class="text-xs text-gray-500">${msg.timestamp}</p>
+//                     </div>
+//                 `;
+//                 messagesContainer.appendChild(msgDiv);
+//             });
+//             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+//         });
+// }
+    //ENDS HERE 27
+    // Chat Modal Functions for Messaging original chatmodal not modified but working nicely
+    // function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+    //     console.log("hello")
+    //     document.getElementById('chatModal').classList.remove('hidden');
+    //     loadConversations();        
+    //     if (listingId && recipientId) {
+    //         // If a specific chat is provided, open that conversation
+    //         fetch(`/market/messages/${listingId}/${recipientId}/`)
+    //             .then(response => response.json())
+    //             .then(data => {
+    //                 document.getElementById('chatArea').classList.remove('hidden');
+    //                 document.getElementById('chatListingId').value = listingId;
+    //                 document.getElementById('chatRecipientId').value = recipientId;
+    //                 document.getElementById('chatListingName').textContent = data.listing_name;
+    //                 document.getElementById('chatListingImage').src = data.listing_image;
+    //                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+    //                 loadMessages(listingId, recipientId);
+    //             });
+    //     } else {
+    //         // If no specific listing, ensure chat area is hidden until a conversation is selected
+    //         document.getElementById('chatArea').classList.add('hidden');
+    //     }
+    // }
 
     function closeChatModal() {
         document.getElementById('chatModal').classList.add('hidden');
@@ -475,6 +862,7 @@
     }
 
     function loadConversations() {
+        console.log("Load conversation function ...")
         fetch('/market/messages/conversations/')
             .then(response => response.json())
             .then(data => {
@@ -539,17 +927,257 @@
             });
     }
       
+// PRODUCT REQUEST
+// Product Request Modal Functions
+document.getElementById('requestButton').addEventListener('click', () => openRequestModal());
+    function openRequestModal() {
+        document.getElementById('requestModal').classList.remove('hidden');
+    }
+    function closeRequestModal() {
+        document.getElementById('requestModal').classList.add('hidden');
+        document.getElementById('requestForm').reset();
+    }
+
+    // document.getElementById('requestForm').addEventListener('submit', function(e) {
+    //     e.preventDefault();
+    //     const productName = document.getElementById('requestProductName').value;
+    //     const quantity = document.getElementById('requestQuantity').value;
+    //     const unit = document.getElementById('requestUnit').value;
+    //     const description = document.getElementById('requestDescription').value;
+    //     const location = document.getElementById('requestLocation').value;
+    //     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    //     console.log('Creating request')
+    //     fetch('/market/request/create/', {
+    //         method: 'POST',
+    //         headers: {
+    //             'Content-Type': 'application/json',
+    //             'X-CSRFToken': csrfToken
+    //         },
+    //         body: JSON.stringify({ product_name: productName, quantity: quantity, unit: unit, description: description, location: location })
+    //     })
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         if (data.status === 'success') {
+    //             closeRequestModal();
+    //             loadMyRequests(); // Refresh MyRequests tab
+    //         } else {
+    //             alert(data.message);
+    //         }
+    //     })
+    //     .catch(error => console.error('Error:', error));
+    // });
+
+    function submitRequestForm(event) { //NOW Function
+    event.preventDefault(); // Prevent default form submission
+
+    // Get form data
+    const productName = document.getElementById('requestProductName').value;
+    const quantity = document.getElementById('requestQuantity').value;
+    const unit = document.getElementById('requestUnit').value;
+    const description = document.getElementById('requestDescription').value;
+    const location = document.getElementById('requestLocation').value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    console.log('Creating request');
+
+    // Send data via Fetch API
+    fetch('/market/request/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            product_name: productName,
+            quantity: quantity,
+            unit: unit,
+            description: description,
+            location: location
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            closeRequestModal(); // Close modal
+            loadMyRequests(); // Refresh the MyRequests tab
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Attach function to the form submit event
+// document.getElementById('requestForm').addEventListener('submit', submitRequestForm); NOW
+
+    // Edit Request Modal Functions
+    function openEditRequestModal(id, productName, quantity, unit, description, location) {
+        document.getElementById('editRequestModal').classList.remove('hidden');
+        document.getElementById('editRequestId').value = id;
+        document.getElementById('editRequestProductName').value = productName;
+        document.getElementById('editRequestQuantity').value = quantity;
+        document.getElementById('editRequestUnit').value = unit;
+        document.getElementById('editRequestDescription').value = description;
+        document.getElementById('editRequestLocation').value = location;
+    }
+    function closeEditRequestModal() {
+        document.getElementById('editRequestModal').classList.add('hidden');
+    }
+
+    document.getElementById('editRequestForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('editRequestId').value;
+        const productName = document.getElementById('editRequestProductName').value;
+        const quantity = document.getElementById('editRequestQuantity').value;
+        const unit = document.getElementById('editRequestUnit').value;
+        const description = document.getElementById('editRequestDescription').value;
+        const location = document.getElementById('editRequestLocation').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`/market/request/edit/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ product_name: productName, quantity: quantity, unit: unit, description: description, location: location })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeEditRequestModal();
+                loadMyRequests();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Delete Request Modal Functions
+    function openDeleteRequestModal(id, productName) {
+        document.getElementById('deleteRequestModal').classList.remove('hidden');
+        document.getElementById('deleteRequestId').value = id;
+        document.getElementById('deleteRequestProductName').textContent = productName;
+    }
+    function closeDeleteRequestModal() {
+        document.getElementById('deleteRequestModal').classList.add('hidden');
+    }
+
+    document.getElementById('deleteRequestForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('deleteRequestId').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`/market/request/delete/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeDeleteRequestModal();
+                loadMyRequests();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Load Requests Dynamically
+    function loadMyRequests() {
+        fetch('/market/my_requests/')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('myRequestSection').querySelector('.grid');
+                container.innerHTML = '';
+                if (data.requests.length === 0) {
+                    container.innerHTML = '<p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>';
+                } else {
+                    data.requests.forEach(req => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-white shadow-md rounded-lg p-4';
+                        div.innerHTML = `
+                            <h3 class="text-lg font-semibold">${req.product_name}</h3>
+                            <p class="text-gray-600">${req.quantity} ${req.unit}</p>
+                            <p class="text-gray-600">${req.description}</p>
+                            <p class="text-gray-600">${req.location}</p>
+                            <p class="text-gray-500 text-sm">${req.created_at}</p>
+                            <div class="mt-2 flex space-x-2">
+                                <button onclick="openEditRequestModal(${req.id}, '${req.product_name}', '${req.quantity}', '${req.unit}', '${req.description}', '${req.location}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="openDeleteRequestModal(${req.id}, '${req.product_name}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+            });
+    }
+
+    function loadProductRequests() {
+        console.log("loads product request")//debug
+        fetch('/market/product_requests/')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('createRequestSection').querySelector('.grid');
+                container.innerHTML = '';
+                if (data.requests.length === 0) {
+                    container.innerHTML = '<p class="text-gray-600 col-span-full">No product requests available.</p>';
+                } else {
+                    data.requests.forEach(req => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-white shadow-md rounded-lg p-4';
+                        div.innerHTML = `
+                            <h3 class="text-lg font-semibold">${req.product_name}</h3>
+                            <p class="text-gray-600">${req.quantity} ${req.unit}</p> 
+                            <p class="text-gray-600">${req.description}</p>
+                            <p class="text-gray-600">${req.location}</p>
+                            <p class="text-gray-500 text-sm">Requested by @${req.requester}</p>
+                            <p class="text-gray-500 text-sm">${req.created_at}</p>
+                            <button onclick="openChatModal(null, '${req.product_name}', '', ${req.requester_id})" class="text-blue-500 hover:text-blue-600 mt-2" title="Message Requester">
+                                <i class="fas fa-envelope"></i>
+                            </button>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+            });
+    }
+
+    // Tab Click Handlers for Requests
+    document.getElementById('myRequestTab').addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
+        contents.forEach(c => c.classList.add('hidden'));
+        document.getElementById('myRequestTab').classList.add('active-tab', 'border-blue-600');
+        document.getElementById('myRequestSection').classList.remove('hidden');
+        loadMyRequests();
+    });
+
+    const createRequestTab = document.getElementById('createRequestTab');
+    if (createRequestTab) {
+        createRequestTab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
+            contents.forEach(c => c.classList.add('hidden'));
+            createRequestTab.classList.add('active-tab', 'border-blue-600');
+            document.getElementById('createRequestSection').classList.remove('hidden');
+            loadProductRequests();
+        });
+    }
+// END OF PRODUCT REQUEST
+
 
     //Ensure DOM has loaded before calling certain function that handle different logic
     document.addEventListener("DOMContentLoaded", function () {
-            //MESSAGING
-            const messageForm = document.getElementById('messageForm');
-            if (messageForm) {
-                messageForm.addEventListener('submit', sendMessage);
-            } else {
-                console.error("messageForm not found in the DOM.");
-            }
-
+          
             // LISTING FORM
             const listingForm = document.getElementById("listingForm");
             if (listingForm) {
@@ -558,11 +1186,25 @@
                 console.error("listingForm not found in the DOM.");
             }
 
+            //Product Request
+            const requestForm = document.getElementById('requestForm'); 
+            if (requestForm) {
+                requestForm.addEventListener("submit", submitRequestForm);
+            } else {
+                console.error("requestForm not found in the DOM.");
+            }
+
+            //MESSAGING FROM REQUESTS MADE 28TH CHANGE
+            // Attach the handler (ensure this is inside your DOMContentLoaded listener)
+            document.getElementById('messageForm').addEventListener('submit', handleMessageSubmit);
+
+
+
     });
  
     setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional)
 
+
+
 </script>
 {% endblock script %}
-
-
