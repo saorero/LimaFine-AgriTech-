@@ -2,7 +2,6 @@
 {% load widget_tweaks %}
 {% load compress %}
 {% load static %}
-
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
@@ -13,7 +12,7 @@
         <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button active-tab">Dashboard</button>
         <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Create Listing</button>
         <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Marketplace</button>        
-        <button id="createRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">ProductRequests</button>        
+        <button id="productRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">ProductRequests</button>        
         <button id="forecastTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Forecast</button>
 
     
@@ -222,10 +221,10 @@
             <p class="text-gray-600">{{ request.location }}</p>
             <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
             <div class="mt-2 flex space-x-2">
-                <button onclick="openEditRequestModal({{ request.id }}, '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                <button onclick="openEditRequestModal('{{ request.id }}', '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button onclick="openDeleteRequestModal({{ request.id }}, '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                <button onclick="openDeleteRequestModal('{{ request.id }}', '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
@@ -238,7 +237,7 @@
 
 <!-- ProductRequests Section (Farmers Only) -->
 {% if user.userprofile.role == 'farmer' %}
-<div id="createRequestSection" class="tab-content hidden">
+<div id="productRequestSection" class="tab-content hidden">
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {% for request in product_requests %}
         <!-- THIS PART IS NOT EVEN WORKING FIX THIS -->
@@ -546,151 +545,101 @@
         }, 500));
     }
 
-    
+    function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+        const chatModal = document.getElementById('chatModal');
+        chatModal.classList.remove('hidden');
+        console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
+        loadConversations();
 
-    //TOWARDS THE END  Commented the original 27/03/ new open chat
-//     function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-//     const chatModal = document.getElementById('chatModal');
-//     chatModal.classList.remove('hidden');
-//     console.log('Loading Convo'); //Debug
-//     loadConversations();
+        if (recipientId) {
+            const effectiveListingId = listingId || 'none';  // Use 'none' for product requests
+            fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetch response:', data);
+                    document.getElementById('chatArea').classList.remove('hidden');
+                    document.getElementById('chatListingId').value = effectiveListingId;
+                    document.getElementById('chatRecipientId').value = recipientId;
+                    document.getElementById('chatListingName').textContent = listingName || data.listing_name;
+                    document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
+                    document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                    loadMessages(effectiveListingId, recipientId);
+                })
+                .catch(error => {
+                    console.error('Error fetching messages:', error);
+                    alert('Failed to load chat. Check console for details.');
+                });
+        } else {
+            document.getElementById('chatArea').classList.add('hidden');
+        }
+    }
 
-//     const messageForm = document.getElementById('messageForm');
-//     if (messageForm) {
-//         messageForm.removeEventListener('submit', handleMessageSubmit);
-//         messageForm.addEventListener('submit', handleMessageSubmit);
-//     } else {
-//         console.error('messageForm not found in DOM after opening chat modal');
-//     }
+    function handleMessageSubmit(e) {
+        e.preventDefault();
+        const listingId = document.getElementById('chatListingId').value || 'none';  // Default to 'none'
+        const recipientId = document.getElementById('chatRecipientId').value;
+        const content = document.getElementById('messageInput').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-//     if (recipientId) {
-//         // Use 'none' for listingId if not provided (e.g., from ProductRequests)
-//         const effectiveListingId = listingId || 'none';
-//         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
-//             .then(response => response.json())
-//             .then(data => {
-//                 document.getElementById('chatArea').classList.remove('hidden');
-//                 document.getElementById('chatListingId').value = effectiveListingId;
-//                 document.getElementById('chatRecipientId').value = recipientId;
-//                 document.getElementById('chatListingName').textContent = data.listing_name;
-//                 document.getElementById('chatListingImage').src = data.listing_image;
-//                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-//                 loadMessages(effectiveListingId, recipientId);
-//             });
-//     } else {
-//         document.getElementById('chatArea').classList.add('hidden');
-//     }
-// }
+        console.log(`Preparing to send: listingId=${listingId}, recipientId=${recipientId}, content="${content}"`);
 
-    //TRYING THIS OUT TO LOOK LIKE THE ORIGINAL 28TH TO DELETE IF IT DOES NOT WORK
-    // function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-    // const chatModal = document.getElementById('chatModal');
-    // chatModal.classList.remove('hidden');
-    // console.log('Loading Convo trial'); //Debug
-    // loadConversations();
+        if (!recipientId || !content) {
+            console.error('Invalid form data:', { listingId, recipientId, content });
+            alert('Please ensure all fields are filled correctly.');
+            return;
+        }
 
-    // if ((listingId && recipientId) || (recipientId && listingName)) {
-    //     // Use 'none' for listingId if not provided (e.g., from ProductRequests)
-    //     const effectiveListingId = listingId || 'null';
-    //     fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             document.getElementById('chatArea').classList.remove('hidden');
-    //             document.getElementById('chatListingId').value = effectiveListingId;
-    //             document.getElementById('chatRecipientId').value = recipientId;
-    //             document.getElementById('chatListingName').textContent = data.listing_name;
-    //             document.getElementById('chatListingImage').src = data.listing_image;
-    //             document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-    //             loadMessages(effectiveListingId, recipientId);
-    //         });
-    // } else {
-    //     document.getElementById('chatArea').classList.add('hidden');
-    // }
-    // }
-
-    //28TH CHANGES
-//     function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-//     const chatModal = document.getElementById('chatModal');
-//     chatModal.classList.remove('hidden');
-//     console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
-//     loadConversations();
-
-//     if (recipientId) {  // Only require recipientId to proceed
-//         const effectiveListingId = listingId || 'none';  // Use 'none' for product requests
-//         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
-//             .then(response => {
-//                 if (!response.ok) {
-//                     throw new Error(`HTTP error! Status: ${response.status}`);
-//                 }
-//                 return response.json();
-//             })
-//             .then(data => {
-//                 console.log('Fetch response:', data);
-//                 document.getElementById('chatArea').classList.remove('hidden');
-//                 document.getElementById('chatListingId').value = effectiveListingId;
-//                 document.getElementById('chatRecipientId').value = recipientId;
-//                 // Use provided listingName if available (e.g., product name), else fall back to server response
-//                 document.getElementById('chatListingName').textContent = listingName || data.listing_name;
-//                 document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
-//                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-//                 loadMessages(effectiveListingId, recipientId);
-//             })
-//             .catch(error => {
-//                 console.error('Error fetching messages:', error);
-//                 alert('Failed to load chat. Check console for details.');
-//             });
-//     } else {
-//         document.getElementById('chatArea').classList.add('hidden');
-//     }
-// }
+        fetch('/market/messages/send/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                listing_id: listingId === 'none' ? null : listingId,
+                recipient_id: recipientId,
+                content: content
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP error! Status: ${response.status}: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.status === 'success') {
+                loadMessages(listingId, recipientId);
+                document.getElementById('messageInput').value = '';
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error.message);
+            alert('Failed to send message. Check the console for details.');
+        });
+    }
 
 
+    function loadMessages(listingId, recipientId) {
+        const effectiveListingId = listingId || 'none';  // Ensure it's never undefined
+        const conversationKey = `${effectiveListingId}-${recipientId}`;
+        if (currentConversation === conversationKey) {
+            console.log('Skipping duplicate loadMessages call for:', conversationKey);
+            return;
+        }
+        currentConversation = conversationKey;
 
-// function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-//     const chatModal = document.getElementById('chatModal');
-//     chatModal.classList.remove('hidden');
-//     console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
-//     loadConversations();
-
-//     if (recipientId) {
-//         const effectiveListingId = listingId || 'none';  // Ensure 'none' for product requests
-//         currentConversation = null;
-//         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
-//             .then(response => {
-//                 if (!response.ok) {
-//                     throw new Error(`HTTP error! Status: ${response.status}`);
-//                 }
-//                 return response.json();
-//             })
-//             .then(data => {
-//                 console.log('Fetch response:', data);
-//                 document.getElementById('chatArea').classList.remove('hidden');
-//                 document.getElementById('chatListingId').value = effectiveListingId;
-//                 document.getElementById('chatRecipientId').value = recipientId;
-//                 document.getElementById('chatListingName').textContent = listingName || data.listing_name;
-//                 document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
-//                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-//                 loadMessages(effectiveListingId, recipientId);
-//             })
-//             .catch(error => {
-//                 console.error('Error fetching messages:', error);
-//                 alert('Failed to load chat. Check console for details.');
-//             });
-//     } else {
-//         document.getElementById('chatArea').classList.add('hidden');
-//         currentConversation = null;
-//     }
-// }
-
-//Original as of 28th at 12:45
-function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-    const chatModal = document.getElementById('chatModal');
-    chatModal.classList.remove('hidden');
-    console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
-    loadConversations();
-
-    if (recipientId) {
-        const effectiveListingId = listingId || 'none';  // Use 'none' for product requests
         fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
             .then(response => {
                 if (!response.ok) {
@@ -699,162 +648,27 @@ function openChatModal(listingId = null, listingName = null, listingImage = null
                 return response.json();
             })
             .then(data => {
-                console.log('Fetch response:', data);
-                document.getElementById('chatArea').classList.remove('hidden');
-                document.getElementById('chatListingId').value = effectiveListingId;
-                document.getElementById('chatRecipientId').value = recipientId;
-                document.getElementById('chatListingName').textContent = listingName || data.listing_name;
-                document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-                loadMessages(effectiveListingId, recipientId);
+                const messagesContainer = document.getElementById('messagesContainer');
+                messagesContainer.innerHTML = '';
+                data.messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
+                    msgDiv.innerHTML = `
+                        <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
+                            <p class="text-sm">${msg.content}</p>
+                            <p class="text-xs text-gray-500">${msg.timestamp}</p>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(msgDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             })
             .catch(error => {
-                console.error('Error fetching messages:', error);
-                alert('Failed to load chat. Check console for details.');
+                console.error('Error loading messages:', error);
             });
-    } else {
-        document.getElementById('chatArea').classList.add('hidden');
-    }
-}
-
-function handleMessageSubmit(e) {
-    e.preventDefault();
-    const listingId = document.getElementById('chatListingId').value || 'none';  // Default to 'none'
-    const recipientId = document.getElementById('chatRecipientId').value;
-    const content = document.getElementById('messageInput').value;
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-    console.log(`Preparing to send: listingId=${listingId}, recipientId=${recipientId}, content="${content}"`);
-
-    if (!recipientId || !content) {
-        console.error('Invalid form data:', { listingId, recipientId, content });
-        alert('Please ensure all fields are filled correctly.');
-        return;
     }
 
-    fetch('/market/messages/send/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            listing_id: listingId === 'none' ? null : listingId,
-            recipient_id: recipientId,
-            content: content
-        })
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error(`HTTP error! Status: ${response.status}: ${text}`);
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Response data:', data);
-        if (data.status === 'success') {
-            loadMessages(listingId, recipientId);
-            document.getElementById('messageInput').value = '';
-        } else {
-            alert(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Fetch error:', error.message);
-        alert('Failed to send message. Check the console for details.');
-    });
-}
-
-//END OF 28 CHANGES
-
-//28TH loadmessage
-function loadMessages(listingId, recipientId) {
-    const effectiveListingId = listingId || 'none';  // Ensure it's never undefined
-    const conversationKey = `${effectiveListingId}-${recipientId}`;
-    if (currentConversation === conversationKey) {
-        console.log('Skipping duplicate loadMessages call for:', conversationKey);
-        return;
-    }
-    currentConversation = conversationKey;
-
-    fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-            const messagesContainer = document.getElementById('messagesContainer');
-            messagesContainer.innerHTML = '';
-            data.messages.forEach(msg => {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
-                msgDiv.innerHTML = `
-                    <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
-                        <p class="text-sm">${msg.content}</p>
-                        <p class="text-xs text-gray-500">${msg.timestamp}</p>
-                    </div>
-                `;
-                messagesContainer.appendChild(msgDiv);
-            });
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        })
-        .catch(error => {
-            console.error('Error loading messages:', error);
-        });
-}
-
-// Original Load message
-// function loadMessages(listingId, recipientId) {
-//     fetch(`/market/messages/${listingId}/${recipientId}/`)
-//         .then(response => response.json())
-//         .then(data => {
-//             document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-//             const messagesContainer = document.getElementById('messagesContainer');
-//             messagesContainer.innerHTML = '';
-//             data.messages.forEach(msg => {
-//                 const msgDiv = document.createElement('div');
-//                 msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
-//                 msgDiv.innerHTML = `
-//                     <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
-//                         <p class="text-sm">${msg.content}</p>
-//                         <p class="text-xs text-gray-500">${msg.timestamp}</p>
-//                     </div>
-//                 `;
-//                 messagesContainer.appendChild(msgDiv);
-//             });
-//             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-//         });
-// }
-    //ENDS HERE 27
-    // Chat Modal Functions for Messaging original chatmodal not modified but working nicely
-    // function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
-    //     console.log("hello")
-    //     document.getElementById('chatModal').classList.remove('hidden');
-    //     loadConversations();        
-    //     if (listingId && recipientId) {
-    //         // If a specific chat is provided, open that conversation
-    //         fetch(`/market/messages/${listingId}/${recipientId}/`)
-    //             .then(response => response.json())
-    //             .then(data => {
-    //                 document.getElementById('chatArea').classList.remove('hidden');
-    //                 document.getElementById('chatListingId').value = listingId;
-    //                 document.getElementById('chatRecipientId').value = recipientId;
-    //                 document.getElementById('chatListingName').textContent = data.listing_name;
-    //                 document.getElementById('chatListingImage').src = data.listing_image;
-    //                 document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
-    //                 loadMessages(listingId, recipientId);
-    //             });
-    //     } else {
-    //         // If no specific listing, ensure chat area is hidden until a conversation is selected
-    //         document.getElementById('chatArea').classList.add('hidden');
-    //     }
-    // }
 
     function closeChatModal() {
         document.getElementById('chatModal').classList.add('hidden');
@@ -927,9 +741,8 @@ function loadMessages(listingId, recipientId) {
             });
     }
       
-// PRODUCT REQUEST
-// Product Request Modal Functions
-document.getElementById('requestButton').addEventListener('click', () => openRequestModal());
+    // PRODUCT REQUEST Functions
+    
     function openRequestModal() {
         document.getElementById('requestModal').classList.remove('hidden');
     }
@@ -938,77 +751,46 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
         document.getElementById('requestForm').reset();
     }
 
-    // document.getElementById('requestForm').addEventListener('submit', function(e) {
-    //     e.preventDefault();
-    //     const productName = document.getElementById('requestProductName').value;
-    //     const quantity = document.getElementById('requestQuantity').value;
-    //     const unit = document.getElementById('requestUnit').value;
-    //     const description = document.getElementById('requestDescription').value;
-    //     const location = document.getElementById('requestLocation').value;
-    //     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    //     console.log('Creating request')
-    //     fetch('/market/request/create/', {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             'X-CSRFToken': csrfToken
-    //         },
-    //         body: JSON.stringify({ product_name: productName, quantity: quantity, unit: unit, description: description, location: location })
-    //     })
-    //     .then(response => response.json())
-    //     .then(data => {
-    //         if (data.status === 'success') {
-    //             closeRequestModal();
-    //             loadMyRequests(); // Refresh MyRequests tab
-    //         } else {
-    //             alert(data.message);
-    //         }
-    //     })
-    //     .catch(error => console.error('Error:', error));
-    // });
-
+  
     function submitRequestForm(event) { //NOW Function
-    event.preventDefault(); // Prevent default form submission
+        event.preventDefault(); // Prevent default form submission
 
-    // Get form data
-    const productName = document.getElementById('requestProductName').value;
-    const quantity = document.getElementById('requestQuantity').value;
-    const unit = document.getElementById('requestUnit').value;
-    const description = document.getElementById('requestDescription').value;
-    const location = document.getElementById('requestLocation').value;
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        // Get form data
+        const productName = document.getElementById('requestProductName').value;
+        const quantity = document.getElementById('requestQuantity').value;
+        const unit = document.getElementById('requestUnit').value;
+        const description = document.getElementById('requestDescription').value;
+        const location = document.getElementById('requestLocation').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    console.log('Creating request');
+        console.log('Creating request');
 
-    // Send data via Fetch API
-    fetch('/market/request/create/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            product_name: productName,
-            quantity: quantity,
-            unit: unit,
-            description: description,
-            location: location
+        // Send data via Fetch API
+        fetch('/market/request/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                product_name: productName,
+                quantity: quantity,
+                unit: unit,
+                description: description,
+                location: location
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            closeRequestModal(); // Close modal
-            loadMyRequests(); // Refresh the MyRequests tab
-        } else {
-            alert(data.message);
-        }
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-// Attach function to the form submit event
-// document.getElementById('requestForm').addEventListener('submit', submitRequestForm); NOW
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeRequestModal(); // Close modal
+                loadMyRequests(); // Refresh the MyRequests tab
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
     // Edit Request Modal Functions
     function openEditRequestModal(id, productName, quantity, unit, description, location) {
@@ -1023,9 +805,8 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
     function closeEditRequestModal() {
         document.getElementById('editRequestModal').classList.add('hidden');
     }
-
-    document.getElementById('editRequestForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    function editRequest(event){
+        event.preventDefault();
         const id = document.getElementById('editRequestId').value;
         const productName = document.getElementById('editRequestProductName').value;
         const quantity = document.getElementById('editRequestQuantity').value;
@@ -1052,8 +833,7 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
             }
         })
         .catch(error => console.error('Error:', error));
-    });
-
+    }
     // Delete Request Modal Functions
     function openDeleteRequestModal(id, productName) {
         document.getElementById('deleteRequestModal').classList.remove('hidden');
@@ -1063,12 +843,13 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
     function closeDeleteRequestModal() {
         document.getElementById('deleteRequestModal').classList.add('hidden');
     }
-
-    document.getElementById('deleteRequestForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    //Producr request deletion function
+    function deleteRequest(event) {
+        event.preventDefault();
+        
         const id = document.getElementById('deleteRequestId').value;
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
+        
         fetch(`/market/request/delete/${id}/`, {
             method: 'POST',
             headers: {
@@ -1087,8 +868,7 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
             }
         })
         .catch(error => console.error('Error:', error));
-    });
-
+    }
     // Load Requests Dynamically
     function loadMyRequests() {
         fetch('/market/my_requests/')
@@ -1122,13 +902,12 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
                 }
             });
     }
-
     function loadProductRequests() {
         console.log("loads product request")//debug
         fetch('/market/product_requests/')
             .then(response => response.json())
             .then(data => {
-                const container = document.getElementById('createRequestSection').querySelector('.grid');
+                const container = document.getElementById('productRequestSection').querySelector('.grid');
                 container.innerHTML = '';
                 if (data.requests.length === 0) {
                     container.innerHTML = '<p class="text-gray-600 col-span-full">No product requests available.</p>';
@@ -1153,27 +932,7 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
             });
     }
 
-    // Tab Click Handlers for Requests
-    document.getElementById('myRequestTab').addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
-        contents.forEach(c => c.classList.add('hidden'));
-        document.getElementById('myRequestTab').classList.add('active-tab', 'border-blue-600');
-        document.getElementById('myRequestSection').classList.remove('hidden');
-        loadMyRequests();
-    });
-
-    const createRequestTab = document.getElementById('createRequestTab');
-    if (createRequestTab) {
-        createRequestTab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
-            contents.forEach(c => c.classList.add('hidden'));
-            createRequestTab.classList.add('active-tab', 'border-blue-600');
-            document.getElementById('createRequestSection').classList.remove('hidden');
-            loadProductRequests();
-        });
-    }
-// END OF PRODUCT REQUEST
-
+    // END OF PRODUCT REQUEST
 
     //Ensure DOM has loaded before calling certain function that handle different logic
     document.addEventListener("DOMContentLoaded", function () {
@@ -1185,7 +944,6 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
             } else {
                 console.error("listingForm not found in the DOM.");
             }
-
             //Product Request
             const requestForm = document.getElementById('requestForm'); 
             if (requestForm) {
@@ -1194,17 +952,19 @@ document.getElementById('requestButton').addEventListener('click', () => openReq
                 console.error("requestForm not found in the DOM.");
             }
 
-            //MESSAGING FROM REQUESTS MADE 28TH CHANGE
-            // Attach the handler (ensure this is inside your DOMContentLoaded listener)
+            // Request button
+            document.getElementById('requestButton').addEventListener('click', () => openRequestModal());
+            //Handle messages            
             document.getElementById('messageForm').addEventListener('submit', handleMessageSubmit);
+            //Handles product request deletion
+            document.getElementById('deleteRequestForm').addEventListener('submit', deleteRequest);
+            // Handles productRequest edit
+            document.getElementById('editRequestForm').addEventListener('submit', editRequest);
 
 
 
     });
  
     setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional)
-
-
-
 </script>
 {% endblock script %}
