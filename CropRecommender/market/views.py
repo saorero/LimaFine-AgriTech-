@@ -8,6 +8,9 @@ from .forms import ListingForm
 from Social.models import UserProfile
 from django.db.models import Q
 import json
+from django.contrib import messages
+from .utils import checkContent #confirms what is entered is valid
+
 def farmer_required(view_func):
     @login_required
     def wrapper(request, *args, **kwargs):
@@ -136,7 +139,7 @@ def getMessages(request, listing_id, other_user_id):
 
 
 
-# @login_required
+@login_required
 def getConversations(request):
     user_profile = request.user.userprofile
     print(f"User: {user_profile.user.username}, Role: {user_profile.role}")
@@ -179,264 +182,6 @@ def getConversations(request):
     return JsonResponse({'conversations': conversation_list})
 
 
-# # END OF 28 MODIFICATIONS
-
-# 25/04 MESSAGING ORIGINAL
-# @login_required
-# def sendMessage(request):
-#     if request.method == "POST":
-#         data = json.loads(request.body)
-#         listing_id = data.get('listing_id')  # Can be None
-#         recipient_id = data.get('recipient_id')
-#         content = data.get('content').strip()
-
-#         print("Sending message")
-#         print(f"Sending message: listing_id={listing_id}, recipient_id={recipient_id}, content={content}")
-
-#         if not content:
-#             return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty'}, status=400)
-
-#         # Handle listing_id being None
-#         listing = None
-#         if listing_id:
-#             listing = get_object_or_404(productListing, id=listing_id)
-
-#         recipient = get_object_or_404(UserProfile, id=recipient_id)
-#         sender = request.user.userprofile
-
-#         print(f"Sender: {sender.user.username}, Recipient: {recipient.user.username}")
-
-#         message = Message.objects.create(
-#             sender=sender,
-#             recipient=recipient,
-#             listing=listing,  # Can be None for product requests
-#             content=content
-#         )
-#         return JsonResponse({
-#             'status': 'success',
-#             'message': {
-#                 'id': message.id,
-#                 'content': message.content,
-#                 'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#                 'sender': sender.user.username,
-#                 'is_sender': True
-#             }
-#         })
-#     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-
-# COMMENTED OUT ON 28 the original i had by morning
-# @login_required
-# def getConversations(request):
-#     user_profile = request.user.userprofile
-#     print(f"User: {user_profile.user.username}, Role: {user_profile.role}")
-
-#     # Fetch messages where the user is either sender or recipient
-#     messages = Message.objects.filter(
-#         Q(sender=user_profile) | Q(recipient=user_profile)
-#     ).order_by('-timestamp')
-
-#     # Create a dictionary to store unique conversations
-#     conversation_dict = {}
-#     for msg in messages:
-#         other_user = msg.sender if msg.recipient == user_profile else msg.recipient
-#         # Use listing_id or 'none' if no listing, combined with other_user.id
-#         listing_id = msg.listing.id if msg.listing else 'none'
-#         convo_key = f"{listing_id}-{other_user.id}"
-
-#         if convo_key not in conversation_dict:
-#             conversation_dict[convo_key] = {
-#                 'listing': msg.listing,
-#                 'other_user': other_user,
-#                 'last_message': msg
-#             }
-
-#     # Convert to list for response
-#     conversation_list = []
-#     for convo in conversation_dict.values():
-#         listing = convo['listing']
-#         other_profile = convo['other_user']
-#         last_message = convo['last_message']
-
-#         conversation_list.append({
-#             'listing_id': listing.id if listing else None,
-#             'listing_name': listing.productName if listing else "Product Request",
-#             'listing_image': listing.get_image_url() if listing else '',  # Empty string if no listing
-#             'other_user': other_profile.user.username,
-#             'other_user_id': other_profile.id,
-#             'last_message': last_message.content,
-#             'timestamp': last_message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#             'unread': Message.objects.filter(
-#                 listing=listing,  # Works with None too
-#                 recipient=user_profile,
-#                 sender=other_profile,
-#                 is_read=False
-#             ).exists()
-#         })
-
-#     return JsonResponse({'conversations': conversation_list})
-
-# @login_required
-# def getMessages(request, listing_id, other_user_id):
-#     user_profile = request.user.userprofile
-#     other_profile = get_object_or_404(UserProfile, id=other_user_id)
-
-#     # If listing_id is 'none', fetch messages without a listing
-#     if listing_id == 'none':
-#         messages = Message.objects.filter(
-#             Q(sender=user_profile, recipient=other_profile) | Q(sender=other_profile, recipient=user_profile),
-#             listing__isnull=True
-#         ).order_by('timestamp')
-#     else:
-#         listing = get_object_or_404(productListing, id=listing_id)
-#         messages = Message.objects.filter(
-#             Q(sender=user_profile, recipient=other_profile) | Q(sender=other_profile, recipient=user_profile),
-#             listing=listing
-#         ).order_by('timestamp')
-
-#     messages_data = []
-#     for msg in messages:
-#         messages_data.append({
-#             'id': msg.id,
-#             'content': msg.content,
-#             'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#             'sender': msg.sender.user.username,
-#             'is_sender': msg.sender == user_profile
-#         })
-
-#     # Mark messages as read
-#     Message.objects.filter(recipient=user_profile, sender=other_profile, is_read=False).update(is_read=True)
-
-#     return JsonResponse({
-#         'listing_name': listing.productName if listing_id != 'none' else "Product Request",
-#         'listing_image': listing.get_image_url() if listing_id != 'none' else '',
-#         'other_user': other_profile.user.username,
-#         'messages': messages_data
-#     })
-
-# COMMENTED OUT ON 28 the original i had by morning
-
-
-# COMMENTED OUT ON 27 first original series
-# def sendMessage(request):
-#     if request.method == "POST":
-#         data = json.loads(request.body)
-#         listing_id = data.get('listing_id')
-#         recipient_id = data.get('recipient_id')
-#         content = data.get('content').strip()
-
-#         print("Sending message")
-#         print(f"Sending message: listing_id={listing_id}, recipient_id={recipient_id}, content={content}")  # Debug
-
-#         if not content:
-#             return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty'}, status=400)
-
-#         listing = get_object_or_404(productListing, id=listing_id)
-#         recipient = get_object_or_404(UserProfile, id=recipient_id)
-#         sender = request.user.userprofile
-
-#         print(f"Sender: {sender.user.username}, Recipient: {recipient.user.username}")  # Debug
-
-#         message = Message.objects.create(
-#             sender=sender,
-#             recipient=recipient,
-#             listing=listing,
-#             content=content
-#         )
-#         return JsonResponse({
-#             'status': 'success',
-#             'message': {
-#                 'id': message.id,
-#                 'content': message.content,
-#                 'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#                 'sender': sender.user.username,
-#                 'is_sender': True
-#             }
-#         })
-#     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-# @login_required
-# def getConversations(request):
-#     user_profile = request.user.userprofile
-#     print(f"User: {user_profile.user.username}, Role: {user_profile.role}")  # Debug
-
-#     # Fetch messages where the user is either sender or recipient
-#     messages = Message.objects.filter(
-#         Q(sender=user_profile) | Q(recipient=user_profile)
-#     ).order_by('-timestamp')
-
-#     # Create a dictionary to store unique conversations
-#     conversation_dict = {}
-#     for msg in messages:
-#         # Create a unique key for the conversation (listing + other user)
-#         other_user = msg.sender if msg.recipient == user_profile else msg.recipient
-#         convo_key = f"{msg.listing.id}-{other_user.id}"
-
-#         if convo_key not in conversation_dict:
-#             conversation_dict[convo_key] = {
-#                 'listing': msg.listing,
-#                 'other_user': other_user,
-#                 'last_message': msg
-#             }
-
-#     # Convert the dictionary to a list for the response
-#     conversation_list = []
-#     for convo in conversation_dict.values():
-#         listing = convo['listing']
-#         other_profile = convo['other_user']
-#         last_message = convo['last_message']
-
-#         conversation_list.append({
-#             'listing_id': listing.id,
-#             'listing_name': listing.productName,
-#             'listing_image': listing.get_image_url(),
-#             'other_user': other_profile.user.username,
-#             'other_user_id': other_profile.id,
-#             'last_message': last_message.content,
-#             'timestamp': last_message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#             'unread': Message.objects.filter(
-#                 listing=listing, recipient=user_profile, sender=other_profile, is_read=False
-#             ).exists()
-#         })
-
-#     return JsonResponse({'conversations': conversation_list})
-
-
-# @login_required
-# def getMessages(request, listing_id, other_user_id):
-#     user_profile = request.user.userprofile
-#     listing = get_object_or_404(productListing, id=listing_id)
-#     other_profile = get_object_or_404(UserProfile, id=other_user_id)
-
-#     messages = Message.objects.filter(
-#         listing=listing,
-#         sender__in=[user_profile, other_profile],
-#         recipient__in=[user_profile, other_profile]
-#     ).order_by('timestamp')
-
-#     # Mark messages as read
-#     Message.objects.filter(
-#         listing=listing, recipient=user_profile, sender=other_profile, is_read=False
-#     ).update(is_read=True)
-
-#     messages_data = [{
-#         'id': msg.id,
-#         'content': msg.content,
-#         'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#         'is_sender': msg.sender == user_profile,
-#         'sender': msg.sender.user.username
-#     } for msg in messages]
-
-#     return JsonResponse({
-#         'listing_name': listing.productName,
-#         'listing_image': listing.get_image_url(),
-#         'other_user': other_profile.user.username,
-#         'messages': messages_data
-#     })
-# END OF MESSAGING
-
-#REQUESTS START VIEWS 27/03
-
 @login_required
 def create_product_request(request):
     
@@ -450,6 +195,14 @@ def create_product_request(request):
         print(f"Creating request: {product_name}, {quantity}, {unit}, {description}, {location}")  # Debug
         if not product_name or quantity <= 0 or not location:
             return JsonResponse({'status': 'error', 'message': 'Product name, quantity, and location are required.'}, status=400)
+
+        # Validating the product_name and description whether they are agriculturally inclined
+        if not checkContent(product_name):
+            return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
+
+        if not checkContent(description):
+            return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
+        # Validation ends here
 
         requester = request.user.userprofile
         product_request = ProductRequest.objects.create(
@@ -477,15 +230,40 @@ def create_product_request(request):
 @login_required
 def edit_product_request(request, request_id):
     product_request = get_object_or_404(ProductRequest, id=request_id, requester=request.user.userprofile)
+
     if request.method == "POST":
         data = json.loads(request.body)
-        product_request.product_name = data.get('product_name', product_request.product_name).strip()
-        product_request.quantity = float(data.get('quantity', product_request.quantity))
-        product_request.unit = data.get('unit', product_request.unit).strip()
-        product_request.description = data.get('description', product_request.description).strip()
-        product_request.location = data.get('location', product_request.location).strip()
-        product_request.save()
-        return JsonResponse({'status': 'success', 'message': 'Request updated successfully'})
+
+        # Get the new values from the request
+        product_name = data.get('product_name', product_request.product_name).strip()
+        quantity = float(data.get('quantity', product_request.quantity))
+        unit = data.get('unit', product_request.unit).strip()
+        description = data.get('description', product_request.description).strip()
+        location = data.get('location', product_request.location).strip()
+
+        # Check if the content is agriculturally relevant before proceeding
+        if not checkContent(product_name):
+            return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
+
+        if not checkContent(description):
+            return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
+
+        # Update the product_request with validated values
+        product_request.product_name = product_name
+        product_request.quantity = quantity
+        product_request.unit = unit
+        product_request.description = description
+        product_request.location = location
+
+        try:
+            # Validate and save
+            product_request.clean()  # Validate the object
+            product_request.save()  # Save to the database
+            return JsonResponse({'status': 'success', 'message': 'Request updated successfully'})
+        except ValidationError as e:
+            # Handle validation errors
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 @login_required
@@ -548,15 +326,20 @@ def main(request):
         return HttpResponseForbidden("User profile not found. Please complete your profile.")
 
     if user_profile.role == 'farmer':
+        # Creating farmers listing
         if request.method == "POST":
             form = ListingForm(request.POST, request.FILES)
-            if form.is_valid():
+            if form.is_valid(): #calls the clean function 
                 listing = form.save(commit=False)
                 listing.farmer = user_profile
                 listing.save()
                 return redirect("main")
+            else:                
+                messages.error(request, form.errors.as_text())  # Display errors if description and productName is not agricultural content
+
         else:
             form = ListingForm(initial={'location': user_profile.county})
+
         listings = productListing.objects.filter(farmer=user_profile)
         query = request.GET.get('query', '').strip()
         if query:

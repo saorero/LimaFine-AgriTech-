@@ -3,6 +3,17 @@
 {% load compress %}
 {% load static %}
 {% block content %}
+
+<!-- Content filtration Error Displaying -->
+{% if messages %}
+    <div class="bg-teal-700 text-white p-4 rounded">
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <h1 class="text-3xl font-bold mb-6">{{ message }}</h1>
@@ -111,7 +122,9 @@
             <div class="bg-white p-6 rounded-lg shadow-lg w-full">
                 <h2 class="text-2xl font-bold mb-4 text-center">Create a New Listing</h2>
                 <form method="POST" id="listingForm" class="space-y-4" enctype="multipart/form-data">
+
                     {% csrf_token %}
+                  
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Product Category</label>
                         {{ form.productCategory|add_class:"w-full p-2 border rounded" }}
@@ -463,6 +476,8 @@
         </form>
     </div>
 </div>
+
+
 {% endblock modalsContent %}
 
 {% block script %}
@@ -961,6 +976,7 @@
             // Handles productRequest edit
             document.getElementById('editRequestForm').addEventListener('submit', editRequest);
 
+      
 
 
     });
