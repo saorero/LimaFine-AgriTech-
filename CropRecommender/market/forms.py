@@ -2,7 +2,7 @@
 # farmers/forms.py
 from django import forms
 from .models import productListing
-from .utils import checkContent 
+# from .utils import checkContent 
 class ListingForm(forms.ModelForm):
     class Meta:
         model = productListing
@@ -17,10 +17,10 @@ class ListingForm(forms.ModelForm):
         product_name = cleaned_data.get('productName', '').strip()
         description = cleaned_data.get('description', '').strip()
 
-        if not checkContent(product_name):
-            raise forms.ValidationError({"productName": "Product name does not seem related to agriculture. Please edit."})
+        # if not checkContent(product_name):
+        #     raise forms.ValidationError({"productName": "Product name does not seem related to agriculture. Please edit."})
 
-        if not checkContent(description):
-            raise forms.ValidationError({"description": "Description does not seem related to agriculture. Please edit."})
+        # if not checkContent(description):
+        #     raise forms.ValidationError({"description": "Description does not seem related to agriculture. Please edit."})
 
         return cleaned_data

@@ -3,7 +3,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
-from .models import productListing, Message, ProductRequest
+from .models import productListing, Message, ProductRequest, Order 
 from .forms import ListingForm
 from Social.models import UserProfile
 from django.db.models import Q
@@ -142,7 +142,7 @@ def getMessages(request, listing_id, other_user_id):
 @login_required
 def getConversations(request):
     user_profile = request.user.userprofile
-    print(f"User: {user_profile.user.username}, Role: {user_profile.role}")
+    # print(f"User: {user_profile.user.username}, Role: {user_profile.role}")
 
     messages = Message.objects.filter(
         Q(sender=user_profile) | Q(recipient=user_profile)
@@ -160,7 +160,7 @@ def getConversations(request):
                 'other_user': other_user,
                 'last_message': msg
             }
-
+   
     conversation_list = [
         {
             'listing_id': convo['listing'].id if convo['listing'] else None,
@@ -310,13 +310,113 @@ def get_product_requests(request):
 
 # END OF REQUEST VIEWS
 
+# ORDERS VIEW 08 removed underscores from views
+@login_required
+def createOrder(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        listing_id = data.get('listing_id')
+        quantity = float(data.get('quantity', 0))
+        location = data.get('location', '').strip()
+
+        if not listing_id or quantity <= 0 or not location:
+            return JsonResponse({'status': 'error', 'message': 'Listing ID, quantity, and location are required.'}, status=400)
+
+        listing = get_object_or_404(productListing, id=listing_id, is_available=True)
+        requester = request.user.userprofile
+
+        order = Order.objects.create(
+            listing=listing,
+            requester=requester,
+            quantity=quantity,
+            location=location,
+        )
+        return JsonResponse({
+            'status': 'success',
+            'order': {
+                'id': order.id,
+                'product_name': order.listing.productName,
+                'quantity': order.quantity,
+                'total_price': float(order.total_price),
+                'location': order.location,
+                'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'status': order.status,
+            }
+        })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+# Farmer's Order Section
+@farmer_required
+def getFarmerOrders(request):
+    user_profile = request.user.userprofile
+    orders = Order.objects.filter(listing__farmer=user_profile).order_by('-created_at')
+    orders_data = [{
+        'id': order.id,
+        'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'requester': order.requester.user.username,
+        'crop': order.listing.productName,
+        'quantity': order.quantity,
+        'total': float(order.total_price),
+        'location': order.location,
+        'status': order.status,
+    } for order in orders]
+    return JsonResponse({'orders': orders_data})
+
+@farmer_required
+def updateOrderStatus(request, order_id):
+    order = get_object_or_404(Order, id=order_id, listing__farmer=request.user.userprofile)
+    if request.method == "POST":
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        if new_status in dict(Order.STATUS_CHOICES):
+            order.status = new_status
+            order.save()
+            return JsonResponse({'status': 'success', 'message': 'Order status updated'})
+        return JsonResponse({'status': 'error', 'message': 'Invalid status'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+# Requester's Orders
+@login_required
+def getMyOrders(request):
+    user_profile = request.user.userprofile
+    orders = Order.objects.filter(requester=user_profile).order_by('-created_at')
+    orders_data = [{
+        'id': order.id,
+        'farmer': order.listing.farmer.user.username,
+        'crop': order.listing.productName,
+        'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'quantity': order.quantity,
+        'total': float(order.total_price),
+        'status': order.status,
+        'can_delete': order.status in ('new', 'pending'),
+    } for order in orders]
+    return JsonResponse({'orders': orders_data})
+
+@login_required
+def deleteOrder(request, order_id):
+    order = get_object_or_404(Order, id=order_id, requester=request.user.userprofile)
+    if request.method == "POST":
+        if order.status in ('new', 'pending'):
+            listing = order.listing
+            listing.quantity += order.quantity  # Restore quantity
+            if listing.quantity > 0:
+                listing.is_available = True
+            listing.save()
+            order.delete()
+            return JsonResponse({'status': 'success', 'message': 'Order deleted'})
+        return JsonResponse({'status': 'error', 'message': 'Cannot delete order in this status'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+# END of ORDERS
+
 
 # 25/04
 @login_required
 def main(request):
     form = None
     listings = None
-    marketplace_listings = productListing.objects.all()
+    # marketplace_listings = productListing.objects.all()
+    marketplace_listings = productListing.objects.filter(is_available=True) #only the available listings are displayed
     my_requests = ProductRequest.objects.filter(requester=request.user.userprofile, is_active=True)
     product_requests = ProductRequest.objects.filter(is_active=True).exclude(requester=request.user.userprofile) if request.user.userprofile.role == 'farmer' else []
 
@@ -325,18 +425,44 @@ def main(request):
     except UserProfile.DoesNotExist:
         return HttpResponseForbidden("User profile not found. Please complete your profile.")
 
+    # Add order analytics for insights tab
+    order_analytics = None
+    my_order_analytics = None
     if user_profile.role == 'farmer':
-        # Creating farmers listing
+        orders = Order.objects.filter(listing__farmer=user_profile)
+        order_analytics = {
+            'new': orders.filter(status='new').count(),
+            'pending': orders.filter(status='pending').count(),
+            'confirmed': orders.filter(status='confirmed').count(),
+            'completed': orders.filter(status='completed').count(),
+        }
+
+        # Calculate the estimated earnings 09
+        estimated_earnings = sum(float(order.total_price) for order in orders.filter(status__in=['new', 'pending', 'confirmed']))
+        total_earnings = sum(float(order.total_price) for order in orders.filter(status='completed'))
+        earnings = {
+            'estimated': estimated_earnings,
+            'total': total_earnings,
+        }
+        # END of 09
+    my_orders = Order.objects.filter(requester=user_profile)
+    my_order_analytics = {
+        'new': my_orders.filter(status='new').count(),
+        'pending': my_orders.filter(status='pending').count(),
+        'confirmed': my_orders.filter(status='confirmed').count(),
+        'completed': my_orders.filter(status='completed').count(),
+    }
+
+    if user_profile.role == 'farmer':
         if request.method == "POST":
             form = ListingForm(request.POST, request.FILES)
-            if form.is_valid(): #calls the clean function 
+            if form.is_valid():
                 listing = form.save(commit=False)
                 listing.farmer = user_profile
                 listing.save()
                 return redirect("main")
-            else:                
-                messages.error(request, form.errors.as_text())  # Display errors if description and productName is not agricultural content
-
+            else:
+                messages.error(request, form.errors.as_text())
         else:
             form = ListingForm(initial={'location': user_profile.county})
 
@@ -350,6 +476,7 @@ def main(request):
     if marketplace_query:
         marketplace_listings = marketplace_listings.filter(productName__icontains=marketplace_query)
 
+    # sending this to market.html template
     context = {
         'message': 'Market Place',
         'form': form,
@@ -357,6 +484,9 @@ def main(request):
         'marketplace_listings': marketplace_listings,
         'my_requests': my_requests,
         'product_requests': product_requests,
+        'order_analytics': order_analytics,
+        'my_order_analytics': my_order_analytics,
+        'earnings': earnings,
     }
     return render(request, 'market.html', context)
 

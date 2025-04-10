@@ -13,59 +13,84 @@
     </div>
 {% endif %}
 
-
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <h1 class="text-3xl font-bold mb-6">{{ message }}</h1>
-
     <!-- Tabs and Messaging Icon -->
     <div class="flex border-b mb-6 items-center">
-        <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button active-tab">Dashboard</button>
-        <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Create Listing</button>
-        <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Marketplace</button>        
-        <button id="productRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">ProductRequests</button>        
-        <button id="forecastTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">Forecast</button>
-
-    
+        <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button active-tab">Dashboard</button>        
+        <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">Marketplace</button>
+        {% if user.userprofile.role == 'farmer' %}
+        <button id="myProductsTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button active-tab">Products(m)</button>
+        <!-- <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">Create Listing</button> -->
+        <button id="productRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">ProductRequests</button> 
+        <!-- <button id="farmerOrdersTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">Orders</button> -->
+        {% endif %}              
         <div class="flex items-center gap-0 ml-auto">
-            <button id="myRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-600 focus:outline-none tab-button">MyRequests</button> 
+            <!-- <button id="myOrdersTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">MyOrders</button> -->
+            <button id="myRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">MyRequests</button> 
             <!-- Question Mark Button (Product Request) -->
             <button id="requestButton" onclick="alert('Button clicked!');" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Product Request">
                 <i class="fa-solid fa-circle-question fa-lg"></i>
             </button>
         
             <!-- Message Button (Message Farmer) -->
-            <button onclick="alert('Button clicked! DASHBOARD'); openChatModal()" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Message Farmer">
+            <button onclick="alert('Button clicked! myProducts'); openChatModal()" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Message Farmer">
                 <i class="fas fa-envelope fa-lg "></i>
             </button>
-        </div>
-        
+        </div>      
         
     </div>
 
-    <!-- Dashboard Section (for farmers only) -->
+    <!-- dashboard Tab -->
     <div id="dashboardSection" class="tab-content">
-        {% if user.userprofile.role == 'farmer' %}
-            <!-- Search Form -->
-            <div class="mb-6">
-                <form method="GET" class="flex space-x-4">
-                    <div class="flex-1">
-                        <input type="text" name="query" value="{{ request.GET.query }}" placeholder="Search your listings by product name..." class="w-full p-2 border rounded">
+        {% if user.userprofile.role == 'farmer' and order_analytics %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                
+                <!-- Earnings Card -->
+                <div class="bg-gradient-to-r from-teal-600 to-teal-800 text-white p-3 rounded-full shadow-lg flex flex-col items-center justify-center w-48 h-auto mx-auto transform hover:scale-105 transition-transform duration-300">
+                    <h3 class="text-base font-bold mb-1">Earnings</h3>
+                    <div class="text-center">
+                        <p class="text-xs font-semibold">Estimated</p>
+                        <p class="text-lg font-bold">KES {{ earnings.estimated|floatformat:2 }}</p>
+                        <p class="text-[10px] mt-0.5">From ongoing orders</p>
                     </div>
-                    <div class="flex items-end space-x-2">
-                        <button type="submit" class="bg-teal-700 text-white p-2 rounded hover:bg-teal-200 hover:text-black">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <a href="{% url 'main' %}" class="bg-gray-200 text-white p-2 rounded hover:bg-gray-600" title="Clear Search">
-                            <i class="fas fa-times"></i>
-                        </a>
+                    <div class="text-center mt-2">
+                        <p class="text-xs font-semibold">Total</p>
+                        <p class="text-lg font-bold">KES {{ earnings.total|floatformat:2 }}</p>
+                        <p class="text-[10px] mt-0.5">From completed orders</p>
                     </div>
-                </form>
-                {% if request.GET.query %}
-                    <p class="text-gray-600 mt-2">Showing results for: <strong>{{ request.GET.query }}</strong></p>
-                {% endif %}
+                </div>
+                  
+                <!-- orders made card -->
+                <div class="bg-white p-4 rounded-lg shadow-md cursor-pointer" >       
+                    <button id="farmerOrdersTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button" onclick="showFarmerOrders()">Orders Made</button>
+                    <p>New: {{ order_analytics.new }}</p>
+                    <p>Pending: {{ order_analytics.pending }}</p>
+                    <p>Confirmed: {{ order_analytics.confirmed }}</p>
+                    <p>Completed: {{ order_analytics.completed }}</p>
+                </div>
             </div>
+        {% endif %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            
+            <div class="bg-white p-4 rounded-lg shadow-md cursor-pointer" >
+                <button id="myOrdersTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button" onclick="showMyOrders()">My Orders</button>
+                <p>New: {{ my_order_analytics.new }}</p>
+                <p>Pending: {{ my_order_analytics.pending }}</p>
+                <p>Confirmed: {{ my_order_analytics.confirmed }}</p>
+                <p>Completed: {{ my_order_analytics.completed }}</p>
+            </div>
+        </div>
+    </div>
 
+
+    <!-- myProducts Section PRODUCTS that i have created are in this section-->
+    <div id="myProductsSection" class="tab-content">
+        <div class="flex justify-end p-2">
+            <button id="createListingTab" class="p-2 font-semibold text-white border-b-2 border-transparent hover:bg-teal-200 hover:text-black focus:outline-none tab-button bg-teal-700 rounded-xl">Create Listing</button>
+        </div>
+        {% if user.userprofile.role == 'farmer' %}                       
             <!-- Listings Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {% if listings %}
@@ -116,7 +141,7 @@
         {% endif %}
     </div>
 
-    <!-- Create Listing Section (for farmers only) -->
+    <!-- Create a product Listing Section (for farmers only) -->
     <div id="createListingSection" class="tab-content hidden">
         {% if user.userprofile.role == 'farmer' %}
             <div class="bg-white p-6 rounded-lg shadow-lg w-full">
@@ -169,6 +194,7 @@
     <!-- Marketplace Section -->
     <div id="marketplaceSection" class="tab-content hidden">
         <div class="mb-6">
+            <!-- Search form -->
             <form method="GET" class="flex space-x-4">
                 <div class="flex-1">
                     <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-2 border rounded">
@@ -207,12 +233,15 @@
                         <div class="mt-2 flex items-center justify-between">
                             <span class="text-sm font-semibold {% if listing.is_available %}text-teal-700{% else %}text-red-600{% endif %}">
                                 {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                            </span>
-                           
-                            <button onclick="alert('Button clicked! For MARKETPLACE'); openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
+                            </span>                           
+                            <button onclick="alert('Button clicked! From MARKETPLACE'); openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
                                 <i class="fas fa-envelope"></i>
                             </button>
-                        </div>
+                            <!-- Order Button -->
+                            <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-800" title="Order Item">
+                                <i class="fa-solid fa-cart-shopping"></i>
+                            </button>                          
+                        </div>                        
                     </div>
                 </div>
                 {% endfor %}
@@ -221,261 +250,324 @@
             {% endif %}
         </div>
     </div>
-</div>
 
-<!-- MyRequests Section -->
-<div id="myRequestSection" class="tab-content hidden">
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {% for request in my_requests %}
-        <div class="bg-white shadow-md rounded-lg p-4">
-            <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
-            <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
-            <p class="text-gray-600">{{ request.description }}</p>
-            <p class="text-gray-600">{{ request.location }}</p>
-            <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
-            <div class="mt-2 flex space-x-2">
-                <button onclick="openEditRequestModal('{{ request.id }}', '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button onclick="openDeleteRequestModal('{{ request.id }}', '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
+    <!-- MyRequests Section -->
+    <div id="myRequestSection" class="tab-content hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {% for request in my_requests %}
+            <div class="bg-white shadow-md rounded-lg p-4">
+                <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
+                <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
+                <p class="text-gray-600">{{ request.description }}</p>
+                <p class="text-gray-600">{{ request.location }}</p>
+                <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+                <div class="mt-2 flex space-x-2">
+                    <button onclick="openEditRequestModal('{{ request.id }}', '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="openDeleteRequestModal('{{ request.id }}', '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
             </div>
+            {% empty %}
+            <p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>
+            {% endfor %}
         </div>
-        {% empty %}
-        <p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>
-        {% endfor %}
     </div>
-</div>
 
-<!-- ProductRequests Section (Farmers Only) -->
-{% if user.userprofile.role == 'farmer' %}
-<div id="productRequestSection" class="tab-content hidden">
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {% for request in product_requests %}
-        <!-- THIS PART IS NOT EVEN WORKING FIX THIS -->
-        <div class="bg-white shadow-md rounded-lg p-4">
-            <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
-            <p class="text-gray-600">{{ request.quantity }}  {{ request.unit }}</p>
-            <p class="text-gray-600">{{ request.description }}</p>
-            <p class="text-gray-600">{{ request.location }}</p>
-            <p class="text-gray-500 text-sm">Requested by @{{ request.requester.user.username }}</p>
-            <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
-            <button onclick="alert('Button Clicked:- PRODUCT REQUEST'); openChatModal(null, '{{ request.product_name }}', '', '{{ request.requester.id }}')" class="text-blue-500 hover:text-blue-600 mt-2" title="Message Requester">
-                <i class="fas fa-envelope"></i>
-            </button>            
+    <!-- ProductRequests Section (Farmers Only) -->
+    <div id="productRequestSection" class="tab-content hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {% for request in product_requests %}        
+            <div class="bg-white shadow-md rounded-lg p-4">
+                <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
+                <p class="text-gray-600">{{ request.quantity }}  {{ request.unit }}</p>
+                <p class="text-gray-600">{{ request.description }}</p>
+                <p class="text-gray-600">{{ request.location }}</p>
+                <p class="text-gray-500 text-sm">Requested by @{{ request.requester.user.username }}</p>
+                <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+                <button onclick="alert('Button Clicked:- PRODUCT REQUEST'); openChatModal(null, '{{ request.product_name }}', '', '{{ request.requester.id }}')" class="text-blue-500 hover:text-blue-600 mt-2" title="Message Requester">
+                    <i class="fas fa-envelope"></i>
+                </button>        
 
+            </div>
+            {% empty %}
+            <p class="text-gray-600 col-span-full">No product requests available.</p>
+            {% endfor %}
         </div>
-        {% empty %}
-        <p class="text-gray-600 col-span-full">No product requests available.</p>
-        {% endfor %}
     </div>
-</div>
-{% endif %}
-</div>
 
+    <!-- Farmer Orders Section -->
+    <div id="farmerOrdersSection" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Received Orders</h2>
+        <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="p-2 text-left">Date</th>
+                    <th class="p-2 text-left">Requester</th>
+                    <th class="p-2 text-left">Crop</th>
+                    <th class="p-2 text-left">Quantity</th>
+                    <th class="p-2 text-left">Total (KES)</th>
+                    <th class="p-2 text-left">Location</th>
+                    <th class="p-2 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody id="farmerOrdersTable"></tbody>
+        </table>
+    </div>
+
+    <!-- My Orders Section -->
+    <div id="myOrdersSection" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">My Orders</h2>
+        <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="p-2 text-left">Farmer</th>
+                    <th class="p-2 text-left">Crop</th>
+                    <th class="p-2 text-left">Date</th>
+                    <th class="p-2 text-left">Quantity</th>
+                    <th class="p-2 text-left">Total (KES)</th>
+                    <th class="p-2 text-left">Status</th>
+                    <th class="p-2 text-left">Action</th>
+                </tr>
+            </thead>
+            <tbody id="myOrdersTable"></tbody>
+        </table>
+    </div>
+    
+</div>
 {% endblock content %}
 
 {% block modalsContent %}
-<!-- Existing Edit and Delete Modals  -->
-   <!-- EDIT Modal -->
-<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 class="text-2xl font-bold mb-4">Edit Listing</h2>
-        <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4">
-            {% csrf_token %}
-            <input type="hidden" name="listing_id" id="editListingId">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Product Category</label>
-                <select name="productCategory" id="editProductCategory" class="w-full p-2 border rounded">
-                    <option value="crop">Crop</option>
-                    <option value="dairy">Dairy product</option>
-                    <option value="meat">Meat product</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                <input type="text" name="productName" id="editProductName" class="w-full p-2 border rounded">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                <input type="number" name="quantity" id="editQuantity" step="0.01" class="w-full p-2 border rounded">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                <input type="text" name="unit" id="editUnit" class="w-full p-2 border rounded">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
-                <input type="number" name="price" id="editPrice" step="0.01" class="w-full p-2 border rounded">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Description</label>
-                <textarea name="description" id="editDescription" class="w-full p-2 border rounded"></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Location</label>
-                <input type="text" name="location" id="editLocation" class="w-full p-2 border rounded">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
-                <input type="file" name="image" id="editImage" class="w-full p-2 border rounded">
-                <p class="text-sm text-gray-500 mt-1">Current Image: <img id="editCurrentImage" src="" alt="Current Image" class="w-16 h-16 object-cover rounded inline-block ml-2"></p>
-                <label class="mt-2 flex items-center">
-                    <input type="checkbox" name="clear_image" id="editClearImage" class="mr-2">
-                    <span class="text-sm text-gray-700">Clear current image</span>
-                </label>
-            </div>
-            <div class="flex space-x-4">
-                <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
-                <button type="button" onclick="closeEditModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Delete Listing Modal -->
-<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Delete Listing</h2>
-        <p class="text-lg mb-4">Are you sure you want to delete the listing for <strong id="deleteProductName"></strong>?</p>
-        <p class="text-gray-600 mb-4">This action cannot be undone.</p>
-        <form id="deleteForm" method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="listing_id" id="deleteListingId">
-            <div class="flex space-x-4">
-                <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
-                <button type="button" onclick="closeDeleteModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Chat Modal 25/04-->
-<div id="chatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold">Messages</h2>
-            <button onclick="closeChatModal()" class="text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div id="chatContainer" class="flex flex-1 overflow-hidden">
-            <!-- Conversations List -->
-            <div id="conversationsList" class="w-1/3 border-r overflow-y-auto max-h-[70vh]">
-                <div id="conversationItems" class="space-y-2 p-2"></div>
-            </div>
-            <!-- Chat Area -->
-            <div id="chatArea" class="w-2/3 flex flex-col hidden">
-                <div id="chatHeader" class="p-2 border-b flex items-center">
-                    <!-- data has image prevents the image from showing in product requests -->
-                    <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2 " data-has-image="false"> 
-                    <div>
-                        <h3 id="chatListingName" class="font-semibold"></h3>
-                        <p id="chatOtherUser" class="text-sm text-gray-500"></p>
-                    </div>
+    <!-- Existing Edit and Delete Modals  -->
+    <!-- EDIT Modal -->
+    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4">Edit Listing</h2>
+            <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" id="editListingId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Category</label>
+                    <select name="productCategory" id="editProductCategory" class="w-full p-2 border rounded">
+                        <option value="crop">Crop</option>
+                        <option value="dairy">Dairy product</option>
+                        <option value="meat">Meat product</option>
+                    </select>
                 </div>
-                <div id="messagesContainer" class="flex-1 p-4 overflow-y-auto max-h-[50vh]"></div>
-                <form id="messageForm" class="p-2 border-t">
-                    <input type="hidden" id="chatListingId" name="listing_id">
-                    <input type="hidden" id="chatRecipientId" name="recipient_id">
-                    <div class="flex space-x-2">
-                        <input type="text" id="messageInput" class="flex-1 p-2 border rounded" placeholder="Type a message...">
-                        <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" name="productName" id="editProductName" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" name="quantity" id="editQuantity" step="0.01" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                    <input type="text" name="unit" id="editUnit" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
+                    <input type="number" name="price" id="editPrice" step="0.01" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" id="editDescription" class="w-full p-2 border rounded"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" name="location" id="editLocation" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
+                    <input type="file" name="image" id="editImage" class="w-full p-2 border rounded">
+                    <p class="text-sm text-gray-500 mt-1">Current Image: <img id="editCurrentImage" src="" alt="Current Image" class="w-16 h-16 object-cover rounded inline-block ml-2"></p>
+                    <label class="mt-2 flex items-center">
+                        <input type="checkbox" name="clear_image" id="editClearImage" class="mr-2">
+                        <span class="text-sm text-gray-700">Clear current image</span>
+                    </label>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
+                    <button type="button" onclick="closeEditModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Listing Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Delete Listing</h2>
+            <p class="text-lg mb-4">Are you sure you want to delete the listing for <strong id="deleteProductName"></strong>?</p>
+            <p class="text-gray-600 mb-4">This action cannot be undone.</p>
+            <form id="deleteForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" id="deleteListingId">
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
+                    <button type="button" onclick="closeDeleteModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Modal 25/04-->
+    <div id="chatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Messages</h2>
+                <button onclick="closeChatModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="chatContainer" class="flex flex-1 overflow-hidden">
+                <!-- Conversations List -->
+                <div id="conversationsList" class="w-1/3 border-r overflow-y-auto max-h-[70vh]">
+                    <div id="conversationItems" class="space-y-2 p-2"></div>
+                </div>
+                <!-- Chat Area -->
+                <div id="chatArea" class="w-2/3 flex flex-col hidden">
+                    <div id="chatHeader" class="p-2 border-b flex items-center">
+                        <!-- data has image prevents the image from showing in product requests -->
+                        <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2 " data-has-image="false"> 
+                        <div>
+                            <h3 id="chatListingName" class="font-semibold"></h3>
+                            <p id="chatOtherUser" class="text-sm text-gray-500"></p>
+                        </div>
                     </div>
-                </form>
+                    <div id="messagesContainer" class="flex-1 p-4 overflow-y-auto max-h-[50vh]"></div>
+                    <form id="messageForm" class="p-2 border-t">
+                        <input type="hidden" id="chatListingId" name="listing_id">
+                        <input type="hidden" id="chatRecipientId" name="recipient_id">
+                        <div class="flex space-x-2">
+                            <input type="text" id="messageInput" class="flex-1 p-2 border rounded" placeholder="Type a message...">
+                            <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Product Request Modal -->
-<div id="requestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Request a Product</h2>
-        <form id="requestForm" class="space-y-4">
-            {% csrf_token %}
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                <input type="text" id="requestProductName" class="w-full p-2 border rounded" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                <input type="number" id="requestQuantity" step="0.01" class="w-full p-2 border rounded" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                <input type="text" id="requestUnit" class="w-full p-2 border rounded" value="kg">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                <textarea id="requestDescription" class="w-full p-2 border rounded"></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Location</label>
-                <input type="text" id="requestLocation" class="w-full p-2 border rounded" required>
-            </div>
-            <div class="flex space-x-4">
-                <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded hover:bg-teal-800">Submit Request</button>
-                <button type="button" onclick="closeRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
-            </div>
-        </form>
+    <!-- Product Request Modal -->
+    <div id="requestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Request a Product</h2>
+            <form id="requestForm" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" id="requestProductName" class="w-full p-2 border rounded" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" id="requestQuantity" step="0.01" class="w-full p-2 border rounded" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                    <input type="text" id="requestUnit" class="w-full p-2 border rounded" value="kg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                    <textarea id="requestDescription" class="w-full p-2 border rounded"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" id="requestLocation" class="w-full p-2 border rounded" required>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded hover:bg-teal-800">Submit Request</button>
+                    <button type="button" onclick="closeRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<!-- Edit Request Modal -->
-<div id="editRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Edit Request</h2>
-        <form id="editRequestForm" class="space-y-4">
-            {% csrf_token %}
-            <input type="hidden" id="editRequestId">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                <input type="text" id="editRequestProductName" class="w-full p-2 border rounded" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                <input type="number" id="editRequestQuantity" step="0.01" class="w-full p-2 border rounded" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                <input type="text" id="editRequestUnit" class="w-full p-2 border rounded">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                <textarea id="editRequestDescription" class="w-full p-2 border rounded"></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Location</label>
-                <input type="text" id="editRequestLocation" class="w-full p-2 border rounded" required>
-            </div>
-            <div class="flex space-x-4">
-                <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
-                <button type="button" onclick="closeEditRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
-            </div>
-        </form>
+    <!-- Edit Request Modal -->
+    <div id="editRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Edit Request</h2>
+            <form id="editRequestForm" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" id="editRequestId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" id="editRequestProductName" class="w-full p-2 border rounded" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" id="editRequestQuantity" step="0.01" class="w-full p-2 border rounded" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                    <input type="text" id="editRequestUnit" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                    <textarea id="editRequestDescription" class="w-full p-2 border rounded"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" id="editRequestLocation" class="w-full p-2 border rounded" required>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
+                    <button type="button" onclick="closeEditRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<!-- Delete Request Modal -->
-<div id="deleteRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Delete Request</h2>
-        <p class="text-lg mb-4">Are you sure you want to delete the request for <strong id="deleteRequestProductName"></strong>?</p>
-        <p class="text-gray-600 mb-4">This action cannot be undone.</p>
-        <form id="deleteRequestForm" method="POST">
-            {% csrf_token %}
-            <input type="hidden" id="deleteRequestId">
-            <div class="flex space-x-4">
-                <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
-                <button type="button" onclick="closeDeleteRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
-            </div>
-        </form>
+    <!-- Delete Request Modal -->
+    <div id="deleteRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Delete Request</h2>
+            <p class="text-lg mb-4">Are you sure you want to delete the request for <strong id="deleteRequestProductName"></strong>?</p>
+            <p class="text-gray-600 mb-4">This action cannot be undone.</p>
+            <form id="deleteRequestForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="deleteRequestId">
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
+                    <button type="button" onclick="closeDeleteRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+
+    <!-- Order Modal -->
+    <div id="orderModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold mb-4">Place Order</h2>
+            <form id="orderForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700">Crop</label>
+                    <input id="orderCrop" type="text" class="w-full p-2 border rounded" readonly>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Quantity</label>
+                    <input id="orderQuantity" type="number" step="0.01" min="0" class="w-full p-2 border rounded" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Total Price (KES)</label>
+                    <input id="orderTotal" type="text" class="w-full p-2 border rounded" readonly>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700">Location (County)</label>
+                    <input id="orderLocation" type="text" class="w-full p-2 border rounded" required>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-700 text-white rounded">Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 
 {% endblock modalsContent %}
@@ -546,13 +638,7 @@
         };
     }
 
-    // Search functions for marketPlace and dahboard
-    const dashboardSearchInput = document.querySelector('input[name="query"]');
-    if (dashboardSearchInput) {
-        dashboardSearchInput.addEventListener('input', debounce(function() {
-            document.querySelector('#dashboardSection form').submit();
-        }, 500));
-    }
+    // Search functions for marketPlace 
     const marketplaceSearchInput = document.querySelector('input[name="marketplace_query"]');
     if (marketplaceSearchInput) {
         marketplaceSearchInput.addEventListener('input', debounce(function() {
@@ -756,8 +842,7 @@
             });
     }
       
-    // PRODUCT REQUEST Functions
-    
+    // PRODUCT REQUEST Functions    
     function openRequestModal() {
         document.getElementById('requestModal').classList.remove('hidden');
     }
@@ -765,7 +850,6 @@
         document.getElementById('requestModal').classList.add('hidden');
         document.getElementById('requestForm').reset();
     }
-
   
     function submitRequestForm(event) { //NOW Function
         event.preventDefault(); // Prevent default form submission
@@ -949,6 +1033,128 @@
 
     // END OF PRODUCT REQUEST
 
+    // ORDERS
+    let currentListingId = null;
+        function openOrderModal(listingId, productName, price, maxQuantity) {
+            currentListingId = listingId;
+            document.getElementById('orderCrop').value = productName;
+            document.getElementById('orderQuantity').max = maxQuantity;
+            document.getElementById('orderQuantity').addEventListener('input', () => {
+                const quantity = parseFloat(document.getElementById('orderQuantity').value) || 0;
+                document.getElementById('orderTotal').value = (quantity * price).toFixed(2);
+            });
+            document.getElementById('orderModal').classList.remove('hidden');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.add('hidden');
+            document.getElementById('orderForm').reset();
+            currentListingId = null;
+        }
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const quantity = parseFloat(document.getElementById('orderQuantity').value);
+            const location = document.getElementById('orderLocation').value;
+            const response = await fetch('/market/createOrder/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ listing_id: currentListingId, quantity, location }),
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                alert('Order placed successfully!');
+                closeOrderModal();
+            } else {
+                alert(data.message);
+            }
+        });
+
+        // Farmer Orders
+        async function showFarmerOrders() {
+            const response = await fetch('/market/farmerOrders/');
+            const data = await response.json();
+            const tbody = document.getElementById('farmerOrdersTable');
+            tbody.innerHTML = '';
+            data.orders.forEach(order => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2">${order.date}</td>
+                    <td class="p-2">${order.requester}</td>
+                    <td class="p-2">${order.crop}</td>
+                    <td class="p-2">${order.quantity}</td>
+                    <td class="p-2">${order.total.toFixed(2)}</td>
+                    <td class="p-2">${order.location}</td>
+                    <td class="p-2">
+                        <select onchange="updateOrderStatus(${order.id}, this.value)" class="p-1 border rounded">
+                            <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
+                            <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                            <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                        </select>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            const response = await fetch(`/market/updateOrderStatus/${orderId}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ status }),
+            });
+            const data = await response.json();
+            if (data.status !== 'success') alert(data.message);
+        }
+
+        // My Orders
+        async function showMyOrders() {
+            const response = await fetch('/market/myOrders/');
+            const data = await response.json();
+            const tbody = document.getElementById('myOrdersTable');
+            tbody.innerHTML = '';
+            data.orders.forEach(order => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2">${order.farmer}</td>
+                    <td class="p-2">${order.crop}</td>
+                    <td class="p-2">${order.date}</td>
+                    <td class="p-2">${order.quantity}</td>
+                    <td class="p-2">${order.total.toFixed(2)}</td>
+                    <td class="p-2">${order.status}</td>
+                    <td class="p-2">
+                        ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600"><i class="fas fa-trash"></i></button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function deleteOrder(orderId) {
+            if (confirm('Are you sure you want to delete this order?')) {
+                const response = await fetch(`/market/deleteOrder/${orderId}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showMyOrders();
+                    alert('Order deleted successfully!');
+                } else {
+                    alert(data.message);
+                }
+            }
+        }
+
+        // CSRF Token Helper (ensure this is available in your template or via Django)
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+    
+
+    // ORDERS
+
     //Ensure DOM has loaded before calling certain function that handle different logic
     document.addEventListener("DOMContentLoaded", function () {
           
@@ -976,11 +1182,11 @@
             // Handles productRequest edit
             document.getElementById('editRequestForm').addEventListener('submit', editRequest);
 
+             // Initial Tab ORDERS
+            document.getElementById('dashboardTab').click();
       
-
-
     });
  
-    setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional)
+   // setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional) you will uncomment this 
 </script>
 {% endblock script %}

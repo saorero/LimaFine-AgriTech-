@@ -20,5 +20,14 @@ urlpatterns = [
     path('request/delete/<int:request_id>/', views.delete_product_request, name='delete_product_request'),
     path('my_requests/', views.get_my_requests, name='get_my_requests'), #filters out result of productRequests
     path('product_requests/', views.get_product_requests, name='get_product_requests'), #// Loads all product requests
+
+    # ORDER PATHS
+    path('createOrder/', views.createOrder, name='createOrder'),
+    path('farmerOrders/', views.getFarmerOrders, name='getFarmerOrders'),
+    path('updateOrderStatus/<int:order_id>/', views.updateOrderStatus, name='updateOrderStatus'),
+    path('myOrders/', views.getMyOrders, name='getMyOrders'),
+    path('deleteOrder/<int:order_id>/', views.deleteOrder, name='deleteOrder'),
+
+
  
 ]

@@ -5,38 +5,51 @@ import os
 from Social.models import UserProfile
 from storages.backends.gcloud import GoogleCloudStorage
 
-from .utils import checkContent
-
-# # April 3rd
-# # Content Validation imports
-# from django.core.exceptions import ValidationError
-# from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-# import torch
-
-# # FineTuned Model Load
-# model_path = os.path.join(os.getcwd(), 'contentFiltrationModel')
-# tokenizer = DistilBertTokenizer.from_pretrained(model_path, local_files_only=True)
-# model = DistilBertForSequenceClassification.from_pretrained(model_path)
-# model.eval()  # Set model to evaluation mode
-
-# # Check content posted in the different models
-# def checkContent(text):
-#     """Check if text is agricultural using AI model"""
-#     print("Checking content...")
-#     inputs = tokenizer(text, truncation=True, padding="max_length", max_length=128, return_tensors="pt")
-    
-#     with torch.no_grad():
-#         outputs = model(**inputs)
-
-#     probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1)
-#     predicted_class = torch.argmax(probabilities, dim=1).item()
-    
-#     return predicted_class == 1  # Return True if Agricultural, False otherwise
-
-# # April 3rd
-
+from .utils import checkContent #content validation function
 
 # Create your models here.
+# Table for the orders made for a productListing 08
+class Order(models.Model):
+    STATUS_CHOICES = (
+        ('new', 'New'),
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
+    )
+    
+    listing = models.ForeignKey('productListing', on_delete=models.CASCADE, related_name='orders')
+    requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='orders_made')
+    quantity = models.FloatField()
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    location = models.CharField(max_length=100, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+
+    def clean(self):
+        """Validate order details."""
+        if self.quantity <= 0:
+            raise ValidationError({'quantity': 'Quantity must be greater than 0.'})
+        if self.quantity > self.listing.quantity:
+            raise ValidationError({'quantity': f'Quantity requested ({self.quantity}) exceeds available ({self.listing.quantity}).'})
+        if self.total_price != (self.quantity * float(self.listing.price)):
+            raise ValidationError({'total_price': 'Total price does not match quantity × listing price.'})
+
+    def save(self, *args, **kwargs):
+        """Override save to calculate total_price and reduce listing quantity."""
+        if not self.pk:  # Only on creation
+            self.total_price = self.quantity * float(self.listing.price)
+            self.listing.quantity -= self.quantity
+            if self.listing.quantity <= 0:
+                self.listing.is_available = False
+            self.listing.save()
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Order {self.id} for {self.listing.productName} by {self.requester.user.username}"
+
+# 08
+
 # Table that store the requests made by users 
 class ProductRequest(models.Model):
     requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='product_requests')
@@ -51,7 +64,7 @@ class ProductRequest(models.Model):
     def __str__(self):
         return f"{self.product_name} requested by {self.requester.user.username}"
     
-    # FOR VALIDATING CONTENT ENTERED
+    # FOR VALIDATING CONTENT ENTERED Commented out for now
     def clean(self):
         """Override the clean method to validate content relevance before saving"""
         if not checkContent(self.product_name):
