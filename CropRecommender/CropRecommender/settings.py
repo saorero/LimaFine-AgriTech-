@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'Social',# For user socialization
     'resource', #Resource Hub
     'market', #Farmer market place
+    'forecast', #for app forecasting
     'widget_tweaks', #form customization pip installed
     
 

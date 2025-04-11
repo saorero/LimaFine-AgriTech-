@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">   
     <link rel="stylesheet" href="{% static 'src/output.css' %}?v={% now 'U' %}"/>    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/> 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-300">
     <div class="flex h-screen">
@@ -16,7 +17,7 @@
             <button onclick="toggleSidebar()" class="mb-4 "><i class="fa-solid fa-seedling fa-xl"></i></button>
             <ul class="text-white shadow-2xl space-y-4">
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-house fa-xl mr-2"></i><span id="home-text" class="hidden"><a href="{% url 'Homepage' %}">Home</a></span></li>
-                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cloud-sun-rain fa-xl mr-2"></i><span id="forecast-text" class="hidden">Forecast</span></li>
+                <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cloud-sun-rain fa-xl mr-2"></i><span id="forecast-text" class="hidden"><a href="{% url 'mainSection' %}">Forecast</a></span></li>
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-book fa-xl mr-2"></i><span id="learning-text" class="hidden"><a href="{% url 'hub' %}">Resource Hub</a></span></li>                
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-comments fa-xl mr-2"></i><span id="botText" class="hidden"><a href="{% url 'agriBot' %}">AgriBot</a></span></li>
                 <li class="my-2 flex items-center py-4"><i class="fa-solid fa-cart-shopping fa-xl mr-2"></i><span id="marketText" class="hidden"><a href="{% url 'main' %}">Market</a></span></li>             

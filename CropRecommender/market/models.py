@@ -5,7 +5,7 @@ import os
 from Social.models import UserProfile
 from storages.backends.gcloud import GoogleCloudStorage
 
-from .utils import checkContent #content validation function
+# from .utils import checkContent #content validation function
 
 # Create your models here.
 # Table for the orders made for a productListing 08
@@ -42,7 +42,7 @@ class Order(models.Model):
             if self.listing.quantity <= 0:
                 self.listing.is_available = False
             self.listing.save()
-        self.clean()
+        # self.clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -75,7 +75,7 @@ class ProductRequest(models.Model):
 
     def save(self, *args, **kwargs):
         """Override the save method to ensure validation before saving"""
-        self.clean()  # Ensure clean() is called before saving
+        # self.clean()  # Ensure clean() is called before saving
         super().save(*args, **kwargs)  # Call the parent class's save method
 
 # For farmers product productproductListing

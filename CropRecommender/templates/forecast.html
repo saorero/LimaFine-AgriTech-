@@ -1,0 +1,203 @@
+{% extends "base2.html" %}
+{% block content %}
+    <div class="min-h-screen bg-gradient-to-b from-green-100 via-blue-100 to-white py-6 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-5xl mx-auto">
+            <!-- Header -->
+            <h1 class="text-3xl md:text-4xl font-bold text-green-800 mb-6 text-center">
+                5-Day Weather Forecast for Farmers
+            </h1>
+            <p class="text-gray-600 text-center mb-8">
+                Plan your farming with real-time weather insights!
+            </p>
+
+            <!-- Location Selection -->
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- County Dropdown -->
+                    <div>
+                        <label for="county" class="block text-sm font-medium text-gray-700 mb-1">County</label>
+                        <select id="county" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <option value="">Select County</option>
+                        </select>
+                    </div>
+                    <!-- Constituency Dropdown -->
+                    <div>
+                        <label for="constituency" class="block text-sm font-medium text-gray-700 mb-1">Constituency</label>
+                        <select id="constituency" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" disabled>
+                            <option value="">Select Constituency</option>
+                        </select>
+                    </div>
+                    <!-- Ward Dropdown -->
+                    <div>
+                        <label for="ward" class="block text-sm font-medium text-gray-700 mb-1">Ward</label>
+                        <select id="ward" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" disabled>
+                            <option value="">Select Ward</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+                    <button id="getWeatherGeo" class="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Use My Location
+                    </button>
+                    <button id="getWeatherManual" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center" disabled>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Get Forecast
+                    </button>
+                </div>
+            </div>
+
+            <!-- Forecast Display -->
+            <div id="forecast" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6"></div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block modalsContent %}
+{% endblock modalsContent %}
+
+{% block script %}
+<script>
+    // Load locations from the backend
+    fetch('/forecast/locations/')
+        .then(response => response.json())
+        .then(data => populateDropdowns(data))
+        .catch(error => console.error('Error loading locations:', error));
+
+    function populateDropdowns(locations) {
+        const countySelect = document.getElementById('county');
+        const constituencySelect = document.getElementById('constituency');
+        const wardSelect = document.getElementById('ward');
+
+        // Populate counties
+        countySelect.innerHTML = '<option value="">Select County</option>';
+        locations.forEach(county => {
+            const option = document.createElement('option');
+            option.value = county.county_name;
+            option.textContent = county.county_name;
+            countySelect.appendChild(option);
+        });
+
+        // Handle county selection
+        countySelect.addEventListener('change', () => {
+            const selectedCounty = locations.find(c => c.county_name === countySelect.value);
+            constituencySelect.innerHTML = '<option value="">Select Constituency</option>';
+            wardSelect.innerHTML = '<option value="">Select Ward</option>';
+            constituencySelect.disabled = true;
+            wardSelect.disabled = true;
+            document.getElementById('getWeatherManual').disabled = true;
+
+            if (selectedCounty) {
+                selectedCounty.constituencies.forEach(constituency => {
+                    const option = document.createElement('option');
+                    option.value = constituency.constituency_name;
+                    option.textContent = constituency.constituency_name;
+                    constituencySelect.appendChild(option);
+                });
+                constituencySelect.disabled = false;
+            }
+        });
+
+        // Handle constituency selection
+        constituencySelect.addEventListener('change', () => {
+            const selectedCounty = locations.find(c => c.county_name === countySelect.value);
+            const selectedConstituency = selectedCounty.constituencies.find(
+                con => con.constituency_name === constituencySelect.value
+            );
+            wardSelect.innerHTML = '<option value="">Select Ward</option>';
+            wardSelect.disabled = true;
+            document.getElementById('getWeatherManual').disabled = true;
+
+            if (selectedConstituency) {
+                selectedConstituency.wards.forEach(ward => {
+                    const option = document.createElement('option');
+                    option.value = ward;
+                    option.textContent = ward;
+                    wardSelect.appendChild(option);
+                });
+                wardSelect.disabled = false;
+            }
+        });
+
+        // Enable manual weather button when ward is selected
+        wardSelect.addEventListener('change', () => {
+            document.getElementById('getWeatherManual').disabled = !wardSelect.value;
+        });
+    }
+
+    // Use Geolocation
+    document.getElementById('getWeatherGeo').addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(fetchWeatherGeo, showError);
+        } else {
+            alert('Geolocation is not supported by your browser.');
+        }
+    });
+
+    // Use Selected Location
+    document.getElementById('getWeatherManual').addEventListener('click', () => {
+        const ward = document.getElementById('ward').value;
+        if (ward) {
+            fetchWeatherManual(ward);
+        }
+    });
+
+    function fetchWeatherGeo(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        fetch(`/forecast/forecast/?lat=${lat}&lon=${lon}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                displayForecast(data.forecast);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function fetchWeatherManual(ward) {
+        fetch(`/forecast/forecast/?ward=${encodeURIComponent(ward)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                displayForecast(data.forecast);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function displayForecast(forecast) {
+        const forecastDiv = document.getElementById('forecast');
+        forecastDiv.innerHTML = '';
+        forecast.forEach(day => {
+            const dayCard = `
+                <div class="bg-white rounded-lg shadow-md p-4 text-center transform hover:scale-105 transition duration-300">
+                    <p class="text-lg font-semibold text-gray-800">${new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                    <img src="http://openweathermap.org/img/wn/${day.icon}@2x.png" alt="${day.weather}" class="w-16 h-16 mx-auto my-2">
+                    <p class="text-2xl font-bold text-blue-600">${Math.round(day.temp)}°C</p>
+                    <p class="text-sm text-gray-600 capitalize">${day.weather}</p>
+                    <div class="mt-2">
+                        <span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Ideal for ${day.weather.includes('rain') ? 'watering' : 'planting'}</span>
+                    </div>
+                </div>
+            `;
+            forecastDiv.innerHTML += dayCard;
+        });
+    }
+
+    function showError(error) {
+        alert('Unable to retrieve your location: ' + error.message);
+    }
+</script>
+{% endblock script %}

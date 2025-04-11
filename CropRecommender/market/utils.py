@@ -9,7 +9,7 @@ from transformers import DistilBertTokenizer, DistilBertForSequenceClassificatio
 import torch
 
 # FineTuned Model Load
-print("Loading content checking model FIX...") #That is why it is the server is starting up slowly...so deploy this to hugging face doing it today
+print("Loading content checking mode FIXo...") #That is why it is the server is starting up slowly...so deploy this to hugging face doing it today
 model_path = os.path.join(os.getcwd(), 'contentFiltrationModel')
 tokenizer = DistilBertTokenizer.from_pretrained(model_path, local_files_only=True)
 model = DistilBertForSequenceClassification.from_pretrained(model_path)

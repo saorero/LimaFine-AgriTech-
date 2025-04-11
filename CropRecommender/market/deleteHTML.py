@@ -2,65 +2,66 @@
 {% load widget_tweaks %}
 {% load compress %}
 {% load static %}
-
-
 {% block content %}
+
 {% if user.userprofile.role == 'farmer' %}
     {{ competitor_crop_pricing|json_script:"competitorCropPricing" }}
 {% endif %}
 
-<!-- Messages (Alerts) -->
+<!-- Content filtration Error Displaying -->
 {% if messages %}
-    <div class="bg-teal-600 text-white p-4 rounded-2xl shadow-lg mb-6 mx-auto max-w-6xl">
+    <div class="bg-teal-700 text-white p-4 rounded">
         {% for message in messages %}
-            <p class="text-sm">{{ message }}</p>
+            <p>{{ message }}</p>
         {% endfor %}
     </div>
 {% endif %}
 
-
-<!-- Main Container -->
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-gradient-to-b from-teal-50 via-brown-50 to-white min-h-screen"> 
+<div class="max-w-6xl mx-auto">
     <!-- Header -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <h1 class="text-3xl font-bold text-teal-800 mb-6">{{ message }}</h1>
-
-    <!-- Tabs and Icons -->
-    <div class="flex items-center border-b-2 border-teal-200 mb-6">
-        <div class="flex flex-wrap gap-2">
-            <button id="dashboardTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button active-tab transition duration-300 rounded-t-lg">Dashboard</button>
-            <button id="marketplaceTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Marketplace</button>
-            {% if user.userprofile.role == 'farmer' %}
-                <button id="myProductsTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">My Products</button>
-                <button id="productRequestTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Product Requests</button>
-            {% endif %}
-            <button id="myRequestTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">My Requests</button>
-        </div>
-        <div class="ml-auto flex items-center gap-4">
-            <button id="requestButton" class="p-2 text-teal-700 hover:bg-teal-100 rounded-full transition duration-300" title="Product Request">
+    <h1 class="text-3xl font-bold mb-6">{{ message }}</h1>
+    <!-- Tabs and Messaging Icon -->
+    <div class="flex border-b mb-6 items-center">
+        <button id="dashboardTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button active-tab">Dashboard</button>        
+        <button id="marketplaceTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">Marketplace</button>
+        {% if user.userprofile.role == 'farmer' %}
+        <button id="myProductsTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button active-tab">Products(m)</button>
+        <!-- <button id="createListingTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">Create Listing</button> -->
+        <button id="productRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">ProductRequests</button> 
+        <!-- <button id="farmerOrdersTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">Orders</button> -->
+        {% endif %}              
+        <div class="flex items-center gap-0 ml-auto">
+            <!-- <button id="myOrdersTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">MyOrders</button> -->
+            <button id="myRequestTab" class="px-4 py-2 font-semibold text-gray-700 border-b-2 border-transparent hover:border-teal-700 focus:outline-none tab-button">MyRequests</button> 
+            <!-- Question Mark Button (Product Request) -->
+            <button id="requestButton" onclick="alert('Button clicked!');" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Product Request">
                 <i class="fa-solid fa-circle-question fa-lg"></i>
             </button>
-            <button onclick="openChatModal()" class="p-2 text-teal-700 hover:bg-teal-100 rounded-full transition duration-300" title="Message Farmer">
-                <i class="fas fa-envelope fa-lg"></i>
+        
+            <!-- Message Button (Message Farmer) -->
+            <button onclick="alert('Button clicked! myProducts'); openChatModal()" class="px-4 py-2 text-teal-700 hover:text-gray-200" title="Message Farmer">
+                <i class="fas fa-envelope fa-lg "></i>
             </button>
-        </div>
+        </div>      
+        
     </div>
 
-    <!-- Dashboard Tab -->
+    <!-- dashboard Tab -->
     <div id="dashboardSection" class="tab-content">
         {% if user.userprofile.role == 'farmer' and order_analytics %}
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-                <!-- Left Column -->
+                <!-- Left Column: Earnings, Competitor Analysis, Top Selling Products -->
                 <div class="lg:col-span-3 space-y-6">
                     <!-- Earnings Card -->
-                    <div class="bg-gradient-to-r from-teal-600 to-teal-800 text-white p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center transform hover:scale-105 transition-transform duration-300">
+                    <div class="bg-gradient-to-r from-teal-600 to-teal-800 text-white p-6 rounded-full shadow-lg flex flex-col items-center justify-center w-64 h-64 mx-auto transform hover:scale-105 transition-transform duration-300">
                         <h3 class="text-lg font-bold mb-2">Earnings</h3>
                         <div class="text-center">
                             <p class="text-sm font-semibold">Estimated</p>
                             <p class="text-xl font-bold">KES {{ earnings.estimated|floatformat:2 }}</p>
                             <p class="text-xs mt-1">From ongoing orders</p>
                         </div>
-                        <div class="text-center mt-4">
+                        <div class="text-center mt-3">
                             <p class="text-sm font-semibold">Total</p>
                             <p class="text-xl font-bold">KES {{ earnings.total|floatformat:2 }}</p>
                             <p class="text-xs mt-1">From completed orders</p>
@@ -68,19 +69,19 @@
                     </div>
 
                     <!-- Competitor Analysis Card -->
-                    <div class="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-balance-scale mr-2 text-teal-600"></i>Competitor Analysis</h3>
-                        <p class="text-gray-700">Avg. Competitor Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.avg_price|floatformat:2 }}</span></p>
-                        <p class="text-gray-700">Your Avg. Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.my_avg_price|floatformat:2 }}</span></p>
-                        <p class="text-gray-700">Competing Listings: <span class="font-semibold text-teal-600">{{ competitor_analysis.listing_count }}</span></p>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold mb-3"><i class="fas fa-balance-scale mr-2 text-teal-700"></i>Competitor Analysis</h3>
+                        <p class="text-gray-700">Avg. Competitor Price: <span class="font-semibold">KES {{ competitor_analysis.avg_price|floatformat:2 }}</span></p>
+                        <p class="text-gray-700">Your Avg. Price: <span class="font-semibold">KES {{ competitor_analysis.my_avg_price|floatformat:2 }}</span></p>
+                        <p class="text-gray-700">Competing Listings: <span class="font-semibold">{{ competitor_analysis.listing_count }}</span></p>
                     </div>
 
-                    <!-- Top Selling Products Card -->
-                    <div class="bg-white p-4 rounded-2xl shadow-md cursor-pointer hover:shadow-lg transition-shadow duration-300" onclick="showTopProductsDetails()">
-                        <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-star mr-2 text-teal-600"></i>Top Selling Products</h3>
+                    <!-- Top Selling Products Card (Clickable) -->
+                    <div class="bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-shadow duration-300" onclick="showTopProductsDetails()">
+                        <h3 class="text-xl font-semibold mb-3"><i class="fas fa-star mr-2 text-teal-700"></i>Top Selling Products</h3>
                         {% if top_products %}
                             {% for product in top_products %}
-                                <p class="text-gray-700 text-sm">{{ product.name }}: <span class="font-semibold text-teal-600">KES {{ product.revenue|floatformat:2 }}</span> ({{ product.quantity }} sold)</p>
+                                <p class="text-gray-700 text-sm">{{ product.name }}: <span class="font-semibold">KES {{ product.revenue|floatformat:2 }}</span> ({{ product.quantity }} sold)</p>
                             {% endfor %}
                         {% else %}
                             <p class="text-sm text-gray-600">No sales yet.</p>
@@ -88,39 +89,43 @@
                     </div>
                 </div>
 
-                <!-- Middle Section -->
+                <!-- Middle Section: Orders Made, Customer Engagement, Competitor Crop Pricing -->
                 <div class="lg:col-span-9 space-y-6">
-                    <!-- Top Row -->
+                    <!-- Top Row: Orders Made and Customer Engagement -->
                     <div class="flex flex-col lg:flex-row gap-6">
                         <!-- Orders Made Card -->
-                        <div class="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full lg:w-1/2">
-                            <button id="farmerOrdersTab" class="w-full text-left text-xl font-semibold text-teal-800 hover:text-teal-600 focus:outline-none tab-button mb-3" onclick="showFarmerOrders()">
-                                <i class="fas fa-shopping-cart mr-2 text-teal-600"></i>Orders Made
+                        <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 w-full lg:w-1/2">
+                            <button id="farmerOrdersTab" class="w-full text-left text-xl font-semibold text-gray-700 hover:text-teal-700 focus:outline-none tab-button mb-3" onclick="showFarmerOrders()">
+                                <i class="fas fa-shopping-cart mr-2 text-teal-700"></i>Orders Made
                             </button>
-                            <p class="text-gray-700">New: <span class="font-semibold text-teal-600">{{ order_analytics.new }}</span></p>
-                            <p class="text-gray-700">Pending: <span class="font-semibold text-teal-600">{{ order_analytics.pending }}</span></p>
-                            <p class="text-gray-700">Confirmed: <span class="font-semibold text-teal-600">{{ order_analytics.confirmed }}</span></p>
-                            <p class="text-gray-700">Completed: <span class="font-semibold text-teal-600">{{ order_analytics.completed }}</span></p>
+                            <p class="text-gray-700">New: <span class="font-semibold">{{ order_analytics.new }}</span></p>
+                            <p class="text-gray-700">Pending: <span class="font-semibold">{{ order_analytics.pending }}</span></p>
+                            <p class="text-gray-700">Confirmed: <span class="font-semibold">{{ order_analytics.confirmed }}</span></p>
+                            <p class="text-gray-700">Completed: <span class="font-semibold">{{ order_analytics.completed }}</span></p>
                         </div>
 
-                        <!-- Customer Engagement Card -->
-                        <div class="bg-gradient-to-r from-teal-600 to-teal-800 text-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full lg:w-1/2">
-                            <h3 class="text-xl font-semibold mb-3 text-white"><i class="fas fa-users mr-2"></i>Customer Engagement</h3>
-                            <p>Unique Customers: <span class="font-semibold">{{ customer_engagement.unique_customers }}</span></p>
-                            <p>Unread Messages: <span class="font-semibold">{{ customer_engagement.unread_messages }}</span></p>
+                        <!-- Customer Engagement Card (Diamond Shape) -->
+                        <div class="relative w-full lg:w-1/2">
+                            <div class="bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-300 transform rotate-45 w-64 h-64 flex items-center justify-center mx-auto">
+                                <div class="transform -rotate-45 text-center">
+                                    <h3 class="text-xl font-semibold mb-3"><i class="fas fa-users mr-2 text-teal-700"></i>Customer Engagement</h3>
+                                    <p class="text-gray-700">Unique Customers: <span class="font-semibold">{{ customer_engagement.unique_customers }}</span></p>
+                                    <p class="text-gray-700">Unread Messages: <span class="font-semibold">{{ customer_engagement.unread_messages }}</span></p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Competitor Crop Pricing Graph -->
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-chart-bar mr-2 text-teal-600"></i>Competitor Crop Pricing</h3>
+                    <!-- Competitor Crop Pricing Graph (Middle, Wide, Short) -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold mb-3"><i class="fas fa-chart-bar mr-2 text-teal-700"></i>Competitor Crop Pricing</h3>
                         <div class="relative w-full h-[200px]">
                             <canvas id="competitorCropPricingChart"></canvas>
                             <p id="noPricingData" class="absolute inset-0 flex items-center justify-center text-gray-600 hidden">No pricing data available for your crops.</p>
                         </div>
                     </div>
 
-                    <!-- My Orders Button -->
+                    <!-- My Orders Button (Bottom Right) -->
                     <div class="flex justify-end mt-4">
                         <button id="myOrdersTab" class="px-6 py-3 font-semibold text-white bg-teal-700 rounded-full hover:bg-teal-800 transition-colors duration-300 tab-button" onclick="showMyOrders()">My Orders</button>
                     </div>
@@ -129,51 +134,52 @@
         {% endif %}
     </div>
 
-    <!-- My Products Section -->
-    <div id="myProductsSection" class="tab-content hidden">
+    <!-- myProducts Section PRODUCTS that i have created are in this section-->
+    <div id="myProductsSection" class="tab-content">
         <div class="flex justify-end p-2">
-            <button id="createListingTab" class="px-4 py-2 font-semibold text-white bg-teal-700 rounded-xl hover:bg-teal-600 transition duration-300 tab-button">Create Listing</button>
+            <button id="createListingTab" class="p-2 font-semibold text-white border-b-2 border-transparent hover:bg-teal-200 hover:text-black focus:outline-none tab-button bg-teal-700 rounded-xl">Create Listing</button>
         </div>
-        {% if user.userprofile.role == 'farmer' %}
+        {% if user.userprofile.role == 'farmer' %}                       
+            <!-- Listings Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {% if listings %}
                     {% for listing in listings %}
-                        <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300">
-                            <div class="h-40 w-full overflow-hidden">
-                                <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-200 p-2 relative">
+                        <div class="h-40 w-full overflow-hidden">
+                            <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-3 flex flex-col flex-grow">
+                            <h2 class="text-lg font-semibold line-clamp-1">{{ listing.productName }}</h2>
+                            <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
+                            <div class="mt-2">
+                                <p class="text-gray-700 font-bold">KES: {{ listing.price }} per {{ listing.unit }}</p>
+                                <p class="text-gray-500 text-sm">Quantity Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                <p class="text-gray-500 text-sm">{{ listing.location }}</p>
                             </div>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
-                                <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
-                                <div class="mt-2">
-                                    <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
-                                    <p class="text-gray-500 text-sm">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
-                                    <p class="text-gray-500 text-sm">{{ listing.location }}</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
-                                <div class="mt-2 flex items-center justify-between">
-                                    <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
-                                        {% csrf_token %}
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
-                                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors duration-200"></div>
-                                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
-                                        </label>
-                                        <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
-                                            {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                                        </span>
-                                    </form>
-                                    <div class="flex space-x-2">
-                                        <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </div>
+                            <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
+                            <div class="mt-2 flex items-center justify-between">
+                                <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
+                                    {% csrf_token %}
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
+                                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-700 transition-colors duration-200"></div>
+                                        <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
+                                    </label>
+                                    <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-700{% else %}text-red-600{% endif %}">
+                                        {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                    </span>
+                                </form>
+                                <div class="flex space-x-2">
+                                    <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
+                    </div>
                     {% endfor %}
                 {% else %}
                     <p class="text-gray-600 col-span-full">No listings found. {% if request.GET.query %}Try adjusting your search query.{% else %}Use the "Create Listing" tab to add a new listing.{% endif %}</p>
@@ -184,47 +190,49 @@
         {% endif %}
     </div>
 
-    <!-- Create Listing Section -->
+    <!-- Create a product Listing Section (for farmers only) -->
     <div id="createListingSection" class="tab-content hidden">
         {% if user.userprofile.role == 'farmer' %}
-            <div class="bg-white p-6 rounded-2xl shadow-lg w-full">
-                <h2 class="text-2xl font-bold mb-4 text-center text-teal-800">Create a New Listing</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg w-full">
+                <h2 class="text-2xl font-bold mb-4 text-center">Create a New Listing</h2>
                 <form method="POST" id="listingForm" class="space-y-4" enctype="multipart/form-data">
+
                     {% csrf_token %}
+                  
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Product Category</label>
-                        {{ form.productCategory|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.productCategory|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                        {{ form.productName|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.productName|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                        {{ form.quantity|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.quantity|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                        {{ form.unit|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.unit|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
-                        {{ form.price|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.price|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Description</label>
-                        {{ form.description|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.description|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Location</label>
-                        {{ form.location|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        {{ form.location|add_class:"w-full p-2 border rounded" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
-                        {{ form.image|add_class:"w-full p-2 border rounded-md" }}
-                        <p class="text-sm text-gray-500 mt-1">If no image is uploaded, a default image will be used.</p>
+                        {{ form.image|add_class:"w-full p-2 border rounded" }}
+                        <p class="text-sm text-gray-500 mt-1">If no image is uploaded, a default image will be used based on the product name.</p>
                     </div>
-                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Create Listing</button>
+                    <button type="submit" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">Create Listing</button>
                 </form>
             </div>
         {% else %}
@@ -235,15 +243,16 @@
     <!-- Marketplace Section -->
     <div id="marketplaceSection" class="tab-content hidden">
         <div class="mb-6">
+            <!-- Search form -->
             <form method="GET" class="flex space-x-4">
                 <div class="flex-1">
-                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-2 border rounded">
                 </div>
                 <div class="flex items-end space-x-2">
-                    <button type="submit" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                    <button type="submit" class="bg-teal-700 text-white p-2 rounded hover:bg-teal-200 hover:text-black">
                         <i class="fas fa-search"></i>
                     </button>
-                    <a href="{% url 'main' %}" class="bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition duration-300" title="Clear Search">
+                    <a href="{% url 'main' %}" class="bg-gray-200 text-white p-2 rounded hover:bg-gray-600" title="Clear Search">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -255,33 +264,35 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {% if marketplace_listings %}
                 {% for listing in marketplace_listings %}
-                    <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300">
-                        <div class="h-40 w-full overflow-hidden">
-                            <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                        </div>
-                        <div class="p-4 flex flex-col flex-grow">
-                            <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
-                            <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
-                            <p class="text-gray-500 text-sm">by @{{ listing.farmer.user.username }}</p>
-                            <div class="mt-2">
-                                <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
-                                <p class="text-gray-700 font-bold">Qty Left: {{ listing.quantity }}{{ listing.unit }}</p>
-                                <p class="text-gray-500 text-sm">{{ listing.location }}</p>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
-                            <div class="mt-2 flex items-center justify-between">
-                                <span class="text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
-                                    {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                                </span>
-                                <button onclick="openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-teal-700 hover:text-teal-800" title="Message Farmer">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-800" title="Order Item">
-                                    <i class="fa-solid fa-cart-shopping"></i>
-                                </button>
-                            </div>
-                        </div>
+                <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-200 p-2 relative">
+                    <div class="h-40 w-full overflow-hidden">
+                        <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover">
                     </div>
+                    <div class="p-3 flex flex-col flex-grow">
+                        <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
+                        <h2 class="text-lg font-semibold line-clamp-1">{{ listing.productName }}</h2>
+                        <p class="text-gray-500 text-sm">by @{{ listing.farmer.user.username }}</p>
+                        
+                        <div class="mt-2">
+                            <p class="text-gray-700 font-bold">KES: {{ listing.price }} per {{ listing.unit }}</p>
+                            <p class="text-gray-700 font-bold">Quantity left: {{ listing.quantity }}{{ listing.unit }}</p>
+                            <p class="text-gray-500 text-sm">{{ listing.location }}</p>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
+                        <div class="mt-2 flex items-center justify-between">
+                            <span class="text-sm font-semibold {% if listing.is_available %}text-teal-700{% else %}text-red-600{% endif %}">
+                                {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                            </span>                           
+                            <button onclick="alert('Button clicked! From MARKETPLACE'); openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-blue-500 hover:text-blue-600" title="Message Farmer">
+                                <i class="fas fa-envelope"></i>
+                            </button>
+                            <!-- Order Button -->
+                            <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-800" title="Order Item">
+                                <i class="fa-solid fa-cart-shopping"></i>
+                            </button>                          
+                        </div>                        
+                    </div>
+                </div>
                 {% endfor %}
             {% else %}
                 <p class="text-gray-600 col-span-full">No listings found in the marketplace.</p>
@@ -289,109 +300,106 @@
         </div>
     </div>
 
-    <!-- My Requests Section -->
+    <!-- MyRequests Section -->
     <div id="myRequestSection" class="tab-content hidden">
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {% for request in my_requests %}
-                <div class="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300">
-                    <h3 class="text-lg font-semibold text-teal-800">{{ request.product_name }}</h3>
-                    <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
-                    <p class="text-gray-600">{{ request.description }}</p>
-                    <p class="text-gray-600">{{ request.location }}</p>
-                    <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
-                    <div class="mt-2 flex space-x-2">
-                        <button onclick="openEditRequestModal('{{ request.id }}', '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="openDeleteRequestModal('{{ request.id }}', '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
+            <div class="bg-white shadow-md rounded-lg p-4">
+                <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
+                <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
+                <p class="text-gray-600">{{ request.description }}</p>
+                <p class="text-gray-600">{{ request.location }}</p>
+                <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+                <div class="mt-2 flex space-x-2">
+                    <button onclick="openEditRequestModal('{{ request.id }}', '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="openDeleteRequestModal('{{ request.id }}', '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
+            </div>
             {% empty %}
-                <p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>
+            <p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>
             {% endfor %}
         </div>
     </div>
 
-    <!-- Product Requests Section (Farmers Only) -->
+    <!-- ProductRequests Section (Farmers Only) -->
     <div id="productRequestSection" class="tab-content hidden">
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {% for request in product_requests %}
-                <div class="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300">
-                    <h3 class="text-lg font-semibold text-teal-800">{{ request.product_name }}</h3>
-                    <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
-                    <p class="text-gray-600">{{ request.description }}</p>
-                    <p class="text-gray-600">{{ request.location }}</p>
-                    <p class="text-gray-500 text-sm">Requested by @{{ request.requester.user.username }}</p>
-                    <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
-                    <button onclick="openChatModal(null, '{{ request.product_name }}', '', '{{ request.requester.id }}')" class="text-teal-700 hover:text-teal-800 mt-2" title="Message Requester">
-                        <i class="fas fa-envelope"></i>
-                    </button>
-                </div>
+            {% for request in product_requests %}        
+            <div class="bg-white shadow-md rounded-lg p-4">
+                <h3 class="text-lg font-semibold">{{ request.product_name }}</h3>
+                <p class="text-gray-600">{{ request.quantity }}  {{ request.unit }}</p>
+                <p class="text-gray-600">{{ request.description }}</p>
+                <p class="text-gray-600">{{ request.location }}</p>
+                <p class="text-gray-500 text-sm">Requested by @{{ request.requester.user.username }}</p>
+                <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+                <button onclick="alert('Button Clicked:- PRODUCT REQUEST'); openChatModal(null, '{{ request.product_name }}', '', '{{ request.requester.id }}')" class="text-blue-500 hover:text-blue-600 mt-2" title="Message Requester">
+                    <i class="fas fa-envelope"></i>
+                </button>        
+
+            </div>
             {% empty %}
-                <p class="text-gray-600 col-span-full">No product requests available.</p>
+            <p class="text-gray-600 col-span-full">No product requests available.</p>
             {% endfor %}
         </div>
     </div>
 
     <!-- Farmer Orders Section -->
     <div id="farmerOrdersSection" class="tab-content hidden">
-        <h2 class="text-2xl font-semibold mb-4 text-teal-800">Received Orders</h2>
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="w-full">
-                <thead class="bg-teal-100">
-                    <tr>
-                        <th class="p-2 text-left text-teal-800">Date</th>
-                        <th class="p-2 text-left text-teal-800">Requester</th>
-                        <th class="p-2 text-left text-teal-800">Crop</th>
-                        <th class="p-2 text-left text-teal-800">Quantity</th>
-                        <th class="p-2 text-left text-teal-800">Total (KES)</th>
-                        <th class="p-2 text-left text-teal-800">Location</th>
-                        <th class="p-2 text-left text-teal-800">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="farmerOrdersTable" class="text-gray-700"></tbody>
-            </table>
-        </div>
+        <h2 class="text-2xl font-semibold mb-4">Received Orders</h2>
+        <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="p-2 text-left">Date</th>
+                    <th class="p-2 text-left">Requester</th>
+                    <th class="p-2 text-left">Crop</th>
+                    <th class="p-2 text-left">Quantity</th>
+                    <th class="p-2 text-left">Total (KES)</th>
+                    <th class="p-2 text-left">Location</th>
+                    <th class="p-2 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody id="farmerOrdersTable"></tbody>
+        </table>
     </div>
 
     <!-- My Orders Section -->
     <div id="myOrdersSection" class="tab-content hidden">
-        <h2 class="text-2xl font-semibold mb-4 text-teal-800">My Orders</h2>
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="w-full">
-                <thead class="bg-teal-100">
-                    <tr>
-                        <th class="p-2 text-left text-teal-800">Farmer</th>
-                        <th class="p-2 text-left text-teal-800">Crop</th>
-                        <th class="p-2 text-left text-teal-800">Date</th>
-                        <th class="p-2 text-left text-teal-800">Quantity</th>
-                        <th class="p-2 text-left text-teal-800">Total (KES)</th>
-                        <th class="p-2 text-left text-teal-800">Status</th>
-                        <th class="p-2 text-left text-teal-800">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="myOrdersTable" class="text-gray-700"></tbody>
-            </table>
-        </div>
+        <h2 class="text-2xl font-semibold mb-4">My Orders</h2>
+        <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="p-2 text-left">Farmer</th>
+                    <th class="p-2 text-left">Crop</th>
+                    <th class="p-2 text-left">Date</th>
+                    <th class="p-2 text-left">Quantity</th>
+                    <th class="p-2 text-left">Total (KES)</th>
+                    <th class="p-2 text-left">Status</th>
+                    <th class="p-2 text-left">Action</th>
+                </tr>
+            </thead>
+            <tbody id="myOrdersTable"></tbody>
+        </table>
     </div>
+    
 </div>
-
-
 {% endblock content %}
 
 {% block modalsContent %}
-    <!-- Edit Modal -->
+    <!-- Existing Edit and Delete Modals  -->
+    <!-- EDIT Modal -->
     <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 class="text-2xl font-bold mb-4 text-teal-800">Edit Listing</h2>
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4">Edit Listing</h2>
             <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4">
                 {% csrf_token %}
                 <input type="hidden" name="listing_id" id="editListingId">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Product Category</label>
-                    <select name="productCategory" id="editProductCategory" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <select name="productCategory" id="editProductCategory" class="w-full p-2 border rounded">
                         <option value="crop">Crop</option>
                         <option value="dairy">Dairy product</option>
                         <option value="meat">Meat product</option>
@@ -399,31 +407,31 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                    <input type="text" name="productName" id="editProductName" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" name="productName" id="editProductName" class="w-full p-2 border rounded">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" name="quantity" id="editQuantity" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="number" name="quantity" id="editQuantity" step="0.01" class="w-full p-2 border rounded">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                    <input type="text" name="unit" id="editUnit" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" name="unit" id="editUnit" class="w-full p-2 border rounded">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
-                    <input type="number" name="price" id="editPrice" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="number" name="price" id="editPrice" step="0.01" class="w-full p-2 border rounded">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Description</label>
-                    <textarea name="description" id="editDescription" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500"></textarea>
+                    <textarea name="description" id="editDescription" class="w-full p-2 border rounded"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Location</label>
-                    <input type="text" name="location" id="editLocation" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" name="location" id="editLocation" class="w-full p-2 border rounded">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
-                    <input type="file" name="image" id="editImage" class="w-full p-2 border rounded-md">
+                    <input type="file" name="image" id="editImage" class="w-full p-2 border rounded">
                     <p class="text-sm text-gray-500 mt-1">Current Image: <img id="editCurrentImage" src="" alt="Current Image" class="w-16 h-16 object-cover rounded inline-block ml-2"></p>
                     <label class="mt-2 flex items-center">
                         <input type="checkbox" name="clear_image" id="editClearImage" class="mr-2">
@@ -431,48 +439,51 @@
                     </label>
                 </div>
                 <div class="flex space-x-4">
-                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Save Changes</button>
-                    <button type="button" onclick="closeEditModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                    <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
+                    <button type="button" onclick="closeEditModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Delete Modal -->
+    <!-- Delete Listing Modal -->
     <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4 text-teal-800">Delete Listing</h2>
-            <p class="text-lg mb-4">Are you sure you want to delete <strong id="deleteProductName"></strong>?</p>
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Delete Listing</h2>
+            <p class="text-lg mb-4">Are you sure you want to delete the listing for <strong id="deleteProductName"></strong>?</p>
             <p class="text-gray-600 mb-4">This action cannot be undone.</p>
             <form id="deleteForm" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="listing_id" id="deleteListingId">
                 <div class="flex space-x-4">
-                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition duration-300">Yes, Delete</button>
-                    <button type="button" onclick="closeDeleteModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
+                    <button type="button" onclick="closeDeleteModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Chat Modal -->
+    <!-- Chat Modal 25/04-->
     <div id="chatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-teal-800">Messages</h2>
+                <h2 class="text-xl font-bold">Messages</h2>
                 <button onclick="closeChatModal()" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div id="chatContainer" class="flex flex-1 overflow-hidden">
-                <div id="conversationsList" class="w-1/3 border-r overflow-y-auto max-h-[70vh] bg-teal-50 p-2">
-                    <div id="conversationItems" class="space-y-2"></div>
+                <!-- Conversations List -->
+                <div id="conversationsList" class="w-1/3 border-r overflow-y-auto max-h-[70vh]">
+                    <div id="conversationItems" class="space-y-2 p-2"></div>
                 </div>
+                <!-- Chat Area -->
                 <div id="chatArea" class="w-2/3 flex flex-col hidden">
-                    <div id="chatHeader" class="p-2 border-b flex items-center bg-teal-100">
-                        <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2" data-has-image="false">
+                    <div id="chatHeader" class="p-2 border-b flex items-center">
+                        <!-- data has image prevents the image from showing in product requests -->
+                        <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2 " data-has-image="false"> 
                         <div>
-                            <h3 id="chatListingName" class="font-semibold text-teal-800"></h3>
+                            <h3 id="chatListingName" class="font-semibold"></h3>
                             <p id="chatOtherUser" class="text-sm text-gray-500"></p>
                         </div>
                     </div>
@@ -481,8 +492,8 @@
                         <input type="hidden" id="chatListingId" name="listing_id">
                         <input type="hidden" id="chatRecipientId" name="recipient_id">
                         <div class="flex space-x-2">
-                            <input type="text" id="messageInput" class="flex-1 p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Type a message...">
-                            <button type="submit" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">
+                            <input type="text" id="messageInput" class="flex-1 p-2 border rounded" placeholder="Type a message...">
+                            <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
@@ -494,33 +505,33 @@
 
     <!-- Product Request Modal -->
     <div id="requestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4 text-teal-800">Request a Product</h2>
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Request a Product</h2>
             <form id="requestForm" class="space-y-4">
                 {% csrf_token %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                    <input type="text" id="requestProductName" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input type="text" id="requestProductName" class="w-full p-2 border rounded" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" id="requestQuantity" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input type="number" id="requestQuantity" step="0.01" class="w-full p-2 border rounded" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                    <input type="text" id="requestUnit" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" value="kg">
+                    <input type="text" id="requestUnit" class="w-full p-2 border rounded" value="kg">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                    <textarea id="requestDescription" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500"></textarea>
+                    <textarea id="requestDescription" class="w-full p-2 border rounded"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Location</label>
-                    <input type="text" id="requestLocation" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input type="text" id="requestLocation" class="w-full p-2 border rounded" required>
                 </div>
                 <div class="flex space-x-4">
-                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Submit Request</button>
-                    <button type="button" onclick="closeRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded hover:bg-teal-800">Submit Request</button>
+                    <button type="button" onclick="closeRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
                 </div>
             </form>
         </div>
@@ -528,34 +539,34 @@
 
     <!-- Edit Request Modal -->
     <div id="editRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4 text-teal-800">Edit Request</h2>
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Edit Request</h2>
             <form id="editRequestForm" class="space-y-4">
                 {% csrf_token %}
                 <input type="hidden" id="editRequestId">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                    <input type="text" id="editRequestProductName" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input type="text" id="editRequestProductName" class="w-full p-2 border rounded" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" id="editRequestQuantity" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input type="number" id="editRequestQuantity" step="0.01" class="w-full p-2 border rounded" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
-                    <input type="text" id="editRequestUnit" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" id="editRequestUnit" class="w-full p-2 border rounded">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                    <textarea id="editRequestDescription" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500"></textarea>
+                    <textarea id="editRequestDescription" class="w-full p-2 border rounded"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Location</label>
-                    <input type="text" id="editRequestLocation" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input type="text" id="editRequestLocation" class="w-full p-2 border rounded" required>
                 </div>
                 <div class="flex space-x-4">
-                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Save Changes</button>
-                    <button type="button" onclick="closeEditRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                    <button type="submit" class="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Save Changes</button>
+                    <button type="button" onclick="closeEditRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
                 </div>
             </form>
         </div>
@@ -563,49 +574,51 @@
 
     <!-- Delete Request Modal -->
     <div id="deleteRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4 text-teal-800">Delete Request</h2>
-            <p class="text-lg mb-4">Are you sure you want to delete <strong id="deleteRequestProductName"></strong>?</p>
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Delete Request</h2>
+            <p class="text-lg mb-4">Are you sure you want to delete the request for <strong id="deleteRequestProductName"></strong>?</p>
             <p class="text-gray-600 mb-4">This action cannot be undone.</p>
             <form id="deleteRequestForm" method="POST">
                 {% csrf_token %}
                 <input type="hidden" id="deleteRequestId">
                 <div class="flex space-x-4">
-                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition duration-300">Yes, Delete</button>
-                    <button type="button" onclick="closeDeleteRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">Yes, Delete</button>
+                    <button type="button" onclick="closeDeleteRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Order Modal -->
-    <div id="orderModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
-            <h2 class="text-xl font-semibold mb-4 text-teal-800">Place Order</h2>
-            <form id="orderForm" class="space-y-4">
-                <div>
+    <div id="orderModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold mb-4">Place Order</h2>
+            <form id="orderForm">
+                <div class="mb-4">
                     <label class="block text-gray-700">Crop</label>
-                    <input id="orderCrop" type="text" class="w-full p-2 border rounded-md bg-gray-100" readonly>
+                    <input id="orderCrop" type="text" class="w-full p-2 border rounded" readonly>
                 </div>
-                <div>
+                <div class="mb-4">
                     <label class="block text-gray-700">Quantity</label>
-                    <input id="orderQuantity" type="number" step="0.01" min="0" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input id="orderQuantity" type="number" step="0.01" min="0" class="w-full p-2 border rounded" required>
                 </div>
-                <div>
+                <div class="mb-4">
                     <label class="block text-gray-700">Total Price (KES)</label>
-                    <input id="orderTotal" type="text" class="w-full p-2 border rounded-md bg-gray-100" readonly>
+                    <input id="orderTotal" type="text" class="w-full p-2 border rounded" readonly>
                 </div>
-                <div>
+                <div class="mb-4">
                     <label class="block text-gray-700">Location (County)</label>
-                    <input id="orderLocation" type="text" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <input id="orderLocation" type="text" class="w-full p-2 border rounded" required>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-300">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Order</button>
+                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-700 text-white rounded">Order</button>
                 </div>
             </form>
         </div>
     </div>
+
+
 {% endblock modalsContent %}
 
 

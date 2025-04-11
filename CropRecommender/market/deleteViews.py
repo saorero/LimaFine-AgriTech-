@@ -13,7 +13,7 @@ from Social.models import UserProfile
 from django.db.models import Q
 import json
 from django.contrib import messages
-# from .utils import checkContent #confirms what is entered is valid
+from .utils import checkContent #confirms what is entered is valid
 
 def farmer_required(view_func):
     @login_required
@@ -200,13 +200,13 @@ def create_product_request(request):
         if not product_name or quantity <= 0 or not location:
             return JsonResponse({'status': 'error', 'message': 'Product name, quantity, and location are required.'}, status=400)
 
-        # # Validating the product_name and description whether they are agriculturally inclined
-        # if not checkContent(product_name):
-        #     return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
+        # Validating the product_name and description whether they are agriculturally inclined
+        if not checkContent(product_name):
+            return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
 
-        # if not checkContent(description):
-        #     return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
-        # # Validation ends here
+        if not checkContent(description):
+            return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
+        # Validation ends here
 
         requester = request.user.userprofile
         product_request = ProductRequest.objects.create(
@@ -245,12 +245,12 @@ def edit_product_request(request, request_id):
         description = data.get('description', product_request.description).strip()
         location = data.get('location', product_request.location).strip()
 
-        # # Check if the content is agriculturally relevant before proceeding
-        # if not checkContent(product_name):
-        #     return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
+        # Check if the content is agriculturally relevant before proceeding
+        if not checkContent(product_name):
+            return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
 
-        # if not checkContent(description):
-        #     return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
+        if not checkContent(description):
+            return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
 
         # Update the product_request with validated values
         product_request.product_name = product_name
@@ -415,12 +415,12 @@ def deleteOrder(request, order_id):
 
 
 # 25/04
-# views.py (updated main function)
 @login_required
 def main(request):
     form = None
     listings = None
-    marketplace_listings = productListing.objects.filter(is_available=True)
+    # marketplace_listings = productListing.objects.all()
+    marketplace_listings = productListing.objects.filter(is_available=True) #only the available listings are displayed
     my_requests = ProductRequest.objects.filter(requester=request.user.userprofile, is_active=True)
     product_requests = ProductRequest.objects.filter(is_active=True).exclude(requester=request.user.userprofile) if request.user.userprofile.role == 'farmer' else []
 
@@ -429,15 +429,15 @@ def main(request):
     except UserProfile.DoesNotExist:
         return HttpResponseForbidden("User profile not found. Please complete your profile.")
 
-    # Initialize variables
+    # Add order analytics for insights tab
     order_analytics = None
     my_order_analytics = None
     earnings = None
-    top_products = None
-    inventory_status = None
+    top_products= None
+    inventory_status =None
     customer_engagement = None
+    
     competitor_analysis = None
-    competitor_crop_pricing = None  # New variable for bar graph data
 
     if user_profile.role == 'farmer':
         orders = Order.objects.filter(listing__farmer=user_profile)
@@ -447,27 +447,40 @@ def main(request):
             'confirmed': orders.filter(status='confirmed').count(),
             'completed': orders.filter(status='completed').count(),
         }
+
+        # Calculate the estimated earnings 09
         estimated_earnings = sum(float(order.total_price) for order in orders.filter(status__in=['new', 'pending', 'confirmed']))
         total_earnings = sum(float(order.total_price) for order in orders.filter(status='completed'))
-        earnings = {'estimated': estimated_earnings, 'total': total_earnings}
+        earnings = {
+            'estimated': estimated_earnings,
+            'total': total_earnings,
+        }
+        # END of 09
 
+
+       
         top_products_qs = orders.filter(status='completed').values('listing__productName').annotate(
             total_revenue=Sum('total_price'),
             total_quantity=Sum('quantity')
         ).order_by('-total_revenue')[:3]
         top_products = [{'name': p['listing__productName'], 'revenue': float(p['total_revenue']), 'quantity': p['total_quantity']} for p in top_products_qs]
 
-        LOW_STOCK_THRESHOLD = 5
+        # Inventory Status (customizable low stock threshold)
+        LOW_STOCK_THRESHOLD = 5  # Could be moved to user settings later
         listings_qs = productListing.objects.filter(farmer=user_profile, is_available=True)
         inventory_status = {
             'total_quantity': sum(l.quantity for l in listings_qs),
             'low_stock_count': listings_qs.filter(quantity__lt=LOW_STOCK_THRESHOLD).count(),
             'threshold': LOW_STOCK_THRESHOLD,
         }
+        # Customer Engagement
         customer_engagement = {
             'unique_customers': orders.values('requester').distinct().count(),
             'unread_messages': Message.objects.filter(recipient=user_profile, is_read=False).count(),
         }
+        
+
+        # Competitor Analysis
         farmer_categories = listings_qs.values_list('productCategory', flat=True).distinct()
         competitor_listings = productListing.objects.filter(is_available=True, productCategory__in=farmer_categories).exclude(farmer=user_profile)
         competitor_analysis = {
@@ -476,30 +489,17 @@ def main(request):
             'my_avg_price': float(listings_qs.aggregate(Avg('price'))['price__avg'] or 0),
         }
 
-        # New: Competitor Crop Pricing for Bar Graph
-        
-        my_crops = listings_qs.values_list('productName', flat=True).distinct()  # Unique crops listed by this farmer
-        county = user_profile.county  # Farmer's county
-        competitor_crop_pricing = {}
-        for crop in my_crops:
-            # Get prices from other farmers in the same county for this crop, only available listings
-            other_farmers_listings = productListing.objects.filter(
-                is_available=True,  # Only available listings
-                productName__iexact=crop,  # Case-insensitive match for crop name
-                farmer__county=county
-            ).exclude(farmer=user_profile).values('farmer__user__username', 'price').distinct()
 
-            # My price for this crop
-            my_price_qs = listings_qs.filter(productName__iexact=crop, is_available=True).aggregate(Avg('price'))
-            my_price = float(my_price_qs['price__avg'] or 0) if my_price_qs['price__avg'] else 0
 
-            # Build pricing data
-            prices = {f"@{listing['farmer__user__username']}": float(listing['price']) for listing in other_farmers_listings}
-            if my_price > 0:  # Only include "Me" if I have an available listing for this crop
-                prices['Me'] = my_price
-            if prices:  # Only add to the result if there’s data
-                competitor_crop_pricing[crop] = prices
+    my_orders = Order.objects.filter(requester=user_profile)
+    my_order_analytics = {
+        'new': my_orders.filter(status='new').count(),
+        'pending': my_orders.filter(status='pending').count(),
+        'confirmed': my_orders.filter(status='confirmed').count(),
+        'completed': my_orders.filter(status='completed').count(),
+    }
 
+    if user_profile.role == 'farmer':
         if request.method == "POST":
             form = ListingForm(request.POST, request.FILES)
             if form.is_valid():
@@ -518,18 +518,11 @@ def main(request):
             listings = listings.filter(productName__icontains=query)
         marketplace_listings = marketplace_listings.exclude(farmer=user_profile)
 
-    my_orders = Order.objects.filter(requester=user_profile)
-    my_order_analytics = {
-        'new': my_orders.filter(status='new').count(),
-        'pending': my_orders.filter(status='pending').count(),
-        'confirmed': my_orders.filter(status='confirmed').count(),
-        'completed': my_orders.filter(status='completed').count(),
-    }
-
     marketplace_query = request.GET.get('marketplace_query', '').strip()
     if marketplace_query:
         marketplace_listings = marketplace_listings.filter(productName__icontains=marketplace_query)
 
+    # sending this to market.html template
     context = {
         'message': 'Market Place',
         'form': form,
@@ -543,8 +536,7 @@ def main(request):
         'top_products': top_products,
         'inventory_status': inventory_status,
         'customer_engagement': customer_engagement,
+        
         'competitor_analysis': competitor_analysis,
-        'competitor_crop_pricing': competitor_crop_pricing,  # New context variable
     }
-    print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
     return render(request, 'market.html', context)
