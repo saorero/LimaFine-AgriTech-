@@ -52,7 +52,9 @@ class Order(models.Model):
 
 # Table that store the requests made by users 
 class ProductRequest(models.Model):
+   
     requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='product_requests')
+    
     product_name = models.CharField(max_length=100, blank=False)
     quantity = models.FloatField()
     unit = models.CharField(max_length=20, default="kg")
@@ -82,12 +84,14 @@ class ProductRequest(models.Model):
 class productListing(models.Model):
     farmer = models.ForeignKey(UserProfile, on_delete=models.CASCADE, limit_choices_to={'role': 'farmer'})
     # product Category choices
-    productCategoryChoices = (
-        ('crop', 'Crop'),
-        ('dairy', 'Dairy product'),
-        ('meat', 'Meat product'),
-    )
-    productCategory = models.CharField(max_length=20, choices=productCategoryChoices, default='crop')    
+    productCategoryChoices = [
+        ('fruits', 'Fruits'),
+        ('vegetables', 'Vegetables'),
+        ('cereals', 'Cereals'),
+        ('legumes', 'Legumes'),
+        ('other', 'Other Category'),
+    ]
+    productCategory = models.CharField(max_length=20, choices=productCategoryChoices, default='other')    
     productName = models.CharField(max_length=100, blank=False)    
     quantity = models.FloatField()
     unit = models.CharField(max_length=20, default="kg")
@@ -134,4 +138,3 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.user.username} to {self.recipient.user.username}"
-

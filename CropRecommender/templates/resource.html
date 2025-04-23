@@ -2,78 +2,84 @@
 {% load static %}
 
 {% block content %} 
-<!-- The MENU Button -->
-<div class="flex items-center justify-between w-full px-2">
-    <!-- Menu Button -->
-    <button id="menuButton" class="w-14 h-14 rounded-full text-black shadow-md focus:outline-none animate-flicker" onclick="hubMenu()">
-        <i class="fa-brands fa-opencart fa-xl"></i>
-    </button>               
+<!-- Main Container -->
+<div class="min-h-screen bg-gradient-to-b from-teal-50 via-brown-50 to-white py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Menu Section -->
+        <div class="flex items-center justify-between w-full mb-8">
+            <!-- Menu Button -->
+            <button id="menuButton" class="w-14 h-14 rounded-full bg-teal-700 text-white shadow-md focus:outline-none animate-flicker hover:bg-teal-800 transition duration-300" onclick="hubMenu()">
+                <i class="fa-brands fa-opencart fa-xl"></i>
+            </button>               
 
-    <!-- Centered Menu (Responsive) -->
-    <div class="flex-1 flex justify-start">
-        <div id="menuIcons" class="menu-icons opacity-0 invisible flex flex-row items-center justify-around shadow-md w-auto text-teal-700 rounded-xl 
-        bg-gray-200 md:bg-transparent md:relative absolute top-20 left-1/2 transform -translate-x-1/2 md:top-auto md:left-auto md:translate-x-0 
-        flex-wrap md:flex-nowrap overflow-x-auto md:overflow-visible">    
+            <!-- Centered Menu (Responsive) -->
+            <div class="flex-1 flex justify-start">
+                <div id="menuIcons" class="menu-icons opacity-0 invisible flex flex-row items-center justify-around shadow-md w-auto text-teal-700 rounded-xl 
+                bg-white md:bg-transparent md:relative absolute top-20 left-1/2 transform -translate-x-1/2 md:top-auto md:left-auto md:translate-x-0 
+                flex-wrap md:flex-nowrap overflow-x-auto md:overflow-visible border border-teal-200 md:border-0">    
+                    <a href="{% url 'articleSection' %}" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300 font-semibold">Articles</a>
+                    <a href="{% url 'videoSection' %}" id="videoShow" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300 font-semibold">Videos</a>
+                    <!-- <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300 font-semibold">Community Summaries</a>
+                    <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300 font-semibold">Events</a> -->
+                </div>
+            </div>
+        </div>
+
+        <!-- HUB SECTION -->
+        {% if section == "hub" %}
+        <div class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-teal-800">{{ message }}</h1>
+        </div>
+        {% endif %}
+
+        <!-- VIDEO SECTION -->
+        {% if section == "videos" %}
+        <div class="mb-10">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center text-teal-800 mb-6">Agricultural Videos</h2>
             
-            <a href="{% url 'articleSection' %}" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Articles</a>
-            <a href="{% url 'videoSection' %}" id="videoShow" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Videos</a>
-            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Community Summaries</a>
-            <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Events</a>
-            <!-- <a href="#" class="px-4 md:px-6 py-2 hover:bg-teal-700 hover:text-white rounded-lg transition duration-300">Learn</a>    -->
+            <!-- Search Form -->
+            <form method="GET" class="flex justify-center mb-8 max-w-lg mx-auto">
+                <input type="text" name="q" placeholder="Search videos..." class="w-full p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200">
+                <button type="submit" class="p-3 bg-teal-700 text-white rounded-r-lg hover:bg-teal-800 transition duration-300">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+            
+            <!-- Video Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {% for video in videos %}
+                <div class="bg-white shadow-md rounded-2xl p-4 hover:shadow-lg transition duration-300">
+                    <a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank">
+                        <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="w-full h-40 object-cover rounded-lg mb-3">
+                        <p class="text-sm font-semibold text-teal-800 line-clamp-2">{{ video.title }}</p>
+                    </a>
+                </div>
+                {% empty %}
+                <div class="bg-white shadow-md rounded-2xl p-4 col-span-full text-center">
+                    <p class="text-sm font-semibold text-red-600">Error: {{ videos.error }}</p>
+                </div>
+                {% endfor %}
+            </div>
         </div>
+        {% endif %}
+
+        <!-- Article Section -->
+        {% if section == "articles" %}
+        <div class="mb-10">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center text-teal-800 mb-6">Available Documents</h2>
+            
+            <!-- File list container -->
+            <div id="file-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+            <!-- File preview section -->
+            <div class="mt-10">
+                <h3 id="file-name" class="text-xl font-semibold text-teal-800 mb-4 text-center">Click a file to preview</h3>
+                <iframe id="viewer" src="" class="w-full h-[500px] border border-gray-300 rounded-2xl shadow-md"></iframe>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
-
-<!-- HUB SECTION -->
-{% if section == "hub" %}
-<div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold text-center text-teal-700">{{ message }}</h1>
-</div>
-{% endif %}
-
-<!-- VIDEO SECTION -->
-{% if section == "videos" %}
-<div class="container mx-auto p-4">
-    <h2 class="text-2xl font-bold text-center text-teal-700">Agricultural Videos</h2>
-    
-    <!-- Search Form -->
-    <form method="GET" class="flex justify-center my-4">
-        <input type="text" name="q" placeholder="Search videos..." class="p-2 border rounded-l-md focus:outline-none">
-        <button type="submit" class="p-2 bg-teal-700 text-white rounded-r-md">Search</button>
-    </form>
-    
-    <!-- Video Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {% for video in videos %}
-        <div class="bg-white shadow-md rounded-lg p-2">
-            <a href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank">
-                <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="w-full h-auto rounded-md">
-                <p class="mt-2 text-sm font-semibold">{{ video.title }}</p>
-            </a>
-        </div>
-        {% empty %}
-        <div class="bg-white shadow-md rounded-lg p-2">
-            <p class="text-sm font-semibold">Error: {{ videos.error }}</p>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<!-- Article Section -->
-{% if section == "articles" %}
-<div class="container mx-auto p-4">
-    <h2 class="text-lg font-bold mb-4">Available Documents</h2>
-    
-    <!-- File list container -->
-    <div id="file-container" class="flex flex-wrap gap-4"></div>
-
-    <!-- File preview section -->
-    <h3 id="file-name" class="mt-6 text-lg font-semibold">Click a file to preview</h3>
-    <iframe id="viewer" src="" class="w-full h-96 border rounded-lg mt-4"></iframe>
-</div>
-{% endif %}
-
 {% endblock content %}
 
 {% block script %}
@@ -106,12 +112,11 @@
 
                 data.files.forEach(file => {
                     const fileBox = document.createElement("div");
-                    fileBox.className = "w-full md:w-1/3 lg:w-1/4 p-2";
+                    fileBox.className = "bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition duration-300 cursor-pointer";
                     fileBox.innerHTML = `
-                        <div class="bg-gray-100 rounded-lg p-4 shadow-md hover:bg-gray-200 cursor-pointer transition" 
-                             onclick="showFileContent('${file.url}', '${file.name}')">
-                            <p class="text-sm font-semibold">${file.name}</p>
-                            <p class="text-xs text-gray-500">(${file.extension})</p>
+                        <div onclick="showFileContent('${file.url}', '${file.name}')">
+                            <p class="text-sm font-semibold text-teal-800">${file.name}</p>
+                            <p class="text-xs text-gray-500 mt-1">(${file.extension})</p>
                         </div>
                     `;
                     fileContainer.appendChild(fileBox);

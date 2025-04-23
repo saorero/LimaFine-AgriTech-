@@ -14,6 +14,7 @@ from django.db.models import Q
 import json
 from django.contrib import messages
 # from .utils import checkContent #confirms what is entered is valid
+from django.utils.timezone import localtime
 
 def farmer_required(view_func):
     @login_required
@@ -57,7 +58,7 @@ def toggle_availability(request, listing_id):
     return redirect("main")
 
 
-# 28 MODIFICATIONS
+# MESSAGES
 @login_required
 def sendMessage(request):
     if request.method == "POST":
@@ -93,7 +94,8 @@ def sendMessage(request):
             'message': {
                 'id': message.id,
                 'content': message.content,
-                'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                # 'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'timestamp': localtime(message.timestamp).strftime('%Y-%m-%d %H:%M:%S'),
                 'sender': sender.user.username,
                 'is_sender': True
             }
@@ -126,7 +128,8 @@ def getMessages(request, listing_id, other_user_id):
         {
             'id': msg.id,
             'content': msg.content,
-            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            # 'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'timestamp': localtime(msg.timestamp).strftime('%Y-%m-%d %H:%M:%S'),
             'sender': msg.sender.user.username,
             'is_sender': msg.sender == user_profile
         } for msg in messages
@@ -140,8 +143,6 @@ def getMessages(request, listing_id, other_user_id):
         'other_user': other_profile.user.username,
         'messages': messages_data
     })
-
-
 
 @login_required
 def getConversations(request):
@@ -173,7 +174,8 @@ def getConversations(request):
             'other_user': convo['other_user'].user.username,
             'other_user_id': convo['other_user'].id,
             'last_message': convo['last_message'].content,
-            'timestamp': convo['last_message'].timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            # 'timestamp': convo['last_message'].timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'timestamp': localtime(convo['last_message'].timestamp).strftime('%Y-%m-%d %H:%M:%S'),
             'unread': Message.objects.filter(
                 listing=convo['listing'],
                 recipient=user_profile,
@@ -226,7 +228,8 @@ def create_product_request(request):
                 'unit': product_request.unit,
                 'description': product_request.description,
                 'location': product_request.location,
-                'created_at': product_request.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                # 'created_at': product_request.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                'created_at': localtime(product_request.created_at).strftime('%Y-%m-%d %H:%M:%S')
             }
         })
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
@@ -245,13 +248,7 @@ def edit_product_request(request, request_id):
         description = data.get('description', product_request.description).strip()
         location = data.get('location', product_request.location).strip()
 
-        # # Check if the content is agriculturally relevant before proceeding
-        # if not checkContent(product_name):
-        #     return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
-
-        # if not checkContent(description):
-        #     return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
-
+        
         # Update the product_request with validated values
         product_request.product_name = product_name
         product_request.quantity = quantity
@@ -261,7 +258,7 @@ def edit_product_request(request, request_id):
 
         try:
             # Validate and save
-            product_request.clean()  # Validate the object
+            # product_request.clean()  # Validate the object uncomment this
             product_request.save()  # Save to the database
             return JsonResponse({'status': 'success', 'message': 'Request updated successfully'})
         except ValidationError as e:
@@ -290,7 +287,8 @@ def get_my_requests(request):
         'unit': req.unit,
         'description': req.description,
         'location': req.location,
-        'created_at': req.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        # 'created_at': req.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        'created_at': localtime(req.created_at).strftime('%Y-%m-%d %H:%M:%S')
     } for req in requests]
     return JsonResponse({'requests': requests_data})
 
@@ -308,7 +306,8 @@ def get_product_requests(request):
         'location': req.location,
         'requester': req.requester.user.username,
         'requester_id': req.requester.id,
-        'created_at': req.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        # 'created_at': req.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        'created_at': localtime(req.created_at).strftime('%Y-%m-%d %H:%M:%S')
     } for req in requests]
     return JsonResponse({'requests': requests_data})
 
@@ -343,7 +342,8 @@ def createOrder(request):
                 'quantity': order.quantity,
                 'total_price': float(order.total_price),
                 'location': order.location,
-                'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                # 'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'created_at': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
                 'status': order.status,
             }
         })
@@ -356,7 +356,8 @@ def getFarmerOrders(request):
     orders = Order.objects.filter(listing__farmer=user_profile).order_by('-created_at')
     orders_data = [{
         'id': order.id,
-        'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        # 'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'date': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
         'requester': order.requester.user.username,
         'crop': order.listing.productName,
         'quantity': order.quantity,
@@ -388,7 +389,8 @@ def getMyOrders(request):
         'id': order.id,
         'farmer': order.listing.farmer.user.username,
         'crop': order.listing.productName,
-        'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        # 'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'date': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
         'quantity': order.quantity,
         'total': float(order.total_price),
         'status': order.status,
@@ -457,7 +459,7 @@ def main(request):
         ).order_by('-total_revenue')[:3]
         top_products = [{'name': p['listing__productName'], 'revenue': float(p['total_revenue']), 'quantity': p['total_quantity']} for p in top_products_qs]
 
-        LOW_STOCK_THRESHOLD = 5
+        LOW_STOCK_THRESHOLD = 5 #in units
         listings_qs = productListing.objects.filter(farmer=user_profile, is_available=True)
         inventory_status = {
             'total_quantity': sum(l.quantity for l in listings_qs),
@@ -500,6 +502,7 @@ def main(request):
             if prices:  # Only add to the result if there’s data
                 competitor_crop_pricing[crop] = prices
 
+        # Product Listing
         if request.method == "POST":
             form = ListingForm(request.POST, request.FILES)
             if form.is_valid():
@@ -548,3 +551,33 @@ def main(request):
     }
     print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
     return render(request, 'market.html', context)
+
+
+# FORMS.PY
+# Handles the listig forms and any other form created
+# farmers/forms.py
+from django import forms
+from .models import productListing
+# from .utils import checkContent 
+class ListingForm(forms.ModelForm):
+    class Meta:
+        model = productListing
+        fields = [ "productCategory","productName", "quantity", "unit", "price", "description", "location", "image"]
+        widgets = {
+            'location': forms.TextInput(attrs={'placeholder': 'Farmers definedd county if left blank'}),
+            'productCategory': forms.Select(),  # Renders as a dropdown
+        }
+    # Validating the fields to see if they have agricultural content
+    def clean(self):
+        cleaned_data = super().clean()
+        product_name = cleaned_data.get('productName', '').strip()
+        description = cleaned_data.get('description', '').strip()
+
+        # if not checkContent(product_name):
+        #     raise forms.ValidationError({"productName": "Product name does not seem related to agriculture. Please edit."})
+
+        # if not checkContent(description):
+        #     raise forms.ValidationError({"description": "Description does not seem related to agriculture. Please edit."})
+
+        return cleaned_data
+

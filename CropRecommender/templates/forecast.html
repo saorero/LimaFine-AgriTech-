@@ -38,18 +38,11 @@
 
                 <!-- Buttons -->
                 <div class="mt-6 flex flex-col sm:flex-row justify-center gap-4">
-                    <button id="getWeatherGeo" class="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition duration-300 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        Use My Location
+                    <button id="getWeatherGeo" class="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition duration-300 flex items-center justify-center">
+                        <i class="fa-solid fa-location-dot fa-xl mr-2 text-white"></i>My Location
                     </button>
-                    <button id="getWeatherManual" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center" disabled>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Get Forecast
+                    <button id="getWeatherManual" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition duration-300 flex items-center justify-center" disabled>
+                        <i class="fa-solid fa-calendar-check fa-xl text-white"></i>  Get Forecast
                     </button>
                 </div>
             </div>
@@ -136,6 +129,7 @@
     document.getElementById('getWeatherGeo').addEventListener('click', () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(fetchWeatherGeo, showError);
+            
         } else {
             alert('Geolocation is not supported by your browser.');
         }

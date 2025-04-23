@@ -1,74 +1,191 @@
 {% extends "base2.html" %}
 
-{% block title %} <span class="font-italianno text-4xl">*** Agri Bot ***</span> {% endblock title %}
-
 {% block content %}
-
-<main class="flex-grow flex flex-col items-center px-4">
-    
-    <!-- Sidebar + Chat Section Container -->
-    <div class="flex w-full h-96 mt-4 mb-1 flex-col md:flex-row">
-        
-        <!-- Sidebar for Chat History -->
-        <div class="w-full md:w-1/5 text-white p-2 flex flex-col h-96 rounded-lg bg-teal-600 md:block hidden" id="sidebar">
-            <h2 class="text-xl font-semibold mb-4">Chat History</h2>
-            <ul id="chat-history" class="space-y-2 overflow-y-auto scrollbar-hide flex-1 h-full max-h-80">
-                <li class="p-2 bg-teal-700 rounded">Chat 1</li>
-                <li class="p-2 bg-gray-700 rounded">Chat 2</li>
-                <li class="p-2 bg-gray-700 rounded">Chat 3</li>
-                <li class="p-2 bg-gray-700 rounded">Chat 4</li>
-                <li class="p-2 bg-gray-700 rounded">Chat 5</li>
-                <li class="p-2 bg-gray-700 rounded">Chat 6</li>
-               
-            </ul>
-        </div>
-        
-        <!-- Sidebar Toggle Button (Mobile) -->
-        <button class="md:hidden bg-teal-600 text-white p-2 rounded-lg mb-2" onclick="toggleSidebar()">☰ Chat History</button>
-        
-        <!-- Main Chatbot Section -->
-        <div class="flex flex-col flex-1 items-center p-4 w-full">
-            
-            <!-- Chat Container (Scrollable) -->
-            <div id="chat-container" class="w-full md:w-4/5 h-72 rounded-lg p-4 overflow-y-auto scrollbar-hide bg-gray-800">
-                <div class="text-white text-xl font-bold">Ask me anything!!</div>
-            </div>
-            
-            <!-- User Input Section -->
-            <div class="mt-4 w-full md:w-4/5 flex flex-col sm:flex-row">
-                <input id="user-input" type="text" placeholder="Type your message..." 
-                    class="flex-1 p-2 rounded-lg bg-gray-700 text-white w-full sm:w-auto">
-                <button id="send-btn" class="mt-2 sm:mt-0 sm:ml-2 bg-white text-teal-700 font-bold py-2 px-4 rounded-lg">
-                    SEND
-                </button>
-            </div>
+<div class="w-full max-w-7xl mx-auto px-4 flex">
+       
+    <!-- Chat History Sidebar -->
+    <div class="w-1/4 pr-4">
+        <h2 class="text-xl font-bold text-teal-700 mb-4">Chat History</h2>
+        <div id="chat-history" class="space-y-2 max-h-[500px] overflow-y-auto">
+            <!-- History items will be appended here -->
         </div>
     </div>
-</main>
 
+    <!-- Chat Area -->
+    <div class="w-3/4">
+        <h1 class="text-3xl font-extrabold text-teal-700 mb-6 text-center">🌾 AgriBot</h1>
+        
+        <!-- Chatbox -->
+        <div id="chatbox" class="space-y-4 h-80 overflow-y-auto p-4 bg-gray-50 rounded-lg shadow-inner scroll-smooth">
+            <!-- Messages will be appended here -->
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="flex items-center gap-2 text-sm text-gray-500 mt-2 hidden text-teal-700">
+            <i class="fas fa-spinner fa-spin text-teal-700 fa-2x"></i>
+            Thinking...
+        </div>
+
+        <!-- Input Field -->
+        <div class="mt-4 flex gap-2">
+            <input type="text" id="textInput" placeholder="Ask me about agriculture..."
+                class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
+            <button onclick="sendMessage()" 
+                class="px-4 py-2 rounded-lg hover:bg-teal-700 hover:text-white transition">
+                <i class="fa-solid fa-paper-plane fa-xl text-teal-700"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block script %}
 <script>
-    function toggleSidebar() {
-        let sidebar = document.getElementById("sidebar");
-        if (sidebar.classList.contains("hidden")) {
-            sidebar.classList.remove("hidden");
-        } else {
-            sidebar.classList.add("hidden");
-        }
+    // Load chat history on page load
+    $(document).ready(function() {
+        loadChatHistory();
+    });
+
+    function loadChatHistory() {
+        $.ajax({
+            type: "GET",
+            url: "/agriBot/history/",
+            success: function(response) {
+                $("#chat-history").empty();
+                response.history.forEach(function(item) {
+                    $("#chat-history").append(`
+                        <div class="p-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-teal-100"
+                             onclick="loadConversation('${item.conversation_id}')">
+                            <strong>Conversation</strong><br>
+                            <span class="text-sm text-gray-600">${item.date}</span>
+                        </div>
+                    `);
+                });
+            },
+            error: function() {
+                alert("Failed to load chat history.");
+            }
+        });
     }
 
-    document.getElementById("send-btn").addEventListener("click", function() {
-        let inputField = document.getElementById("user-input");
-        let message = inputField.value.trim();
-        if (message) {
-            let chatContainer = document.getElementById("chat-container");
-            let newMessage = document.createElement("div");
-            newMessage.classList.add("text-white", "p-2", "mt-2", "bg-blue-600", "rounded-lg", "self-end");
-            newMessage.innerText = message;
-            chatContainer.appendChild(newMessage);
-            inputField.value = ""; 
-            chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll to latest message
-        }
-    });
-</script>
+    function loadConversation(conversationId) {
+        $.ajax({
+            type: "GET",
+            url: `/agriBot/conversation/${conversationId}/`,
+            success: function(response) {
+                $("#chatbox").empty();
+                response.conversation.forEach(function(msg) {
+                    // User message
+                    $("#chatbox").append(`
+                        <div class="flex justify-end">
+                            <div class="bg-teal-100 text-teal-800 px-4 py-2 rounded-lg max-w-xs shadow">
+                                <strong>{{ user.username }}:</strong> ${msg.query}<br>
+                                <span class="text-xs text-gray-600">${new Date(msg.timestamp).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `);
+                    // AgriBot RAG response
+                    $("#chatbox").append(`
+                        <div class="flex justify-start">
+                            <div class="bg-white border border-gray-300 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
+                                <strong>AgriBot:</strong> ${msg.rag_response}<br>
+                                <span class="text-xs text-gray-600">${new Date(msg.timestamp).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `);
+                    // AgriBot general response
+                    $("#chatbox").append(`
+                        <div class="flex justify-start">
+                            <div class="bg-gray-100 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
+                                <strong>Just Me:</strong> ${msg.general_response}<br>
+                                <span class="text-xs text-gray-600">${new Date(msg.timestamp).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `);
+                });
+                $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
+            },
+            error: function() {
+                alert("Failed to load conversation.");
+            }
+        });
+    }
 
-{% endblock content %}
+    function sendMessage() {
+        var query = $("#textInput").val();
+        if (query.trim() === "") return;
+
+        // Append user message
+        $("#chatbox").append(`
+            <div class="flex justify-end">
+                <div class="bg-teal-100 text-teal-800 px-4 py-2 rounded-lg max-w-xs shadow">
+                    <strong>{{ user.username }}:</strong> ${query}<br>
+                    <span class="text-xs text-gray-600">${new Date().toLocaleString()}</span>
+                </div>
+            </div>
+        `);
+        $("#textInput").val("");
+ 
+        $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
+        $("#loading").removeClass("hidden");
+
+        $.ajax({
+            type: "POST",
+            url: "/agriBot/ask/",
+            data: { query: query, csrfmiddlewaretoken: '{{ csrf_token }}' },
+            success: function(response) {
+                $("#loading").addClass("hidden");
+
+                // Append AgriBot responses
+                $("#chatbox").append(`
+                    <div class="flex justify-start">
+                        <div class="bg-white border border-gray-300 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
+                            <strong>AgriBot:</strong> ${response.rag_response}<br>
+                            <span class="text-xs text-gray-600">${new Date(response.timestamp).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `);
+                $("#chatbox").append(`
+                    <div class="flex justify-start">
+                        <div class="bg-gray-100 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
+                            <strong>Just Me:</strong> ${response.general_response}<br>
+                            <span class="text-xs text-gray-600">${new Date(response.timestamp).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `);
+                $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
+                // Refresh chat history
+                loadChatHistory();
+            },
+            error: function() {
+                $("#loading").addClass("hidden");
+                alert("Oops! Something went wrong.");
+            }
+        });
+    }
+
+    // Enter key to send
+    $("#textInput").keypress(function(e) {
+        if (e.which == 13) sendMessage();
+    });
+
+
+    function startNewChat() {
+    $.ajax({
+        type: "POST",
+        url: "/agriBot/new_chat/",
+        data: {
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            $("#chatbox").empty(); // Clear chat box
+            console.log("New chat started:", response.conversation_id);
+        },
+        error: function() {
+            alert("Failed to start a new chat session.");
+        }
+        });
+    }
+
+</script>
+{% endblock script %}

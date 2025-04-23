@@ -9,6 +9,9 @@ import json
 from django.conf import settings
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 def get_locations(request):
     # Path to your JSON file in static/data
     json_path = os.path.join(settings.STATICFILES_DIRS[0], 'data', 'locationData.json')
@@ -89,7 +92,7 @@ def forecast(request):
     lat = request.GET.get('lat')
     lon = request.GET.get('lon')
     ward = request.GET.get('ward')  # New parameter for ward selection
-    api_key = "1b04838f64672aefa7a3258ff767de7a"  # Replace with your API key
+    api_key = os.getenv("forecastApi")
 
     if ward:
         # Use OpenWeatherMap Geocoding API to get coordinates from ward name

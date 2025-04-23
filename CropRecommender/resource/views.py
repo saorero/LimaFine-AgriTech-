@@ -7,13 +7,18 @@ import random
 from google.cloud import storage
 from django.conf import settings
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 # Create your views here.
 # Views for Resource application
 
 # VIEWS TO HANDLE VIDEOS
 def fetchVideos(query="agriculture", maxResults=12):
-    # youtubeApi = "AIzaSyCr_qmPHd8KjokbV8Ww90v8evqrk8Zrwl4"
-    youtubeApi = "AIzhkhkCr_qmPHdhlkjhkhk0v8evqrk8Zrwl4" #wrong API
+    
+
+    youtubeApi = os.getenv("youtubeApiWrong")
     youtubeSearch = "https://www.googleapis.com/youtube/v3/search"
     params = {
         "part": "snippet",

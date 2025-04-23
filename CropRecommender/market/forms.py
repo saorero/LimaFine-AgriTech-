@@ -1,7 +1,7 @@
 # Handles the listig forms and any other form created
 # farmers/forms.py
 from django import forms
-from .models import productListing
+from .models import productListing, ProductRequest
 # from .utils import checkContent 
 class ListingForm(forms.ModelForm):
     class Meta:
@@ -24,3 +24,5 @@ class ListingForm(forms.ModelForm):
         #     raise forms.ValidationError({"description": "Description does not seem related to agriculture. Please edit."})
 
         return cleaned_data
+
+
