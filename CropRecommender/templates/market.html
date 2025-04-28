@@ -130,56 +130,121 @@
     </div>
 
     <!-- My Products Section -->
-    <div id="myProductsSection" class="tab-content hidden">
+    <div id="myProductsSection" class="tab-content hidden relative">
         <div class="flex justify-end p-2">
-            <button id="createListingTab" class="px-4 py-2 font-semibold text-white bg-teal-700 rounded-xl hover:bg-teal-600 transition duration-300 tab-button">Create Listing</button>
+            <button id="createListingTab" class="px-4 py-2 font-semibold text-teal-700 hover:bg-teal-700 hover:text-white transition duration-300 tab-button">
+                <i class="fa-solid fa-plus"></i>Create Listing
+            </button>
         </div>
+        
         {% if user.userprofile.role == 'farmer' %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {% if listings %}
-                    {% for listing in listings %}
-                        <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300">
-                            <div class="h-40 w-full overflow-hidden">
-                                <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                            </div>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
-                                <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
-                                <div class="mt-2">
-                                    <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
-                                    <p class="text-gray-500 text-sm">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
-                                    <p class="text-gray-500 text-sm">{{ listing.location }}</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
-                                <div class="mt-2 flex items-center justify-between">
-                                    <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
-                                        {% csrf_token %}
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
-                                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors duration-200"></div>
-                                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
-                                        </label>
-                                        <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
-                                            {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                                        </span>
-                                    </form>
-                                    <div class="flex space-x-2">
-                                        <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
+            <!-- Mobile toggle button -->
+            <div class="flex justify-end mb-4 lg:hidden">
+                <button id="openMyProductsSidebar" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                    <i class="fas fa-filter"></i> Categories
+                </button>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="w-full">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="myProductsGrid">
+                        {% if listings %}
+                            {% for listing in listings %}
+                                <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300" data-category="{{ listing.productCategory }}">
+                                    <div class="h-40 w-full overflow-hidden">
+                                        <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                                    </div>
+                                    <div class="p-4 flex flex-col flex-grow">
+                                        <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
+                                        <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
+                                        <div class="mt-2">
+                                            <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
+                                            <p class="text-gray-500 text-sm">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                            <p class="text-gray-500 text-sm">{{ listing.location }}</p>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
+                                        <div class="mt-2 flex items-center justify-between">
+                                            <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
+                                                {% csrf_token %}
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
+                                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors duration-200"></div>
+                                                    <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
+                                                </label>
+                                                <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
+                                                    {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                                </span>
+                                            </form>
+                                            <div class="flex space-x-2">
+                                                <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
                                     </div>
                                 </div>
-
-                                <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
-                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-gray-600 col-span-full">No listings found. {% if request.GET.query %}Try adjusting your search query.{% else %}Use the "Create Listing" tab to add a new listing.{% endif %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Category Sidebar -->
+                <div id="myProductsCategorySidebar" class="fixed right-0 top-0 w-72 bg-white border-l border-teal-100 transform transition-transform duration-300 ease-in-out translate-x-full lg:relative lg:w-64 lg:transform-none z-20 shadow-lg lg:shadow-none rounded-l-lg lg:rounded-none overflow-y-auto">
+                    <div class="p-5">
+                        <!-- Close button for mobile -->
+                        <div class="flex justify-end lg:hidden mb-4">
+                            <button id="closeMyProductsSidebar" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-lg"></i>
+                            </button>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-gray-600 col-span-full">No listings found. {% if request.GET.query %}Try adjusting your search query.{% else %}Use the "Create Listing" tab to add a new listing.{% endif %}</p>
-                {% endif %}
+                        
+                        <!-- Category List -->
+                        <ul class="space-y-2">
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="all">
+                                    <i class="fas fa-layer-group text-teal-500 mr-3 w-5 text-center"></i>
+                                    All Categories
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="fruits">
+                                    <i class="fas fa-apple-alt text-teal-500 mr-3 w-5 text-center"></i>
+                                    Fruits
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="vegetables">
+                                    <i class="fas fa-carrot text-teal-500 mr-3 w-5 text-center"></i>
+                                    Vegetables
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="cereals">
+                                    <i class="fas fa-bread-slice text-teal-500 mr-3 w-5 text-center"></i>
+                                    Cereals
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="legumes">
+                                    <i class="fas fa-seedling text-teal-500 mr-3 w-5 text-center"></i>
+                                    Legumes
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="other">
+                                    <i class="fas fa-ellipsis-h text-teal-500 mr-3 w-5 text-center"></i>
+                                    Other
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         {% else %}
             <p class="text-gray-600">This section is only available to farmers.</p>
@@ -234,18 +299,18 @@
         {% endif %}
     </div>
 
-    <!-- Marketplace Section -->
-    <div id="marketplaceSection" class="tab-content hidden">
+   <!-- Marketplace Section -->    
+    <div id="marketplaceSection" class="tab-content hidden relative">
         <div class="mb-6">
             <form method="GET" class="flex space-x-4">
                 <div class="flex-1">
-                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-gray-700">
                 </div>
                 <div class="flex items-end space-x-2">
-                    <button type="submit" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                    <button type="submit" class="bg-teal-700 text-white p-3 rounded-lg hover:bg-teal-600 transition duration-300">
                         <i class="fas fa-search"></i>
                     </button>
-                    <a href="{% url 'main' %}" class="bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition duration-300" title="Clear Search">
+                    <a href="{% url 'main' %}" class="bg-gray-200 text-gray-700 p-3 rounded-lg hover:bg-gray-300 transition duration-300" title="Clear Search">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -254,43 +319,107 @@
                 <p class="text-gray-600 mt-2">Showing results for: <strong>{{ request.GET.marketplace_query }}</strong></p>
             {% endif %}
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {% if marketplace_listings %}
-                {% for listing in marketplace_listings %}
-                    <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300">
-                        <div class="h-40 w-full overflow-hidden">
-                            <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                        </div>
-                        <div class="p-4 flex flex-col flex-grow">
-                            <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
-                            <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
-                            <p class="text-gray-500 text-sm">by @{{ listing.farmer.user.username }}</p>
-                            <div class="mt-2">
-                                <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
-                                <p class="text-gray-700 font-bold">Qty Left: {{ listing.quantity }}{{ listing.unit }}</p>
-                                <p class="text-gray-500 text-sm">{{ listing.location }}</p>
+        <!-- Mobile toggle button -->
+        <div class="flex justify-end mb-4 lg:hidden">
+            <button id="openMarketplaceSidebar" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                <i class="fa-solid fa-list"></i> Categories
+            </button>
+        </div>
+        <div class="flex gap-4">
+            <div class="w-full">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="marketplaceGrid">
+                    {% if marketplace_listings %}
+                        {% for listing in marketplace_listings %}
+                            <div class="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col transition-transform duration-300 hover:shadow-xl hover:-translate-y-1" data-category="{{ listing.productCategory }}">
+                                <div class="relative h-40 w-full">
+                                    <img src="{{ listing.get_image_url|default:'https://via.placeholder.com/300x200?text=No+Image' }}" alt="{{ listing.productName }}" class="w-full h-full object-cover">
+                                </div>
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">{{ listing.get_productCategory_display }}</p>
+                                            <h2 class="text-lg font-bold text-teal-800 mt-1 truncate">{{ listing.productName }}</h2>
+                                            <p class="text-gray-500 text-xs mt-1">by @{{ listing.farmer.user.username }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-gray-800 font-semibold text-md">KES {{ listing.price }} / {{ listing.unit }}</p>
+                                            <p class="text-gray-600 text-xs">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 flex justify-between items-end">
+                                        <span class="text-xs font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
+                                            {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                        </span>
+                                        <div class="flex space-x-2">
+                                            <button onclick="openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-teal-700 hover:text-teal-900 transition-colors" title="Message Farmer">
+                                                <i class="fas fa-envelope text-sm"></i>
+                                            </button>
+                                            <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-900 transition-colors" title="Order Item">
+                                                <i class="fa-solid fa-cart-shopping text-sm"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-500 text-xs mt-2">Listed: {{ listing.created_at|localtime|date:"Y-m-d" }}</p>
+                                </div>
                             </div>
-                            <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
-                            <div class="mt-2 flex items-center justify-between">
-                                <span class="text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
-                                    {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                                </span>
-                                <button onclick="openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-teal-700 hover:text-teal-800" title="Message Farmer">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-800" title="Order Item">
-                                    <i class="fa-solid fa-cart-shopping"></i>
-                                </button>
-                            </div>
-                            <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-gray-600 col-span-full">No listings found in the marketplace.</p>
-            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-gray-600 col-span-full text-center py-6">No listings found in the marketplace.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Category Sidebar -->
+            <div id="marketplaceCategorySidebar" class="fixed right-0 top-0 h-full w-72 bg-white border-l border-teal-100 transform transition-transform duration-300 ease-in-out translate-x-full lg:relative lg:h-auto lg:w-64 lg:transform-none z-20">
+            
+                <div class="p-5 h-full flex flex-col">                
+                    
+                    <!-- Category List -->
+                    <ul class="space-y-2 flex-grow">
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="all">
+                                <i class="fas fa-layer-group text-teal-500 mr-3 w-5 text-center"></i>
+                                All Categories
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="fruits">
+                                <i class="fas fa-apple-alt text-teal-500 mr-3 w-5 text-center"></i>
+                                Fruits
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="vegetables">
+                                <i class="fas fa-carrot text-teal-500 mr-3 w-5 text-center"></i>
+                                Vegetables
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="cereals">
+                                <i class="fas fa-bread-slice text-teal-500 mr-3 w-5 text-center"></i>
+                                Cereals
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="legumes">
+                                <i class="fas fa-seedling text-teal-500 mr-3 w-5 text-center"></i>
+                                Legumes
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="other">
+                                <i class="fas fa-ellipsis-h text-teal-500 mr-3 w-5 text-center"></i>
+                                Other
+                            </button>
+                        </li>
+                    </ul>                   
+                    
+                </div>
+            </div>
+
         </div>
     </div>
+
+
 
     <!-- My Requests Section -->
     <div id="myRequestSection" class="tab-content hidden">
@@ -351,7 +480,9 @@
                         <th class="p-2 text-left text-teal-800">Quantity</th>
                         <th class="p-2 text-left text-teal-800">Total (KES)</th>
                         <th class="p-2 text-left text-teal-800">Location</th>
+                        <th class="p-2 text-left text-teal-800">Delivery</th>
                         <th class="p-2 text-left text-teal-800">Status</th>
+                        
                     </tr>
                 </thead>
                 <tbody id="farmerOrdersTable" class="text-gray-700"></tbody>
@@ -372,6 +503,7 @@
                         <th class="p-2 text-left text-teal-800">Quantity</th>
                         <th class="p-2 text-left text-teal-800">Total (KES)</th>
                         <th class="p-2 text-left text-teal-800">Status</th>
+                        <th class="p-2 text-left text-teal-800">Delivery</th>
                         <th class="p-2 text-left text-teal-800">Action</th>
                     </tr>
                 </thead>
@@ -599,6 +731,13 @@
                     <label class="block text-gray-700">Location (County)</label>
                     <input id="orderLocation" type="text" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
                 </div>
+                <div>
+                    <label class="block text-gray-700">Delivery Mode</label>
+                    <select id="orderDeliveryMode" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                        <option value="pickup">Pickup</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-300">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Order</button>
@@ -633,20 +772,7 @@
     }
     
      
-    // Edit Modal Function ...prefilled with the values initiated
-    // function openEditModal(id, ProductName, productCategory, quantity, unit, price, description, location, imageUrl) {
-    //     document.getElementById('editModal').classList.remove('hidden');
-    //     document.getElementById('editListingId').value = id;
-    //     document.getElementById('editProductName').value = ProductName;
-    //     document.getElementById('editProductCategory').value = productCategory;
-    //     document.getElementById('editQuantity').value = quantity;
-    //     document.getElementById('editUnit').value = unit;
-    //     document.getElementById('editPrice').value = price;
-    //     document.getElementById('editDescription').value = description;
-    //     document.getElementById('editLocation').value = location;
-    //     document.getElementById('editCurrentImage').src = imageUrl;
-    //     document.getElementById('editForm').action = `/market/edit/${id}/`;
-    // }
+  
     function openEditModal(id, productName, productCategory, quantity, unit, price, description, location, imageUrl) {
         document.getElementById('editModal').classList.remove('hidden');
         document.getElementById('editListingId').value = id;
@@ -1110,10 +1236,11 @@
             e.preventDefault();
             const quantity = parseFloat(document.getElementById('orderQuantity').value);
             const location = document.getElementById('orderLocation').value;
+            const deliveryMode = document.getElementById('orderDeliveryMode').value;
             const response = await fetch('/market/createOrder/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-                body: JSON.stringify({ listing_id: currentListingId, quantity, location }),
+                body: JSON.stringify({ listing_id: currentListingId, quantity, location, deliveryMode }),
             });
             const data = await response.json();
             if (data.status === 'success') {
@@ -1124,7 +1251,7 @@
             }
         });
 
-        // Farmer Orders
+        // Farmer Orders (Requested Orders)
         async function showFarmerOrders() {
             const response = await fetch('/market/farmerOrders/');
             const data = await response.json();
@@ -1132,6 +1259,16 @@
             tbody.innerHTML = '';
             data.orders.forEach(order => {
                 const tr = document.createElement('tr');
+
+                // WHATSAPP INTEGRATION
+                // Encode the default message to avoid URL issues
+                const defaultMessage = encodeURIComponent(`Hello, regarding your order #${order.id} for ${order.crop}`);
+                // Create WhatsApp link if phone number exists
+                const whatsappLink = order.phone_number 
+                ? `<a href="https://wa.me/${order.phone_number}?text=${defaultMessage}" target="_blank" class="text-green-600 hover:text-green-800"><i class="fab fa-whatsapp"></i></a>`
+                : '<span class="text-gray-400"><i class="fab fa-whatsapp"></i></span>'; // Disabled icon if no phone number
+                // END OF WHATSAPP
+
                 tr.innerHTML = `
                     <td class="p-2">${order.date}</td>
                     <td class="p-2">${order.requester}</td>
@@ -1139,6 +1276,7 @@
                     <td class="p-2">${order.quantity}</td>
                     <td class="p-2">${order.total.toFixed(2)}</td>
                     <td class="p-2">${order.location}</td>
+                    <td class="p-2">${order.deliveryMode}</td>
                     <td class="p-2">
                         <select onchange="updateOrderStatus(${order.id}, this.value)" class="p-1 border rounded">
                             <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
@@ -1146,6 +1284,11 @@
                             <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
                             <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
                         </select>
+                    </td>
+
+                    <td class="p-2">
+                        ${whatsappLink}
+                        ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1177,6 +1320,7 @@
                     <td class="p-2">${order.quantity}</td>
                     <td class="p-2">${order.total.toFixed(2)}</td>
                     <td class="p-2">${order.status}</td>
+                    <td class="p-2">${order.deliveryMode}</td>
                     <td class="p-2">
                         ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600"><i class="fas fa-trash"></i></button>` : ''}
                     </td>
@@ -1298,6 +1442,7 @@
     }
 
 
+   
     //Ensure DOM has loaded before calling certain function that handle different logic
     document.addEventListener("DOMContentLoaded", function () {
           
@@ -1337,11 +1482,114 @@
                     console.error("competitorCropPricing element not found at DOM load time.");
                 }
             {% endif %}
+
+                // Highlight active category
+            const categoryFilters = document.querySelectorAll('.category-filter');
+            categoryFilters.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    categoryFilters.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
                     
             
       
     });
  
    // setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional) you will uncomment this 
+
+
+   // Category Sidebar Toggle and Filter Logic
+    
+    function initializeCategorySidebars() {
+    // Marketplace Sidebar
+    const openMarketplaceSidebar = document.getElementById('openMarketplaceSidebar');
+    const closeMarketplaceSidebar = document.getElementById('closeMarketplaceSidebar');
+    const marketplaceSidebar = document.getElementById('marketplaceCategorySidebar');
+
+    // My Products Sidebar
+    const openMyProductsSidebar = document.getElementById('openMyProductsSidebar');
+    const closeMyProductsSidebar = document.getElementById('closeMyProductsSidebar');
+    const myProductsSidebar = document.getElementById('myProductsCategorySidebar');
+
+    // Toggle marketplace sidebar
+    if (openMarketplaceSidebar) {
+        openMarketplaceSidebar.addEventListener('click', () => {
+            marketplaceSidebar.classList.remove('translate-x-full');
+        });
+    }
+    if (closeMarketplaceSidebar) {
+        closeMarketplaceSidebar.addEventListener('click', () => {
+            marketplaceSidebar.classList.add('translate-x-full');
+        });
+    }
+
+    // Toggle my products sidebar
+    if (openMyProductsSidebar) {
+        openMyProductsSidebar.addEventListener('click', () => {
+            myProductsSidebar.classList.remove('translate-x-full');
+        });
+    }
+    if (closeMyProductsSidebar) {
+        closeMyProductsSidebar.addEventListener('click', () => {
+            myProductsSidebar.classList.add('translate-x-full');
+        });
+    }
+
+    // Category filter logic for both sections
+    const categoryFilters = document.querySelectorAll('.category-filter');
+    categoryFilters.forEach(filter => {
+        filter.addEventListener('click', (e) => {
+            const category = e.target.dataset.category;
+            const section = e.target.closest('.tab-content').id.includes('marketplace') ? 'marketplace' : 'myProducts';
+            
+            filterProductsByCategory(category, section);
+            
+            // Highlight active filter
+            const currentSidebar = section === 'marketplace' ? marketplaceSidebar : myProductsSidebar;
+            currentSidebar.querySelectorAll('.category-filter').forEach(f => f.classList.remove('bg-teal-200'));
+            e.target.classList.add('bg-teal-200');
+            
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 1024) {
+                if (section === 'marketplace') {
+                    marketplaceSidebar.classList.add('translate-x-full');
+                } else {
+                    myProductsSidebar.classList.add('translate-x-full');
+                }
+            }
+        });
+    });
+    }
+
+    function filterProductsByCategory(category, section) {
+        const gridId = section === 'marketplace' ? 'marketplaceGrid' : 'myProductsGrid';
+        const grid = document.getElementById(gridId);
+        const items = grid.querySelectorAll('[data-category]');
+        let hasItems = false;
+
+        items.forEach(item => {
+            if (category === 'all' || item.dataset.category === category) {
+                item.classList.remove('hidden');
+                hasItems = true;
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+
+        // Show message if no items match
+        const noItemsMessage = grid.querySelector('.no-items-message');
+        if (!hasItems && !noItemsMessage) {
+            const message = document.createElement('p');
+            message.className = 'no-items-message text-gray-600 col-span-full text-center py-6';
+            message.textContent = `No ${category === 'all' ? '' : category} products found.`;
+            grid.appendChild(message);
+        } else if (hasItems && noItemsMessage) {
+            noItemsMessage.remove();
+        }
+    }
+
+    // Initialize sidebars on page load
+    document.addEventListener('DOMContentLoaded', initializeCategorySidebars);
 </script>
 {% endblock script %}

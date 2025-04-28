@@ -8,6 +8,7 @@ class UserProfile(models.Model): # Model for Django authentication system
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     county = models.CharField(max_length=100)
     phoneNo = models.CharField(max_length=15)
+    # phoneNo = models.CharField(max_length=14, blank=True, null=True) 
     ROLE_CHOICES = (
         ('farmer', 'Farmer'),
         ('researcher', 'Researcher'),

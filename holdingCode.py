@@ -130,56 +130,121 @@
     </div>
 
     <!-- My Products Section -->
-    <div id="myProductsSection" class="tab-content hidden">
+    <div id="myProductsSection" class="tab-content hidden relative">
         <div class="flex justify-end p-2">
-            <button id="createListingTab" class="px-4 py-2 font-semibold text-white bg-teal-700 rounded-xl hover:bg-teal-600 transition duration-300 tab-button">Create Listing</button>
+            <button id="createListingTab" class="px-4 py-2 font-semibold text-teal-700 hover:bg-teal-700 hover:text-white transition duration-300 tab-button">
+                <i class="fa-solid fa-plus"></i>Create Listing
+            </button>
         </div>
+        
         {% if user.userprofile.role == 'farmer' %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {% if listings %}
-                    {% for listing in listings %}
-                        <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300">
-                            <div class="h-40 w-full overflow-hidden">
-                                <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                            </div>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
-                                <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
-                                <div class="mt-2">
-                                    <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
-                                    <p class="text-gray-500 text-sm">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
-                                    <p class="text-gray-500 text-sm">{{ listing.location }}</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
-                                <div class="mt-2 flex items-center justify-between">
-                                    <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
-                                        {% csrf_token %}
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
-                                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors duration-200"></div>
-                                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
-                                        </label>
-                                        <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
-                                            {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                                        </span>
-                                    </form>
-                                    <div class="flex space-x-2">
-                                        <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
+            <!-- Mobile toggle button -->
+            <div class="flex justify-end mb-4 lg:hidden">
+                <button id="openMyProductsSidebar" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                    <i class="fas fa-filter"></i> Categories
+                </button>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="w-full">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="myProductsGrid">
+                        {% if listings %}
+                            {% for listing in listings %}
+                                <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300" data-category="{{ listing.productCategory }}">
+                                    <div class="h-40 w-full overflow-hidden">
+                                        <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                                    </div>
+                                    <div class="p-4 flex flex-col flex-grow">
+                                        <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
+                                        <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
+                                        <div class="mt-2">
+                                            <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
+                                            <p class="text-gray-500 text-sm">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                            <p class="text-gray-500 text-sm">{{ listing.location }}</p>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
+                                        <div class="mt-2 flex items-center justify-between">
+                                            <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
+                                                {% csrf_token %}
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
+                                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors duration-200"></div>
+                                                    <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
+                                                </label>
+                                                <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
+                                                    {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                                </span>
+                                            </form>
+                                            <div class="flex space-x-2">
+                                                <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
                                     </div>
                                 </div>
-
-                                <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
-                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-gray-600 col-span-full">No listings found. {% if request.GET.query %}Try adjusting your search query.{% else %}Use the "Create Listing" tab to add a new listing.{% endif %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Category Sidebar -->
+                <div id="myProductsCategorySidebar" class="fixed right-0 top-0 w-72 bg-white border-l border-teal-100 transform transition-transform duration-300 ease-in-out translate-x-full lg:relative lg:w-64 lg:transform-none z-20 shadow-lg lg:shadow-none rounded-l-lg lg:rounded-none overflow-y-auto">
+                    <div class="p-5">
+                        <!-- Close button for mobile -->
+                        <div class="flex justify-end lg:hidden mb-4">
+                            <button id="closeMyProductsSidebar" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-lg"></i>
+                            </button>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-gray-600 col-span-full">No listings found. {% if request.GET.query %}Try adjusting your search query.{% else %}Use the "Create Listing" tab to add a new listing.{% endif %}</p>
-                {% endif %}
+                        
+                        <!-- Category List -->
+                        <ul class="space-y-2">
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="all">
+                                    <i class="fas fa-layer-group text-teal-500 mr-3 w-5 text-center"></i>
+                                    All Categories
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="fruits">
+                                    <i class="fas fa-apple-alt text-teal-500 mr-3 w-5 text-center"></i>
+                                    Fruits
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="vegetables">
+                                    <i class="fas fa-carrot text-teal-500 mr-3 w-5 text-center"></i>
+                                    Vegetables
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="cereals">
+                                    <i class="fas fa-bread-slice text-teal-500 mr-3 w-5 text-center"></i>
+                                    Cereals
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="legumes">
+                                    <i class="fas fa-seedling text-teal-500 mr-3 w-5 text-center"></i>
+                                    Legumes
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="other">
+                                    <i class="fas fa-ellipsis-h text-teal-500 mr-3 w-5 text-center"></i>
+                                    Other
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         {% else %}
             <p class="text-gray-600">This section is only available to farmers.</p>
@@ -234,18 +299,18 @@
         {% endif %}
     </div>
 
-    <!-- Marketplace Section -->
-    <div id="marketplaceSection" class="tab-content hidden">
+   <!-- Marketplace Section -->    
+    <div id="marketplaceSection" class="tab-content hidden relative">
         <div class="mb-6">
             <form method="GET" class="flex space-x-4">
                 <div class="flex-1">
-                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-gray-700">
                 </div>
                 <div class="flex items-end space-x-2">
-                    <button type="submit" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                    <button type="submit" class="bg-teal-700 text-white p-3 rounded-lg hover:bg-teal-600 transition duration-300">
                         <i class="fas fa-search"></i>
                     </button>
-                    <a href="{% url 'main' %}" class="bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition duration-300" title="Clear Search">
+                    <a href="{% url 'main' %}" class="bg-gray-200 text-gray-700 p-3 rounded-lg hover:bg-gray-300 transition duration-300" title="Clear Search">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -254,43 +319,107 @@
                 <p class="text-gray-600 mt-2">Showing results for: <strong>{{ request.GET.marketplace_query }}</strong></p>
             {% endif %}
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {% if marketplace_listings %}
-                {% for listing in marketplace_listings %}
-                    <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300">
-                        <div class="h-40 w-full overflow-hidden">
-                            <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-                        </div>
-                        <div class="p-4 flex flex-col flex-grow">
-                            <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
-                            <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
-                            <p class="text-gray-500 text-sm">by @{{ listing.farmer.user.username }}</p>
-                            <div class="mt-2">
-                                <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
-                                <p class="text-gray-700 font-bold">Qty Left: {{ listing.quantity }}{{ listing.unit }}</p>
-                                <p class="text-gray-500 text-sm">{{ listing.location }}</p>
+        <!-- Mobile toggle button -->
+        <div class="flex justify-end mb-4 lg:hidden">
+            <button id="openMarketplaceSidebar" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                <i class="fa-solid fa-list"></i> Categories
+            </button>
+        </div>
+        <div class="flex gap-4">
+            <div class="w-full">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="marketplaceGrid">
+                    {% if marketplace_listings %}
+                        {% for listing in marketplace_listings %}
+                            <div class="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col transition-transform duration-300 hover:shadow-xl hover:-translate-y-1" data-category="{{ listing.productCategory }}">
+                                <div class="relative h-40 w-full">
+                                    <img src="{{ listing.get_image_url|default:'https://via.placeholder.com/300x200?text=No+Image' }}" alt="{{ listing.productName }}" class="w-full h-full object-cover">
+                                </div>
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">{{ listing.get_productCategory_display }}</p>
+                                            <h2 class="text-lg font-bold text-teal-800 mt-1 truncate">{{ listing.productName }}</h2>
+                                            <p class="text-gray-500 text-xs mt-1">by @{{ listing.farmer.user.username }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-gray-800 font-semibold text-md">KES {{ listing.price }} / {{ listing.unit }}</p>
+                                            <p class="text-gray-600 text-xs">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 flex justify-between items-end">
+                                        <span class="text-xs font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
+                                            {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                        </span>
+                                        <div class="flex space-x-2">
+                                            <button onclick="openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-teal-700 hover:text-teal-900 transition-colors" title="Message Farmer">
+                                                <i class="fas fa-envelope text-sm"></i>
+                                            </button>
+                                            <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-900 transition-colors" title="Order Item">
+                                                <i class="fa-solid fa-cart-shopping text-sm"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-500 text-xs mt-2">Listed: {{ listing.created_at|localtime|date:"Y-m-d" }}</p>
+                                </div>
                             </div>
-                            <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
-                            <div class="mt-2 flex items-center justify-between">
-                                <span class="text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
-                                    {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
-                                </span>
-                                <button onclick="openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-teal-700 hover:text-teal-800" title="Message Farmer">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-800" title="Order Item">
-                                    <i class="fa-solid fa-cart-shopping"></i>
-                                </button>
-                            </div>
-                            <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-gray-600 col-span-full">No listings found in the marketplace.</p>
-            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-gray-600 col-span-full text-center py-6">No listings found in the marketplace.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Category Sidebar -->
+            <div id="marketplaceCategorySidebar" class="fixed right-0 top-0 h-full w-72 bg-white border-l border-teal-100 transform transition-transform duration-300 ease-in-out translate-x-full lg:relative lg:h-auto lg:w-64 lg:transform-none z-20">
+            
+                <div class="p-5 h-full flex flex-col">                
+                    
+                    <!-- Category List -->
+                    <ul class="space-y-2 flex-grow">
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="all">
+                                <i class="fas fa-layer-group text-teal-500 mr-3 w-5 text-center"></i>
+                                All Categories
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="fruits">
+                                <i class="fas fa-apple-alt text-teal-500 mr-3 w-5 text-center"></i>
+                                Fruits
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="vegetables">
+                                <i class="fas fa-carrot text-teal-500 mr-3 w-5 text-center"></i>
+                                Vegetables
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="cereals">
+                                <i class="fas fa-bread-slice text-teal-500 mr-3 w-5 text-center"></i>
+                                Cereals
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="legumes">
+                                <i class="fas fa-seedling text-teal-500 mr-3 w-5 text-center"></i>
+                                Legumes
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="other">
+                                <i class="fas fa-ellipsis-h text-teal-500 mr-3 w-5 text-center"></i>
+                                Other
+                            </button>
+                        </li>
+                    </ul>                   
+                    
+                </div>
+            </div>
+
         </div>
     </div>
+
+
 
     <!-- My Requests Section -->
     <div id="myRequestSection" class="tab-content hidden">
@@ -351,7 +480,9 @@
                         <th class="p-2 text-left text-teal-800">Quantity</th>
                         <th class="p-2 text-left text-teal-800">Total (KES)</th>
                         <th class="p-2 text-left text-teal-800">Location</th>
+                        <th class="p-2 text-left text-teal-800">Delivery</th>
                         <th class="p-2 text-left text-teal-800">Status</th>
+                        
                     </tr>
                 </thead>
                 <tbody id="farmerOrdersTable" class="text-gray-700"></tbody>
@@ -372,6 +503,7 @@
                         <th class="p-2 text-left text-teal-800">Quantity</th>
                         <th class="p-2 text-left text-teal-800">Total (KES)</th>
                         <th class="p-2 text-left text-teal-800">Status</th>
+                        <th class="p-2 text-left text-teal-800">Delivery</th>
                         <th class="p-2 text-left text-teal-800">Action</th>
                     </tr>
                 </thead>
@@ -599,6 +731,13 @@
                     <label class="block text-gray-700">Location (County)</label>
                     <input id="orderLocation" type="text" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
                 </div>
+                <div>
+                    <label class="block text-gray-700">Delivery Mode</label>
+                    <select id="orderDeliveryMode" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                        <option value="pickup">Pickup</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-300">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Order</button>
@@ -633,20 +772,7 @@
     }
     
      
-    // Edit Modal Function ...prefilled with the values initiated
-    // function openEditModal(id, ProductName, productCategory, quantity, unit, price, description, location, imageUrl) {
-    //     document.getElementById('editModal').classList.remove('hidden');
-    //     document.getElementById('editListingId').value = id;
-    //     document.getElementById('editProductName').value = ProductName;
-    //     document.getElementById('editProductCategory').value = productCategory;
-    //     document.getElementById('editQuantity').value = quantity;
-    //     document.getElementById('editUnit').value = unit;
-    //     document.getElementById('editPrice').value = price;
-    //     document.getElementById('editDescription').value = description;
-    //     document.getElementById('editLocation').value = location;
-    //     document.getElementById('editCurrentImage').src = imageUrl;
-    //     document.getElementById('editForm').action = `/market/edit/${id}/`;
-    // }
+  
     function openEditModal(id, productName, productCategory, quantity, unit, price, description, location, imageUrl) {
         document.getElementById('editModal').classList.remove('hidden');
         document.getElementById('editListingId').value = id;
@@ -1110,10 +1236,11 @@
             e.preventDefault();
             const quantity = parseFloat(document.getElementById('orderQuantity').value);
             const location = document.getElementById('orderLocation').value;
+            const deliveryMode = document.getElementById('orderDeliveryMode').value;
             const response = await fetch('/market/createOrder/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-                body: JSON.stringify({ listing_id: currentListingId, quantity, location }),
+                body: JSON.stringify({ listing_id: currentListingId, quantity, location, deliveryMode }),
             });
             const data = await response.json();
             if (data.status === 'success') {
@@ -1124,7 +1251,7 @@
             }
         });
 
-        // Farmer Orders
+        // Farmer Orders (Requested Orders)
         async function showFarmerOrders() {
             const response = await fetch('/market/farmerOrders/');
             const data = await response.json();
@@ -1139,6 +1266,7 @@
                     <td class="p-2">${order.quantity}</td>
                     <td class="p-2">${order.total.toFixed(2)}</td>
                     <td class="p-2">${order.location}</td>
+                    <td class="p-2">${order.deliveryMode}</td>
                     <td class="p-2">
                         <select onchange="updateOrderStatus(${order.id}, this.value)" class="p-1 border rounded">
                             <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
@@ -1177,6 +1305,7 @@
                     <td class="p-2">${order.quantity}</td>
                     <td class="p-2">${order.total.toFixed(2)}</td>
                     <td class="p-2">${order.status}</td>
+                    <td class="p-2">${order.deliveryMode}</td>
                     <td class="p-2">
                         ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600"><i class="fas fa-trash"></i></button>` : ''}
                     </td>
@@ -1298,6 +1427,7 @@
     }
 
 
+   
     //Ensure DOM has loaded before calling certain function that handle different logic
     document.addEventListener("DOMContentLoaded", function () {
           
@@ -1337,746 +1467,114 @@
                     console.error("competitorCropPricing element not found at DOM load time.");
                 }
             {% endif %}
+
+                // Highlight active category
+            const categoryFilters = document.querySelectorAll('.category-filter');
+            categoryFilters.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    categoryFilters.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
                     
             
       
     });
  
    // setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional) you will uncomment this 
+
+
+   // Category Sidebar Toggle and Filter Logic
+    
+    function initializeCategorySidebars() {
+    // Marketplace Sidebar
+    const openMarketplaceSidebar = document.getElementById('openMarketplaceSidebar');
+    const closeMarketplaceSidebar = document.getElementById('closeMarketplaceSidebar');
+    const marketplaceSidebar = document.getElementById('marketplaceCategorySidebar');
+
+    // My Products Sidebar
+    const openMyProductsSidebar = document.getElementById('openMyProductsSidebar');
+    const closeMyProductsSidebar = document.getElementById('closeMyProductsSidebar');
+    const myProductsSidebar = document.getElementById('myProductsCategorySidebar');
+
+    // Toggle marketplace sidebar
+    if (openMarketplaceSidebar) {
+        openMarketplaceSidebar.addEventListener('click', () => {
+            marketplaceSidebar.classList.remove('translate-x-full');
+        });
+    }
+    if (closeMarketplaceSidebar) {
+        closeMarketplaceSidebar.addEventListener('click', () => {
+            marketplaceSidebar.classList.add('translate-x-full');
+        });
+    }
+
+    // Toggle my products sidebar
+    if (openMyProductsSidebar) {
+        openMyProductsSidebar.addEventListener('click', () => {
+            myProductsSidebar.classList.remove('translate-x-full');
+        });
+    }
+    if (closeMyProductsSidebar) {
+        closeMyProductsSidebar.addEventListener('click', () => {
+            myProductsSidebar.classList.add('translate-x-full');
+        });
+    }
+
+    // Category filter logic for both sections
+    const categoryFilters = document.querySelectorAll('.category-filter');
+    categoryFilters.forEach(filter => {
+        filter.addEventListener('click', (e) => {
+            const category = e.target.dataset.category;
+            const section = e.target.closest('.tab-content').id.includes('marketplace') ? 'marketplace' : 'myProducts';
+            
+            filterProductsByCategory(category, section);
+            
+            // Highlight active filter
+            const currentSidebar = section === 'marketplace' ? marketplaceSidebar : myProductsSidebar;
+            currentSidebar.querySelectorAll('.category-filter').forEach(f => f.classList.remove('bg-teal-200'));
+            e.target.classList.add('bg-teal-200');
+            
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 1024) {
+                if (section === 'marketplace') {
+                    marketplaceSidebar.classList.add('translate-x-full');
+                } else {
+                    myProductsSidebar.classList.add('translate-x-full');
+                }
+            }
+        });
+    });
+    }
+
+    function filterProductsByCategory(category, section) {
+        const gridId = section === 'marketplace' ? 'marketplaceGrid' : 'myProductsGrid';
+        const grid = document.getElementById(gridId);
+        const items = grid.querySelectorAll('[data-category]');
+        let hasItems = false;
+
+        items.forEach(item => {
+            if (category === 'all' || item.dataset.category === category) {
+                item.classList.remove('hidden');
+                hasItems = true;
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+
+        // Show message if no items match
+        const noItemsMessage = grid.querySelector('.no-items-message');
+        if (!hasItems && !noItemsMessage) {
+            const message = document.createElement('p');
+            message.className = 'no-items-message text-gray-600 col-span-full text-center py-6';
+            message.textContent = `No ${category === 'all' ? '' : category} products found.`;
+            grid.appendChild(message);
+        } else if (hasItems && noItemsMessage) {
+            noItemsMessage.remove();
+        }
+    }
+
+    // Initialize sidebars on page load
+    document.addEventListener('DOMContentLoaded', initializeCategorySidebars);
 </script>
 {% endblock script %}
-
-
-# MODELS
-from django.db import models
-from django.contrib.auth.models import User
-from django.conf import settings
-import os
-from Social.models import UserProfile
-from storages.backends.gcloud import GoogleCloudStorage
-
-# from .utils import checkContent #content validation function
-
-# Create your models here.
-# Table for the orders made for a productListing 08
-class Order(models.Model):
-    STATUS_CHOICES = (
-        ('new', 'New'),
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('completed', 'Completed'),
-    )
-    
-    listing = models.ForeignKey('productListing', on_delete=models.CASCADE, related_name='orders')
-    requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='orders_made')
-    quantity = models.FloatField()
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    location = models.CharField(max_length=100, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
-
-    def clean(self):
-        """Validate order details."""
-        if self.quantity <= 0:
-            raise ValidationError({'quantity': 'Quantity must be greater than 0.'})
-        if self.quantity > self.listing.quantity:
-            raise ValidationError({'quantity': f'Quantity requested ({self.quantity}) exceeds available ({self.listing.quantity}).'})
-        if self.total_price != (self.quantity * float(self.listing.price)):
-            raise ValidationError({'total_price': 'Total price does not match quantity × listing price.'})
-
-    def save(self, *args, **kwargs):
-        """Override save to calculate total_price and reduce listing quantity."""
-        if not self.pk:  # Only on creation
-            self.total_price = self.quantity * float(self.listing.price)
-            self.listing.quantity -= self.quantity
-            if self.listing.quantity <= 0:
-                self.listing.is_available = False
-            self.listing.save()
-        # self.clean()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Order {self.id} for {self.listing.productName} by {self.requester.user.username}"
-
-# 08
-
-# Table that store the requests made by users 
-class ProductRequest(models.Model):
-    productCategoryChoices = [
-        ('fruits', 'Fruits'),
-        ('vegetables', 'Vegetables'),
-        ('cereals', 'Cereals'),
-        ('legumes', 'Legumes'),
-        ('other', 'Other Category'),
-    ]
-    requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='product_requests')
-    productCategory = models.CharField(max_length=20, choices=productCategoryChoices, default='other') #handles productCategory
-    product_name = models.CharField(max_length=100, blank=False)
-    quantity = models.FloatField()
-    unit = models.CharField(max_length=20, default="kg")
-    description = models.TextField(blank=True)
-    location = models.CharField(max_length=100, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return f"{self.product_name} requested by {self.requester.user.username}"
-    
-    # FOR VALIDATING CONTENT ENTERED Commented out for now
-    def clean(self):
-        """Override the clean method to validate content relevance before saving"""
-        if not checkContent(self.product_name):
-            raise ValidationError({'product_name': 'Product name is not related to agriculture. Please edit.'})
-
-        if not checkContent(self.description):
-            raise ValidationError({'description': 'Description is not agriculturally relevant. Please edit.'})
-
-    def save(self, *args, **kwargs):
-        """Override the save method to ensure validation before saving"""
-        # self.clean()  # Ensure clean() is called before saving
-        super().save(*args, **kwargs)  # Call the parent class's save method
-
-# For farmers product productproductListing
-class productListing(models.Model):
-    farmer = models.ForeignKey(UserProfile, on_delete=models.CASCADE, limit_choices_to={'role': 'farmer'})
-    # product Category choices
-    productCategoryChoices = [
-        ('fruits', 'Fruits'),
-        ('vegetables', 'Vegetables'),
-        ('cereals', 'Cereals'),
-        ('legumes', 'Legumes'),
-        ('other', 'Other Category'),
-    ]
-    productCategory = models.CharField(max_length=20, choices=productCategoryChoices, default='other')    
-    productName = models.CharField(max_length=100, blank=False)    
-    quantity = models.FloatField()
-    unit = models.CharField(max_length=20, default="kg")
-    price = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
-    description = models.TextField(blank=True)
-    location = models.CharField(max_length=100, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_available = models.BooleanField(default=True)
-    image = models.ImageField(upload_to='productListingsImages/', blank=True, null=True, storage=GoogleCloudStorage())
-
-    
-    # If location is not defined choose the deafult user loccation from farmers profile
-    def save(self, *args, **kwargs):
-        if not self.location:
-            self.location = self.farmer.county
-        super().save(*args, **kwargs)
-
-    def get_image_url(self):
-        # if image is uploaded fetch the image url 
-        if self.image and hasattr(self.image, 'url'):
-            return self.image.url
-        else:
-            # if image not uploaded then use the ones available in static
-            product_image_name = self.productName.lower() + ".jpg"
-            static_image_path = f"Images/crops/{product_image_name}"
-            static_root = os.path.join(settings.STATICFILES_DIRS[0], static_image_path)
-            if os.path.exists(static_root):
-            
-                return f"/static/Images/crops/{product_image_name}"
-            return "/static/Images/crops/default.jpg"
-
-    def __str__(self):#easy identification in admin tomatoes by akeyo
-        return f"{self.productName} by {self.farmer.user.username}"
-
-
-
-class Message(models.Model):
-    sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_messages')
-    recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_messages')
-    listing = models.ForeignKey(productListing, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Message from {self.sender.user.username} to {self.recipient.user.username}"
-
-# VIEWS
-# VIEWS.PY
-# farmers/views.py
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
-from django.db.models import Q, Sum, Count, Avg
-from django.utils import timezone
-from datetime import timedelta
-
-from .models import productListing, Message, ProductRequest, Order 
-from .forms import ListingForm
-from Social.models import UserProfile
-from django.db.models import Q
-import json
-from django.contrib import messages
-# from .utils import checkContent #confirms what is entered is valid
-from django.utils.timezone import localtime
-
-def farmer_required(view_func):
-    @login_required
-    def wrapper(request, *args, **kwargs):
-        try:
-            profile = request.user.userprofile
-            if profile.role != 'farmer':
-                return HttpResponseForbidden("Only farmers can access this page.")
-        except UserProfile.DoesNotExist:
-            return HttpResponseForbidden("User profile not found. Please complete your profile.")
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-@farmer_required
-def editListing(request, listing_id):
-    listing = get_object_or_404(productListing, id=listing_id, farmer=request.user.userprofile)
-    if request.method == "POST":
-        form = ListingForm(request.POST, request.FILES, instance=listing)
-        if form.is_valid():
-            if 'clear_image' in request.POST and not request.FILES.get('image'):
-                listing.image.delete()
-                listing.image = None
-            form.save()
-            return redirect("main")
-    return redirect("main")
-
-@farmer_required
-def deleteListing(request, listing_id):
-    listing = get_object_or_404(productListing, id=listing_id, farmer=request.user.userprofile)
-    if request.method == "POST":
-        listing.delete()
-        return redirect("main")
-    return redirect("main")
-
-@farmer_required
-def toggle_availability(request, listing_id):
-    listing = get_object_or_404(productListing, id=listing_id, farmer=request.user.userprofile)
-    if request.method == "POST":
-        listing.is_available = not listing.is_available
-        listing.save()
-    return redirect("main")
-
-
-# MESSAGES
-@login_required
-def sendMessage(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        listing_id = data.get('listing_id')  # Can be 'none', None, or an integer
-        recipient_id = data.get('recipient_id')
-        content = data.get('content').strip()
-
-        print("Sending message")
-        print(f"Sending message: listing_id={listing_id}, recipient_id={recipient_id}, content={content}")
-
-        if not content:
-            return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty'}, status=400)
-
-        # Handle listing_id
-        listing = None
-        if listing_id and listing_id != 'none':  # Only fetch if it's not 'none' or None
-            listing = get_object_or_404(productListing, id=listing_id)
-
-        recipient = get_object_or_404(UserProfile, id=recipient_id)
-        sender = request.user.userprofile
-
-        print(f"Sender: {sender.user.username}, Recipient: {recipient.user.username}")
-
-        message = Message.objects.create(
-            sender=sender,
-            recipient=recipient,
-            listing=listing,  # Will be None for product requests
-            content=content
-        )
-        return JsonResponse({
-            'status': 'success',
-            'message': {
-                'id': message.id,
-                'content': message.content,
-                # 'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                'timestamp': localtime(message.timestamp).strftime('%Y-%m-%d %H:%M:%S'),
-                'sender': sender.user.username,
-                'is_sender': True
-            }
-        })
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-@login_required
-def getMessages(request, listing_id, other_user_id):
-    user_profile = request.user.userprofile
-    other_profile = get_object_or_404(UserProfile, id=other_user_id)
-
-    # Treat 'none', 'null', or empty string as no listing
-    if listing_id in ('none', 'null', ''):
-        messages = Message.objects.filter(
-            Q(sender=user_profile, recipient=other_profile) | Q(sender=other_profile, recipient=user_profile),
-            listing__isnull=True
-        ).order_by('timestamp')
-        listing_name = "Product Request"
-        listing_image = ''
-    else:
-        listing = get_object_or_404(productListing, id=listing_id)
-        messages = Message.objects.filter(
-            Q(sender=user_profile, recipient=other_profile) | Q(sender=other_profile, recipient=user_profile),
-            listing=listing
-        ).order_by('timestamp')
-        listing_name = listing.productName
-        listing_image = listing.get_image_url()
-
-    messages_data = [
-        {
-            'id': msg.id,
-            'content': msg.content,
-            # 'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'timestamp': localtime(msg.timestamp).strftime('%Y-%m-%d %H:%M:%S'),
-            'sender': msg.sender.user.username,
-            'is_sender': msg.sender == user_profile
-        } for msg in messages
-    ]
-
-    Message.objects.filter(recipient=user_profile, sender=other_profile, is_read=False).update(is_read=True)
-
-    return JsonResponse({
-        'listing_name': listing_name,
-        'listing_image': listing_image,
-        'other_user': other_profile.user.username,
-        'messages': messages_data
-    })
-
-@login_required
-def getConversations(request):
-    user_profile = request.user.userprofile
-    # print(f"User: {user_profile.user.username}, Role: {user_profile.role}")
-
-    messages = Message.objects.filter(
-        Q(sender=user_profile) | Q(recipient=user_profile)
-    ).order_by('-timestamp')
-
-    conversation_dict = {}
-    for msg in messages:
-        other_user = msg.sender if msg.recipient == user_profile else msg.recipient
-        listing_id = msg.listing.id if msg.listing else 'none'
-        convo_key = f"{listing_id}-{other_user.id}"
-
-        if convo_key not in conversation_dict:
-            conversation_dict[convo_key] = {
-                'listing': msg.listing,
-                'other_user': other_user,
-                'last_message': msg
-            }
-   
-    conversation_list = [
-        {
-            'listing_id': convo['listing'].id if convo['listing'] else None,
-            'listing_name': convo['listing'].productName if convo['listing'] else "Product Request",
-            'listing_image': convo['listing'].get_image_url() if convo['listing'] else '',
-            'other_user': convo['other_user'].user.username,
-            'other_user_id': convo['other_user'].id,
-            'last_message': convo['last_message'].content,
-            # 'timestamp': convo['last_message'].timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'timestamp': localtime(convo['last_message'].timestamp).strftime('%Y-%m-%d %H:%M:%S'),
-            'unread': Message.objects.filter(
-                listing=convo['listing'],
-                recipient=user_profile,
-                sender=convo['other_user'],
-                is_read=False
-            ).exists()
-        } for convo in conversation_dict.values()
-    ]
-
-    return JsonResponse({'conversations': conversation_list})
-
-
-@login_required
-def create_product_request(request):
-    
-    if request.method == "POST":
-        data = json.loads(request.body)
-        product_name = data.get('product_name').strip()
-        quantity = float(data.get('quantity', 0))
-        unit = data.get('unit', 'kg').strip()
-        description = data.get('description', '').strip()
-        location = data.get('location').strip()
-        print(f"Creating request: {product_name}, {quantity}, {unit}, {description}, {location}")  # Debug
-        if not product_name or quantity <= 0 or not location:
-            return JsonResponse({'status': 'error', 'message': 'Product name, quantity, and location are required.'}, status=400)
-
-        # # Validating the product_name and description whether they are agriculturally inclined
-        # if not checkContent(product_name):
-        #     return JsonResponse({'status': 'error', 'message': 'Product name is not related to agriculture. Please edit.'}, status=400)
-
-        # if not checkContent(description):
-        #     return JsonResponse({'status': 'error', 'message': 'Description is not agriculturally relevant. Please edit.'}, status=400)
-        # # Validation ends here
-
-        requester = request.user.userprofile
-        product_request = ProductRequest.objects.create(
-            requester=requester,
-            product_name=product_name,
-            quantity=quantity,
-            unit=unit,
-            description=description,
-            location=location
-        )
-        return JsonResponse({
-            'status': 'success',
-            'request': {
-                'id': product_request.id,
-                'product_name': product_request.product_name,
-                'quantity': product_request.quantity,
-                'unit': product_request.unit,
-                'description': product_request.description,
-                'location': product_request.location,
-                # 'created_at': product_request.created_at.strftime('%Y-%m-%d %H:%M:%S')
-                'created_at': localtime(product_request.created_at).strftime('%Y-%m-%d %H:%M:%S')
-            }
-        })
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-@login_required
-def edit_product_request(request, request_id):
-    product_request = get_object_or_404(ProductRequest, id=request_id, requester=request.user.userprofile)
-
-    if request.method == "POST":
-        data = json.loads(request.body)
-
-        # Get the new values from the request
-        product_name = data.get('product_name', product_request.product_name).strip()
-        quantity = float(data.get('quantity', product_request.quantity))
-        unit = data.get('unit', product_request.unit).strip()
-        description = data.get('description', product_request.description).strip()
-        location = data.get('location', product_request.location).strip()
-
-        
-        # Update the product_request with validated values
-        product_request.product_name = product_name
-        product_request.quantity = quantity
-        product_request.unit = unit
-        product_request.description = description
-        product_request.location = location
-
-        try:
-            # Validate and save
-            # product_request.clean()  # Validate the object uncomment this
-            product_request.save()  # Save to the database
-            return JsonResponse({'status': 'success', 'message': 'Request updated successfully'})
-        except ValidationError as e:
-            # Handle validation errors
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-@login_required
-def delete_product_request(request, request_id):
-    product_request = get_object_or_404(ProductRequest, id=request_id, requester=request.user.userprofile)
-    if request.method == "POST":
-        product_request.delete()
-        return JsonResponse({'status': 'success', 'message': 'Request deleted successfully'})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-# Function to filter out Requests based on the logged in user
-@login_required
-def get_my_requests(request):
-    user_profile = request.user.userprofile
-    requests = ProductRequest.objects.filter(requester=user_profile, is_active=True).order_by('-created_at')
-    requests_data = [{
-        'id': req.id,
-        'product_name': req.product_name,
-        'quantity': req.quantity,
-        'unit': req.unit,
-        'description': req.description,
-        'location': req.location,
-        # 'created_at': req.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        'created_at': localtime(req.created_at).strftime('%Y-%m-%d %H:%M:%S')
-    } for req in requests]
-    return JsonResponse({'requests': requests_data})
-
-@login_required
-def get_product_requests(request):
-    if request.user.userprofile.role != 'farmer':
-        return JsonResponse({'requests': []})  # Non-farmers see nothing
-    requests = ProductRequest.objects.filter(is_active=True).exclude(requester=request.user.userprofile).order_by('-created_at')
-    requests_data = [{
-        'id': req.id,
-        'product_name': req.product_name,
-        'quantity': req.quantity,
-        'unit': req.unit,
-        'description': req.description,
-        'location': req.location,
-        'requester': req.requester.user.username,
-        'requester_id': req.requester.id,
-        # 'created_at': req.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        'created_at': localtime(req.created_at).strftime('%Y-%m-%d %H:%M:%S')
-    } for req in requests]
-    return JsonResponse({'requests': requests_data})
-
-# END OF REQUEST VIEWS
-
-# ORDERS VIEW 08 removed underscores from views
-@login_required
-def createOrder(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        listing_id = data.get('listing_id')
-        quantity = float(data.get('quantity', 0))
-        location = data.get('location', '').strip()
-
-        if not listing_id or quantity <= 0 or not location:
-            return JsonResponse({'status': 'error', 'message': 'Listing ID, quantity, and location are required.'}, status=400)
-
-        listing = get_object_or_404(productListing, id=listing_id, is_available=True)
-        requester = request.user.userprofile
-
-        order = Order.objects.create(
-            listing=listing,
-            requester=requester,
-            quantity=quantity,
-            location=location,
-        )
-        return JsonResponse({
-            'status': 'success',
-            'order': {
-                'id': order.id,
-                'product_name': order.listing.productName,
-                'quantity': order.quantity,
-                'total_price': float(order.total_price),
-                'location': order.location,
-                # 'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'created_at': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
-                'status': order.status,
-            }
-        })
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-# Farmer's Order Section
-@farmer_required
-def getFarmerOrders(request):
-    user_profile = request.user.userprofile
-    orders = Order.objects.filter(listing__farmer=user_profile).order_by('-created_at')
-    orders_data = [{
-        'id': order.id,
-        # 'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-        'date': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
-        'requester': order.requester.user.username,
-        'crop': order.listing.productName,
-        'quantity': order.quantity,
-        'total': float(order.total_price),
-        'location': order.location,
-        'status': order.status,
-    } for order in orders]
-    return JsonResponse({'orders': orders_data})
-
-@farmer_required
-def updateOrderStatus(request, order_id):
-    order = get_object_or_404(Order, id=order_id, listing__farmer=request.user.userprofile)
-    if request.method == "POST":
-        data = json.loads(request.body)
-        new_status = data.get('status')
-        if new_status in dict(Order.STATUS_CHOICES):
-            order.status = new_status
-            order.save()
-            return JsonResponse({'status': 'success', 'message': 'Order status updated'})
-        return JsonResponse({'status': 'error', 'message': 'Invalid status'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-# Requester's Orders
-@login_required
-def getMyOrders(request):
-    user_profile = request.user.userprofile
-    orders = Order.objects.filter(requester=user_profile).order_by('-created_at')
-    orders_data = [{
-        'id': order.id,
-        'farmer': order.listing.farmer.user.username,
-        'crop': order.listing.productName,
-        # 'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-        'date': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
-        'quantity': order.quantity,
-        'total': float(order.total_price),
-        'status': order.status,
-        'can_delete': order.status in ('new', 'pending'),
-    } for order in orders]
-    return JsonResponse({'orders': orders_data})
-
-@login_required
-def deleteOrder(request, order_id):
-    order = get_object_or_404(Order, id=order_id, requester=request.user.userprofile)
-    if request.method == "POST":
-        if order.status in ('new', 'pending'):
-            listing = order.listing
-            listing.quantity += order.quantity  # Restore quantity
-            if listing.quantity > 0:
-                listing.is_available = True
-            listing.save()
-            order.delete()
-            return JsonResponse({'status': 'success', 'message': 'Order deleted'})
-        return JsonResponse({'status': 'error', 'message': 'Cannot delete order in this status'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-# END of ORDERS
-
-
-# 25/04
-# views.py (updated main function)
-@login_required
-def main(request):
-    form = None
-    listings = None
-    marketplace_listings = productListing.objects.filter(is_available=True)
-    my_requests = ProductRequest.objects.filter(requester=request.user.userprofile, is_active=True)
-    product_requests = ProductRequest.objects.filter(is_active=True).exclude(requester=request.user.userprofile) if request.user.userprofile.role == 'farmer' else []
-
-    try:
-        user_profile = request.user.userprofile
-    except UserProfile.DoesNotExist:
-        return HttpResponseForbidden("User profile not found. Please complete your profile.")
-
-    # Initialize variables
-    order_analytics = None
-    my_order_analytics = None
-    earnings = None
-    top_products = None
-    inventory_status = None
-    customer_engagement = None
-    competitor_analysis = None
-    competitor_crop_pricing = None  # New variable for bar graph data
-
-    if user_profile.role == 'farmer':
-        orders = Order.objects.filter(listing__farmer=user_profile)
-        order_analytics = {
-            'new': orders.filter(status='new').count(),
-            'pending': orders.filter(status='pending').count(),
-            'confirmed': orders.filter(status='confirmed').count(),
-            'completed': orders.filter(status='completed').count(),
-        }
-        estimated_earnings = sum(float(order.total_price) for order in orders.filter(status__in=['new', 'pending', 'confirmed']))
-        total_earnings = sum(float(order.total_price) for order in orders.filter(status='completed'))
-        earnings = {'estimated': estimated_earnings, 'total': total_earnings}
-
-        top_products_qs = orders.filter(status='completed').values('listing__productName').annotate(
-            total_revenue=Sum('total_price'),
-            total_quantity=Sum('quantity')
-        ).order_by('-total_revenue')[:3]
-        top_products = [{'name': p['listing__productName'], 'revenue': float(p['total_revenue']), 'quantity': p['total_quantity']} for p in top_products_qs]
-
-        LOW_STOCK_THRESHOLD = 5 #in units
-        listings_qs = productListing.objects.filter(farmer=user_profile, is_available=True)
-        inventory_status = {
-            'total_quantity': sum(l.quantity for l in listings_qs),
-            'low_stock_count': listings_qs.filter(quantity__lt=LOW_STOCK_THRESHOLD).count(),
-            'threshold': LOW_STOCK_THRESHOLD,
-        }
-        customer_engagement = {
-            'unique_customers': orders.values('requester').distinct().count(),
-            'unread_messages': Message.objects.filter(recipient=user_profile, is_read=False).count(),
-        }
-        farmer_categories = listings_qs.values_list('productCategory', flat=True).distinct()
-        competitor_listings = productListing.objects.filter(is_available=True, productCategory__in=farmer_categories).exclude(farmer=user_profile)
-        competitor_analysis = {
-            'avg_price': float(competitor_listings.aggregate(Avg('price'))['price__avg'] or 0),
-            'listing_count': competitor_listings.count(),
-            'my_avg_price': float(listings_qs.aggregate(Avg('price'))['price__avg'] or 0),
-        }
-
-        # New: Competitor Crop Pricing for Bar Graph
-        
-        my_crops = listings_qs.values_list('productName', flat=True).distinct()  # Unique crops listed by this farmer
-        county = user_profile.county  # Farmer's county
-        competitor_crop_pricing = {}
-        for crop in my_crops:
-            # Get prices from other farmers in the same county for this crop, only available listings
-            other_farmers_listings = productListing.objects.filter(
-                is_available=True,  # Only available listings
-                productName__iexact=crop,  # Case-insensitive match for crop name
-                farmer__county=county
-            ).exclude(farmer=user_profile).values('farmer__user__username', 'price').distinct()
-
-            # My price for this crop
-            my_price_qs = listings_qs.filter(productName__iexact=crop, is_available=True).aggregate(Avg('price'))
-            my_price = float(my_price_qs['price__avg'] or 0) if my_price_qs['price__avg'] else 0
-
-            # Build pricing data
-            prices = {f"@{listing['farmer__user__username']}": float(listing['price']) for listing in other_farmers_listings}
-            if my_price > 0:  # Only include "Me" if I have an available listing for this crop
-                prices['Me'] = my_price
-            if prices:  # Only add to the result if there’s data
-                competitor_crop_pricing[crop] = prices
-
-        # Product Listing
-        if request.method == "POST":
-            form = ListingForm(request.POST, request.FILES)
-            if form.is_valid():
-                listing = form.save(commit=False)
-                listing.farmer = user_profile
-                listing.save()
-                return redirect("main")
-            else:
-                messages.error(request, form.errors.as_text())
-        else:
-            form = ListingForm(initial={'location': user_profile.county})
-
-        listings = productListing.objects.filter(farmer=user_profile)
-        query = request.GET.get('query', '').strip()
-        if query:
-            listings = listings.filter(productName__icontains=query)
-        marketplace_listings = marketplace_listings.exclude(farmer=user_profile)
-
-    my_orders = Order.objects.filter(requester=user_profile)
-    my_order_analytics = {
-        'new': my_orders.filter(status='new').count(),
-        'pending': my_orders.filter(status='pending').count(),
-        'confirmed': my_orders.filter(status='confirmed').count(),
-        'completed': my_orders.filter(status='completed').count(),
-    }
-
-    marketplace_query = request.GET.get('marketplace_query', '').strip()
-    if marketplace_query:
-        marketplace_listings = marketplace_listings.filter(productName__icontains=marketplace_query)
-
-    context = {
-        'message': 'Market Place',
-        'form': form,
-        'listings': listings,
-        'marketplace_listings': marketplace_listings,
-        'my_requests': my_requests,
-        'product_requests': product_requests,
-        'order_analytics': order_analytics,
-        'my_order_analytics': my_order_analytics,
-        'earnings': earnings,
-        'top_products': top_products,
-        'inventory_status': inventory_status,
-        'customer_engagement': customer_engagement,
-        'competitor_analysis': competitor_analysis,
-        'competitor_crop_pricing': competitor_crop_pricing,  # New context variable
-    }
-    print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
-    return render(request, 'market.html', context)
-
-
-# FORMS.PY
-# Handles the listig forms and any other form created
-# farmers/forms.py
-from django import forms
-from .models import productListing
-# from .utils import checkContent 
-class ListingForm(forms.ModelForm):
-    class Meta:
-        model = productListing
-        fields = [ "productCategory","productName", "quantity", "unit", "price", "description", "location", "image"]
-        widgets = {
-            'location': forms.TextInput(attrs={'placeholder': 'Farmers definedd county if left blank'}),
-            'productCategory': forms.Select(),  # Renders as a dropdown
-        }
-    # Validating the fields to see if they have agricultural content
-    def clean(self):
-        cleaned_data = super().clean()
-        product_name = cleaned_data.get('productName', '').strip()
-        description = cleaned_data.get('description', '').strip()
-
-        # if not checkContent(product_name):
-        #     raise forms.ValidationError({"productName": "Product name does not seem related to agriculture. Please edit."})
-
-        # if not checkContent(description):
-        #     raise forms.ValidationError({"description": "Description does not seem related to agriculture. Please edit."})
-
-        return cleaned_data
-
-

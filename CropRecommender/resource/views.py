@@ -18,7 +18,8 @@ load_dotenv()
 def fetchVideos(query="agriculture", maxResults=12):
     
 
-    youtubeApi = os.getenv("youtubeApiWrong")
+    # youtubeApi = os.getenv("youtubeApiWrong")
+    youtubeApi = os.getenv("youtubeApi")
     youtubeSearch = "https://www.googleapis.com/youtube/v3/search"
     params = {
         "part": "snippet",

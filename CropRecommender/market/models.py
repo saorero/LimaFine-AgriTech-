@@ -16,12 +16,19 @@ class Order(models.Model):
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
     )
+
+    ORDER_DELIVERY_CHOICES = (
+        ('pickup', 'Pickup'),
+        ('delivery', 'Delivery'),
+
+    )
     
     listing = models.ForeignKey('productListing', on_delete=models.CASCADE, related_name='orders')
     requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='orders_made')
     quantity = models.FloatField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     location = models.CharField(max_length=100, blank=False)
+    deliveryMode = models.CharField(max_length=20, choices=ORDER_DELIVERY_CHOICES, default='pickup')
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
 

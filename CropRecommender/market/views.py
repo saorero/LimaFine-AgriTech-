@@ -313,7 +313,7 @@ def get_product_requests(request):
 
 # END OF REQUEST VIEWS
 
-# ORDERS VIEW 08 removed underscores from views
+# ORDERS VIEWs
 @login_required
 def createOrder(request):
     if request.method == "POST":
@@ -321,9 +321,14 @@ def createOrder(request):
         listing_id = data.get('listing_id')
         quantity = float(data.get('quantity', 0))
         location = data.get('location', '').strip()
+        delivery_mode = data.get('deliveryMode', 'pickup')
 
         if not listing_id or quantity <= 0 or not location:
             return JsonResponse({'status': 'error', 'message': 'Listing ID, quantity, and location are required.'}, status=400)
+
+        # Validate delivery_mode
+        if delivery_mode not in dict(Order.ORDER_DELIVERY_CHOICES).keys():
+            return JsonResponse({'status': 'error', 'message': 'Invalid delivery mode.'}, status=400)
 
         listing = get_object_or_404(productListing, id=listing_id, is_available=True)
         requester = request.user.userprofile
@@ -333,6 +338,7 @@ def createOrder(request):
             requester=requester,
             quantity=quantity,
             location=location,
+            deliveryMode=delivery_mode,
         )
         return JsonResponse({
             'status': 'success',
@@ -342,21 +348,20 @@ def createOrder(request):
                 'quantity': order.quantity,
                 'total_price': float(order.total_price),
                 'location': order.location,
-                # 'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'delivery_mode': order.deliveryMode,
                 'created_at': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
                 'status': order.status,
             }
         })
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
-# Farmer's Order Section
+# Farmer's Order Section (received orders by the farmer)
 @farmer_required
 def getFarmerOrders(request):
     user_profile = request.user.userprofile
     orders = Order.objects.filter(listing__farmer=user_profile).order_by('-created_at')
     orders_data = [{
         'id': order.id,
-        # 'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
         'date': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
         'requester': order.requester.user.username,
         'crop': order.listing.productName,
@@ -364,6 +369,8 @@ def getFarmerOrders(request):
         'total': float(order.total_price),
         'location': order.location,
         'status': order.status,
+        'deliveryMode': order.deliveryMode,
+        'phone_number': order.requester.phoneNo,
     } for order in orders]
     return JsonResponse({'orders': orders_data})
 
@@ -380,7 +387,7 @@ def updateOrderStatus(request, order_id):
         return JsonResponse({'status': 'error', 'message': 'Invalid status'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
-# Requester's Orders
+# MyOrders (the orders i have made)
 @login_required
 def getMyOrders(request):
     user_profile = request.user.userprofile
@@ -394,6 +401,7 @@ def getMyOrders(request):
         'quantity': order.quantity,
         'total': float(order.total_price),
         'status': order.status,
+        'deliveryMode': order.deliveryMode,
         'can_delete': order.status in ('new', 'pending'),
     } for order in orders]
     return JsonResponse({'orders': orders_data})
