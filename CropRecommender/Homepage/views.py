@@ -149,72 +149,155 @@ def cropPrediction(lat, lon):
         })
     return results
 
-# Predict view 
+# # Predict view 
+# @csrf_exempt
+# def predict(request):
+#     if request.method == "POST": #once you presss the predict button
+#         try:
+#             data = json.loads(request.body)
+#             constituency = data.get("constituency", "").strip().lower()
+#             ward = data.get("ward", "").strip().lower()
+            
+#             # If constituency and wards are missing (All should be filled)
+#             if not (constituency and ward):
+#                 return JsonResponse({"error": "Fill all fields"}, status=400)
+            
+#             locationQuery = f"{ward}, {constituency}, Kenya" #chosen ward and constituency
+#          # Geolocation APIs defined
+                    
+#             apiKeys = [
+#                 # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
+#                 # os.getenv("locationAPI2"),
+#                 os.getenv("FakeAPI")#fake api
+#             ]
+#             # Fetches location co-ordinates from the names that have been passed
+#             def fetchCoordinates(apiKey):
+#                 try:
+#                     apiUrl = "https://api.opencagedata.com/geocode/v1/json"
+#                     params = {"q": locationQuery, "key": apiKey, "limit": 1}
+#                     response = requests.get(apiUrl, params=params)
+#                     responseData = response.json()
+#                     if responseData.get("results"):
+#                         return responseData["results"][0]["geometry"]
+#                 except Exception as e:
+#                     print(f"OpenCage API error with key {apiKey}: {e}")
+#                 return None #do not return anything if it fails
+            
+#             coordinates = None
+#             for apiKey in apiKeys:#for every API key defined try all of them
+#                 coordinates = fetchCoordinates(apiKey) #calls the function to get the coOrdinates passing in the keys
+#                 if coordinates: #continue if coordinates found and proceed to call cropsPrediction
+#                     print("Yayy location coordinates found")#Debug line
+#                     break
+            
+#             if not coordinates: #if not found in API resort to Excel Backup file
+#                 print("All API keys failed, resorting to Excel backup.")
+#                 locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
+#                 locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
+#                 backupData = locationData[
+#                     (locationData["constituency_name"] == constituency) &
+#                     (locationData["constituencies_wards"] == ward)
+#                 ]
+#                 if not backupData.empty:
+#                     latitude = backupData.iloc[0]["Latitude"]
+#                     longitude = backupData.iloc[0]["Longitude"]
+#                     coordinates = {"lat": latitude, "lng": longitude}
+#                 else:
+#                     return JsonResponse({"error": "Location not specified in backup"}, status=404)
+            
+#             # Calls the Crop Prediction View and passes the coordinates found, Stores the result in cropResults
+#             crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
+            
+#             # Returns this result to frontend that is coordinates and crop_results gotten from cropPrediction function that was called
+#             return JsonResponse({
+#                 "coordinates": coordinates,
+#                 "crop_predictions": crop_results #results from cropPrediction function
+#             })
+        
+#         except Exception as e: #when an error occurs 
+#             print(f"Error has occurred: {e}")
+#             return JsonResponse({"error": str(e)}, status=500)
+    
+#     return JsonResponse({"error": "Invalid request method try POST"}, status=400)
+
+# Predict view UPDATED TODAY
 @csrf_exempt
 def predict(request):
-    if request.method == "POST": #once you presss the predict button
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            constituency = data.get("constituency", "").strip().lower()
-            ward = data.get("ward", "").strip().lower()
-            
-            # If constituency and wards are missing (All should be filled)
-            if not (constituency and ward):
-                return JsonResponse({"error": "Fill all fields"}, status=400)
-            
-            locationQuery = f"{ward}, {constituency}, Kenya" #chosen ward and constituency
-         # Geolocation APIs defined
-                    
-            apiKeys = [
-                # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
-                # os.getenv("locationAPI2"),
-                os.getenv("FakeAPI")#fake api
-            ]
-            # Fetches location co-ordinates from the names that have been passed
-            def fetchCoordinates(apiKey):
+            # Check for geolocation input (lat, lng)
+            if "lat" in data and "lng" in data:
                 try:
-                    apiUrl = "https://api.opencagedata.com/geocode/v1/json"
-                    params = {"q": locationQuery, "key": apiKey, "limit": 1}
-                    response = requests.get(apiUrl, params=params)
-                    responseData = response.json()
-                    if responseData.get("results"):
-                        return responseData["results"][0]["geometry"]
-                except Exception as e:
-                    print(f"OpenCage API error with key {apiKey}: {e}")
-                return None #do not return anything if it fails
-            
-            coordinates = None
-            for apiKey in apiKeys:#for every API key defined try all of them
-                coordinates = fetchCoordinates(apiKey) #calls the function to get the coOrdinates passing in the keys
-                if coordinates: #continue if coordinates found and proceed to call cropsPrediction
-                    print("Yayy location coordinates found")#Debug line
-                    break
-            
-            if not coordinates: #if not found in API resort to Excel Backup file
-                print("All API keys failed, resorting to Excel backup.")
-                locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
-                locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
-                backupData = locationData[
-                    (locationData["constituency_name"] == constituency) &
-                    (locationData["constituencies_wards"] == ward)
+                    lat = float(data["lat"])
+                    lng = float(data["lng"])
+                    # Validate latitude and longitude ranges
+                    if not (-90 <= lat <= 90):
+                        return JsonResponse({"error": "Invalid latitude value"}, status=400)
+                    if not (-180 <= lng <= 180):
+                        return JsonResponse({"error": "Invalid longitude value"}, status=400)
+                    coordinates = {"lat": lat, "lng": lng}
+                except (ValueError, TypeError):
+                    return JsonResponse({"error": "Latitude and longitude must be valid numbers"}, status=400)
+            # Check for manual input (constituency, ward)
+            elif "constituency" in data and "ward" in data:
+                constituency = data.get("constituency", "").strip().lower()
+                ward = data.get("ward", "").strip().lower()
+                
+                if not (constituency and ward):
+                    return JsonResponse({"error": "Fill all fields"}, status=400)
+                
+                locationQuery = f"{ward}, {constituency}, Kenya"
+                
+                apiKeys = [
+                    os.getenv("FakeAPI")  # Replace with real APIs as needed
                 ]
-                if not backupData.empty:
-                    latitude = backupData.iloc[0]["Latitude"]
-                    longitude = backupData.iloc[0]["Longitude"]
-                    coordinates = {"lat": latitude, "lng": longitude}
-                else:
-                    return JsonResponse({"error": "Location not specified in backup"}, status=404)
+                
+                def fetchCoordinates(apiKey):
+                    try:
+                        apiUrl = "https://api.opencagedata.com/geocode/v1/json"
+                        params = {"q": locationQuery, "key": apiKey, "limit": 1}
+                        response = requests.get(apiUrl, params=params)
+                        responseData = response.json()
+                        if responseData.get("results"):
+                            return responseData["results"][0]["geometry"]
+                    except Exception as e:
+                        print(f"OpenCage API error with key {apiKey}: {e}")
+                    return None
+                
+                coordinates = None
+                for apiKey in apiKeys:
+                    coordinates = fetchCoordinates(apiKey)
+                    if coordinates:
+                        print("Yayy location coordinates found")
+                        break
+                
+                if not coordinates:
+                    print("All API keys failed, resorting to Excel backup.")
+                    locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
+                    locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
+                    backupData = locationData[
+                        (locationData["constituency_name"] == constituency) &
+                        (locationData["constituencies_wards"] == ward)
+                    ]
+                    if not backupData.empty:
+                        latitude = backupData.iloc[0]["Latitude"]
+                        longitude = backupData.iloc[0]["Longitude"]
+                        coordinates = {"lat": latitude, "lng": longitude}
+                    else:
+                        return JsonResponse({"error": "Location not specified in backup"}, status=404)
+            else:
+                return JsonResponse({"error": "Provide either latitude/longitude or constituency/ward"}, status=400)
             
-            # Calls the Crop Prediction View and passes the coordinates found, Stores the result in cropResults
+            # Call cropPrediction with coordinates
             crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
             
-            # Returns this result to frontend that is coordinates and crop_results gotten from cropPrediction function that was called
             return JsonResponse({
                 "coordinates": coordinates,
-                "crop_predictions": crop_results #results from cropPrediction function
+                "crop_predictions": crop_results
             })
         
-        except Exception as e: #when an error occurs 
+        except Exception as e:
             print(f"Error has occurred: {e}")
             return JsonResponse({"error": str(e)}, status=500)
     
