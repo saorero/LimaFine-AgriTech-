@@ -1,6 +1,6 @@
 from django.db import models
 
-class Crop(models.Model): #Similar to a table/models 
+class Crop(models.Model): #Similar to a table/models Hey
     name = models.CharField(max_length=100, unique=True)
     image = models.CharField(max_length=200, default="default.jpg")  # Path to the image in static folder
 

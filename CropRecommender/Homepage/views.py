@@ -10,7 +10,10 @@ from datetime import datetime, timedelta
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from .models import Crop, GAPSection  # Import your models
+import os
+from dotenv import load_dotenv #loads env file for defined APIs
 
+load_dotenv()
 # Load pre-trained models and encoders
 cropModel = joblib.load("Homepage/modelsMe/model_2.joblib")
 label_encoder = joblib.load("Homepage/modelsMe/encoder2.joblib")
@@ -38,6 +41,7 @@ cropImages = {
 def weatherPrediction(latitude, longitude):
     featureNames = ['month', 'latitude', 'longitude']
     currentDate = datetime.now()
+    print(f"Current Date: {currentDate}")
     nextMonth = currentDate.replace(day=1) + timedelta(days=32)
     startDate = nextMonth.replace(day=1)
     
@@ -70,8 +74,9 @@ def weatherPrediction(latitude, longitude):
 
 # Soil Data Fetching
 def soilData(lat, lon): 
-    # url = f"https://api.isda-africa.com/v1/soilproperty?key=AIzaSyCJmArnDR8Avz1eghhGeC6QAEupbGnV7sQ&lat={lat}&lon={lon}"#CORRECT URL
-    url = f"https://api.isda-africa.com/v1/soilproperty?key=JOSDJSAsjalsjklanxzewqyusgaggxzgjzGjGYS&lat={lat}&lon={lon}"#FAKE API for it to fail and use default
+    soilAPI = os.getenv('FakeAPI')
+    url = f"https://api.isda-africa.com/v1/soilproperty?key={soilAPI}&lat={lat}&lon={lon}"
+    
     try:
         response = requests.get(url)
         if response.status_code != 200:
@@ -92,11 +97,12 @@ def soilData(lat, lon):
                 soilInfo[prop] = 0
 
         # debugging prints
-        print(f"soilInfo: {soilInfo}") #to delete displays the soilInfo
+        print(f"soilInfo: {soilInfo}") #to delete displays the soilInfo collected
         
         return soilInfo
     except Exception as e: #Default Values if API fails
         print(f"Soil API error: {e}\n Using Default soil Vaues")
+        
         return {"ph": 0, "sand_content": 0, "clay_content": 0}
 
 # Crop Prediction Function with Database GAP LOGIC
@@ -158,12 +164,12 @@ def predict(request):
             
             locationQuery = f"{ward}, {constituency}, Kenya" #chosen ward and constituency
          # Geolocation APIs defined
+                    
             apiKeys = [
-                # "ab75db7ac096458eacb9e8a397e2e440", #CORRECT ONE COMMENTED OUT SO THAT IT DOES NOT EXHAUST
-                "bb75db7ac096458eacb9e8a397e2e440",#Modified dont use this but just for testing Invalid so it will use excel backup
-                # "a2739d874f5c4b1a9f83c9aa00b24aa5", #CORRECR second API key
+                # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
+                # os.getenv("locationAPI2"),
+                os.getenv("FakeAPI")#fake api
             ]
-            
             # Fetches location co-ordinates from the names that have been passed
             def fetchCoordinates(apiKey):
                 try:

@@ -125,9 +125,10 @@
         });
     }
 
-    // Use Geolocation
+    // Use Geolocation API for specific browsers
+    
     document.getElementById('getWeatherGeo').addEventListener('click', () => {
-        if (navigator.geolocation) {
+        if (navigator.geolocation) { //if the browser supports then it fetches the exact location of the user
             navigator.geolocation.getCurrentPosition(fetchWeatherGeo, showError);
             
         } else {
@@ -143,6 +144,7 @@
         }
     });
 
+    // Gets the exact latitude amd lomngitude from the browser
     function fetchWeatherGeo(position) {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
