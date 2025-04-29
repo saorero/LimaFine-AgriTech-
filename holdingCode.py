@@ -1,334 +1,337 @@
-// This is the function to fetch the users exact co-ordinates
-document.getElementById('getWeatherGeo').addEventListener('click', () => {
-      if (navigator.geolocation) { //if the browser supports then it fetches the exact location of the user
-          navigator.geolocation.getCurrentPosition(fetchWeatherGeo, showError);
-          
-      } else {
-          alert('Geolocation is not supported by your browser.');
-      }
-  });
+from django.shortcuts import render
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import requests
+import pandas as pd
+import joblib
+import pickle
+from datetime import datetime, timedelta
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
+from .models import Crop, GAPSection  # Import your models
+import os
+from dotenv import load_dotenv #loads env file for defined APIs
 
-  function fetchWeatherGeo(position) {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      console.log(lat)
-      console.log(lon)
-  }// And the MyLocation Logic ends here
+load_dotenv()
+# Load pre-trained models and encoders
+cropModel = joblib.load("Homepage/modelsMe/model_2.joblib")
+label_encoder = joblib.load("Homepage/modelsMe/encoder2.joblib")
+with open('Homepage/modelsMe/weatherScaler.pkl', 'rb') as f:
+    weatherScaler = pickle.load(f)
+with open('Homepage/modelsMe/rainModel.pkl', 'rb') as f:
+    rainModel = pickle.load(f)
+with open('Homepage/modelsMe/tempModel.pkl', 'rb') as f:
+    tempModel = pickle.load(f)
+with open('Homepage/modelsMe/humidityModel.pkl', 'rb') as f:
+    humidityModel = pickle.load(f)
 
+# Backup coordinates file
+locationData = pd.read_excel("static/data/countyCoordinates.xlsx")
 
+# Dictionary to hold crop images
+cropImages = {
+    "Beans": "beans.jpg",
+    "rice": "rice.jpg",
+    "Cashewnuts": "cashewnut.jpg",
+    "Onion": "onion.jpg"
+}
 
-
-{% extends "base.html" %}
-{% block content %}
-<main class="flex-grow flex flex-col items-center px-4">
-<h1 class="mt-6 text-teal-800 italic text-center text-2xl font-bold">
-  Bringing recommendations at your doorstep
-</h1>
-
-<!-- Dropdown Form -->
-<form class="flex flex-col bg-teal-600 p-4 rounded-md shadow-lg mt-4 w-full max-w-2xl gap-4">
-  <div class="flex flex-wrap gap-4 justify-between items-center mb-4">
-    <select name="county" id="county" class="form-select bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-400 w-full md:w-auto">
-      <option value="">County</option>
-    </select>
-    <select name="constituency" id="constituency" disabled class="form-select bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-400 w-full md:w-auto">
-      <option value="">Sub-County</option>
-    </select>
-    <select id="ward" name="ward" disabled class="form-select bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-400 w-full md:w-auto">
-      <option value="">Ward</option>
-    </select>
-    <button type="button" id="getWeatherGeo" class="bg-white text-teal-600 font-semibold px-6 py-2 border border-gray-300 rounded-md shadow-md hover:bg-teal-600 hover:text-white transition w-full md:w-auto">
-      My Location
-    </button>
-  </div>
-  <div class="flex justify-center w-full">
-    <button type="button" id="predictButton" class="bg-white text-teal-600 font-semibold px-4 py-2 border border-gray-300 rounded-md shadow-md hover:bg-teal-600 hover:text-white transition w-full md:w-auto">
-      Predict
-    </button>
-  </div>
-</form>
-
-<!-- Prediction Modal -->
-<div id="resultModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center hidden">
-  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative opacity-95 max-h-[80vh] overflow-y-auto flex flex-col">
-    <button id="closeModal" class="fixed top-4 right-4 text-white hover:text-gray-800 text-2xl z-10">×</button>
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-teal-800 text-xl font-bold">Suitable Crops</h2>
-      <button id="gapButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-800 transition" title="Good Agricultural Practices">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>       
-      </button>
-    </div>
-    <p id="coordinates" class="text-gray-700 mb-4"></p> <!--Shows the location Co-ordinates-->
-    <ul id="cropPredictions" class="text-gray-700 mb-4 space-y-4"></ul> <!--Display crops as a list-->
-    <button id="visualizeButton" class="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-900 transition w-full">Visualize</button>
-    <canvas id="confidenceChart" class="mt-4 hidden w-full"></canvas>
-  </div>
-</div>
-
-<!-- GAP Modal -->
-<div id="gapModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center hidden">
-  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative opacity-95 max-h-[80vh] overflow-y-auto flex flex-col">
-    <button id="closeGapModal" class="absolute top-2 right-2 text-teal-600 hover:text-teal-800 text-2xl z-10">×</button>
-    <h2 class="text-teal-800 text-xl font-bold mb-4 text-center">Good Agricultural Practices</h2>
-    <!-- Crop Selection Row -->
-    <div id="gapCrops" class="flex justify-around mb-4"></div>
-    <!-- GAP Sections Row and horizontal scrolling-->
-
-    <div class="flex items-center mb-4">
-      <button id="scrollLeftButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition mr-2"><<</button>
-      <div id="gapSections" class="flex flex-nowrap overflow-x-auto space-x-2 scrollbar-hide w-full"></div>
-      <button id="scrollRightButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition ml-2">>></button>   
-    </div>
-    <!-- GAP Contents -->
-    <div id="gapContent" class="text-gray-700"></div>
-  </div>
-</div>
-</main>
-
-<script>
-$(document).ready(function () {
-  // Load counties via AJAX that calls the respective Django Views
-  // Ajax make get request to specified URL
-  $.ajax({
-    url: "/countyLoad/", //Django View 
-    method: "GET",
-    success: function (response) {
-      response.counties.forEach(function (county) {
-        $("#county").append(`<option value="${county.id}">${county.name}</option>`);//populates the countNames from the response gotten
-      });
-    },
-  });
-
-  // Load constituencies  
-  //depending on county, send countyCode to obtain the respective constituencies
-  $("#county").change(function () {
-    const countyCode = $(this).val();
-    $("#constituency").empty().append('<option value="">Select Sub-County</option>');
-    $("#ward").empty().append('<option value="">Select Ward</option>');
-    //countyCode is valid sent to subcounty View
-    if (countyCode) {
-      $.ajax({
-        url: "/subcountyLoad/",
-        method: "GET",
-        data: { county_code: countyCode },
-        success: function (response) {
-          response.constituencies.forEach(function (constituency) {
-            $("#constituency").append(`<option value="${constituency.name}">${constituency.name}</option>`);
-          });
-          $("#constituency").prop("disabled", false);
-        },
-      });
-    } else {//county does not exist disable the other two
-      $("#constituency").prop("disabled", true);
-      $("#ward").prop("disabled", true);
-    }
-  });
-
-  // Load wards
-  $("#constituency").change(function () {
-    const countyCode = $("#county").val();
-    const constituencyName = $(this).val();
-    $("#ward").empty().append('<option value="">Select Ward</option>');
-    //sensds county and constituency to populate ward
-    if (countyCode && constituencyName) {
-      $.ajax({
-        url: "/wardLoad/",
-        method: "GET",
-        data: { county_code: countyCode, constituency_name: constituencyName },
-        success: function (response) {
-          response.wards.forEach(function (ward) {
-            $("#ward").append(`<option value="${ward.name}">${ward.name}</option>`);
-          });
-          $("#ward").prop("disabled", false);
-        },
-      });
-    } else {
-      $("#ward").prop("disabled", true);
-    }
-  });
-
-  // Predict button logic On predictButton Click
-  let cropData = [];
-  let gapData = {};
-  $("#predictButton").click(function (e) {
-    e.preventDefault(); //prevents traditional form submission 
-    const constituency = $("#constituency").val();
-    const ward = $("#ward").val();
-
-    if (constituency && ward) {
-      const locationData = { constituency, ward };
-      // sends location data (constituency and ward) to predict view
-      $.ajax({
-        url: "/predict/", //calls predict DjangoView, and implements all the logic
-        method: "POST",
-        data: JSON.stringify(locationData),
-        contentType: "application/json",
-        //Utilizes the response gotten from predict function in views
-        success: function (response) {
-          $("#resultModal").removeClass("hidden");
-          // puts in values in the tag with coordinates id
-          $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
-          $("#cropPredictions").empty(); //clears previous predictions
-          cropData = [];//storing data
-          gapData = {};
-          response.crop_predictions.forEach(function (prediction) {
-            //Adds the predicted results that is crop images and confidence
-            $("#cropPredictions").append(`
-              <li class="flex items-center space-x-4">
-                <img src="${prediction.image}" alt="${prediction.crop}" class="w-16 h-16 object-cover rounded-md">
-                <div>
-                  <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence
-                </div>
-              </li>
-            `);
-            cropData.push({ crop: prediction.crop, confidence: prediction.confidence });
-            gapData[prediction.crop] = prediction.gap; // Store GAP data
-          });
-          $("#confidenceChart").addClass("hidden");//hidden initially the chart
-        },
-        error: function (err) {
-          console.error("Error fetching predictions:", err);
-          alert("Failed to fetch predictions. Please try again.");
-        },//incase fetching fails and its not a success Display this
-      });
-    } else {
-      alert("Please select all fields before predicting.");//prevents a user from predicting 
-    }
-  });
-
-  // Close prediction modal when the X button is pressed
-  $("#closeModal").click(function () {
-    $("#resultModal").addClass("hidden");
-    $("#confidenceChart").addClass("hidden");
-  });
-
-  // Visualize button logic when clicked
-  let chartInstance = null;
-  $("#visualizeButton").click(function () {
-    const chartElement = $("#confidenceChart");
-    const isChartVisible = !chartElement.hasClass("hidden"); //removes hide if chart is visible
-
-    if (!isChartVisible) {
-      chartElement.removeClass("hidden");
-      const ctx = chartElement[0].getContext("2d");
-
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-
-      chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: cropData.map(data => data.crop),
-          datasets: [{
-            label: "Confidence (%)",
-            data: cropData.map(data => data.confidence),
-            backgroundColor: "rgba(13, 148, 136, 0.6)",
-            borderColor: "rgba(13, 148, 136, 1)",
-            borderWidth: 1
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true, max: 100 },
-            x: { ticks: { autoSkip: false } }
-          },
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: "Crop Confidence Levels" }
-          }
-        }
-      });
-    } else {
-      chartElement.addClass("hidden");
-      if (chartInstance) {
-        chartInstance.destroy();
-        chartInstance = null;
-      }
-    }
-  });
-
-  // GAP button logic Displaying the GAPs
-  $("#gapButton").click(function () {
-    $("#gapModal").removeClass("hidden"); //show the GAP modal removes hidden
+# Weather Prediction Function  //RANDOM forest
+def weatherPrediction(latitude, longitude):
+    featureNames = ['month', 'latitude', 'longitude']
+    currentDate = datetime.now()
+    print(f"Current Date: {currentDate}")
+    nextMonth = currentDate.replace(day=1) + timedelta(days=32)
+    startDate = nextMonth.replace(day=1)
     
-    // Populate crop selection row
-    $("#gapCrops").empty(); //clear previous content
-    Object.keys(gapData).forEach(function (crop, index) {
-      $("#gapCrops").append(`
-        <button class="gap-crop-btn px-4 py-2 rounded-md ${index === 0 ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-teal-500 hover:text-white transition" data-crop="${crop}">
-          ${crop}
-        </button>
-      `);
-    });
-
-    // Initial GAP display (first crop)
-    const firstCrop = Object.keys(gapData)[0];
-    displayGapSections(firstCrop);
-  });
-
-  // Close GAP modal
-  $("#closeGapModal").click(function () {
-    $("#gapModal").addClass("hidden");
-  });
-
-  // Handle crop selection To switch to the respective GAP
-  $(document).on("click", ".gap-crop-btn", function () {
-    $(".gap-crop-btn").removeClass("bg-teal-600 text-white").addClass("bg-gray-200 text-gray-700");
-    $(this).removeClass("bg-gray-200 text-gray-700").addClass("bg-teal-600 text-white");
-    const crop = $(this).data("crop");//retrieves the crop name of the selected crop
-    displayGapSections(crop);
-  });
-
-  // Handle GAP section selection
-  $(document).on("click", ".gap-section-btn", function () {
-    $(".gap-section-btn").removeClass("bg-teal-600 text-white").addClass("bg-gray-200 text-gray-700");
-    $(this).removeClass("bg-gray-200 text-gray-700").addClass("bg-teal-600 text-white");
-    const crop = $(".gap-crop-btn.bg-teal-600").data("crop");
-    const section = $(this).data("section");
-    // $("#gapContent").text(gapData[crop][section] || "No information available.");
-    $("#gapContent").html(gapData[crop][section].replace(/\n/g, '<br>') || "No information available."); //ADDED NOW FOR TESTING
-  });
-
-  // Function to display GAP sections
-  function displayGapSections(crop) {
-    $("#gapSections").empty();//clear previous content
-    $("#gapContent").empty();
-    const sections = Object.keys(gapData[crop]);//get section names  (TRY if it handles line break well)<div>{{ description|linebreaksbr }}</div>
-    sections.forEach(function (section, index) {
-      $("#gapSections").append(`
+    predictions = {'rainfall': [], 'temperature': [], 'humidity': []}
+    current_pred_date = startDate
+    
+    for i in range(12):
+        month = current_pred_date.month
+        features = pd.DataFrame([[month, latitude, longitude]], columns=featureNames)
+        featureScale = weatherScaler.transform(features) #scales the features
         
-        <button class="gap-section-btn px-2 py-0.5 rounded-md ${index === 0 ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-teal-500 hover:text-white transition" data-section="${section}">
-          ${section}
-        </button>
-      `);
-    });
-    // Display first section by default
-    $("#gapContent").text(gapData[crop][sections[0]] || "No information available.");
-  }
+        # prediction of weather conditions takes place via model loading
+        rainPrediction = rainModel.predict(featureScale)[0]
+        tempPrediction = tempModel.predict(featureScale)[0]
+        humidityPrediction = humidityModel.predict(featureScale)[0]
+        
+        predictions['rainfall'].append(max(0, rainPrediction))
+        predictions['temperature'].append(tempPrediction)
+        predictions['humidity'].append(max(0, min(100, humidityPrediction)))
+        
+        nextMonth = current_pred_date.month % 12 + 1
+        nextYear = current_pred_date.year + (current_pred_date.month // 12)
+        current_pred_date = current_pred_date.replace(year=nextYear, month=nextMonth, day=1)
 
-  // Scroll right GAP button LOGIC
-  let scrollPosition = 0;
-  const scrollContainer = $("#gapSections");
-  const scrollAmount = 200; // Adjust this value to control scroll distance
+    totalRain = sum(predictions['rainfall'])
+    avgTemp = sum(predictions['temperature']) / 12
+    avgHumidity = sum(predictions['humidity']) / 12
+    print(f"Weather Values {totalRain},{avgTemp},{avgHumidity}")
+    return totalRain, avgTemp, avgHumidity
 
-  $("#scrollRightButton").click(function () {
-    scrollPosition += scrollAmount;
-    scrollContainer.scrollLeft(scrollPosition);
-  });
+# Soil Data Fetching
+def soilData(lat, lon): 
+    soilAPI = os.getenv('FakeAPI')
+    url = f"https://api.isda-africa.com/v1/soilproperty?key={soilAPI}&lat={lat}&lon={lon}"
+    
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            raise Exception(f"Failed to get data: {response.status_code}")
+        data = response.json()
+        
+        properties = ['ph', 'sand_content', 'clay_content']
+        soilInfo = {}
+        
+        for prop in properties:
+            if prop in data['property']:
+                value = data['property'][prop][0]['value']['value']
+                if prop in ['sand_content', 'clay_content']:
+                    soilInfo[prop] = value * 10
+                else:
+                    soilInfo[prop] = value
+            else:
+                soilInfo[prop] = 0
 
-  $("#scrollLeftButton").click(function () {
-    scrollPosition = Math.max(0, scrollPosition - scrollAmount); // Prevent negative scroll
-    scrollContainer.scrollLeft(scrollPosition);
-  });  
+        # debugging prints
+        print(f"soilInfo: {soilInfo}") #to delete displays the soilInfo collected
+        
+        return soilInfo
+    except Exception as e: #Default Values if API fails
+        print(f"Soil API error: {e}\n Using Default soil Vaues")
+        
+        return {"ph": 0, "sand_content": 0, "clay_content": 0}
 
+# Crop Prediction Function with Database GAP LOGIC
+# cropPrediction also calls the other two functions(weatherPrediction & soilData) , the result from this place is sent back to
+# predict function
+def cropPrediction(lat, lon):
+    totalRain, avgTemp, avgHumidity = weatherPrediction(lat, lon)
+    soilProperties = soilData(lat, lon)
+    # Data to be passed to the cropModel
+    newData = pd.DataFrame({
+        "Rainfall": [totalRain],
+        "Temperature": [avgTemp],
+        "Humidity": [avgHumidity],
+        "pH": [soilProperties['ph']],
+        "Sand": [soilProperties['sand_content']],
+        "Clay": [soilProperties['clay_content']]
+    })
+    
+    prediction = cropModel.predict_proba(newData) #feeds the user input Data
+    indexValues = np.argsort(prediction[0])[::-1][:3]
+    topCrops = label_encoder.inverse_transform(indexValues)
+    cropsPredicted = prediction[0][indexValues] * 100
+    
+    results = []
+    for crop, conf in zip(topCrops, cropsPredicted):
+        # Resorts to default if the crop image does not exist
+        imageFile = cropImages.get(crop, "default.jpg")
+        imagePath = f"/static/Images/crops/{imageFile}"
 
-  
+        # Ensure crop exists in DB, creates an instance of the crop if it does not exist
+        crop_obj, _ = Crop.objects.get_or_create(
+            name=crop,
+            defaults={"image": imageFile}
+        )
+        # Fetch GAP sections from database
+        gap_data = {section.section_name: section.description for section in crop_obj.gap_sections.all()}
+        # appends the results with the GAPs to that have bbenfetched
+        # The results are used in frontend with predict function acting as a bridge between cropPredict and frontend
+        results.append({
+            "crop": crop,
+            "confidence": float(conf),
+            "image": imagePath,
+            "gap": gap_data  # Include GAP data
+        })
+    return results
 
-}); //End of $(document).ready(function () {...}) ensures the code only runs once the html has full loaded
+# # Predict view 
+# @csrf_exempt
+# def predict(request):
+#     if request.method == "POST": #once you presss the predict button
+#         try:
+#             data = json.loads(request.body)
+#             constituency = data.get("constituency", "").strip().lower()
+#             ward = data.get("ward", "").strip().lower()
+            
+#             # If constituency and wards are missing (All should be filled)
+#             if not (constituency and ward):
+#                 return JsonResponse({"error": "Fill all fields"}, status=400)
+            
+#             locationQuery = f"{ward}, {constituency}, Kenya" #chosen ward and constituency
+#          # Geolocation APIs defined
+                    
+#             apiKeys = [
+#                 # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
+#                 # os.getenv("locationAPI2"),
+#                 os.getenv("FakeAPI")#fake api
+#             ]
+#             # Fetches location co-ordinates from the names that have been passed
+#             def fetchCoordinates(apiKey):
+#                 try:
+#                     apiUrl = "https://api.opencagedata.com/geocode/v1/json"
+#                     params = {"q": locationQuery, "key": apiKey, "limit": 1}
+#                     response = requests.get(apiUrl, params=params)
+#                     responseData = response.json()
+#                     if responseData.get("results"):
+#                         return responseData["results"][0]["geometry"]
+#                 except Exception as e:
+#                     print(f"OpenCage API error with key {apiKey}: {e}")
+#                 return None #do not return anything if it fails
+            
+#             coordinates = None
+#             for apiKey in apiKeys:#for every API key defined try all of them
+#                 coordinates = fetchCoordinates(apiKey) #calls the function to get the coOrdinates passing in the keys
+#                 if coordinates: #continue if coordinates found and proceed to call cropsPrediction
+#                     print("Yayy location coordinates found")#Debug line
+#                     break
+            
+#             if not coordinates: #if not found in API resort to Excel Backup file
+#                 print("All API keys failed, resorting to Excel backup.")
+#                 locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
+#                 locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
+#                 backupData = locationData[
+#                     (locationData["constituency_name"] == constituency) &
+#                     (locationData["constituencies_wards"] == ward)
+#                 ]
+#                 if not backupData.empty:
+#                     latitude = backupData.iloc[0]["Latitude"]
+#                     longitude = backupData.iloc[0]["Longitude"]
+#                     coordinates = {"lat": latitude, "lng": longitude}
+#                 else:
+#                     return JsonResponse({"error": "Location not specified in backup"}, status=404)
+            
+#             # Calls the Crop Prediction View and passes the coordinates found, Stores the result in cropResults
+#             crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
+            
+#             # Returns this result to frontend that is coordinates and crop_results gotten from cropPrediction function that was called
+#             return JsonResponse({
+#                 "coordinates": coordinates,
+#                 "crop_predictions": crop_results #results from cropPrediction function
+#             })
+        
+#         except Exception as e: #when an error occurs 
+#             print(f"Error has occurred: {e}")
+#             return JsonResponse({"error": str(e)}, status=500)
+    
+#     return JsonResponse({"error": "Invalid request method try POST"}, status=400)
 
+# Predict view UPDATED TODAY
+@csrf_exempt
+def predict(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            # Check for geolocation input (lat, lng)
+            if "lat" in data and "lng" in data:
+                try:
+                    lat = float(data["lat"])
+                    lng = float(data["lng"])
+                    # Validate latitude and longitude ranges
+                    if not (-90 <= lat <= 90):
+                        return JsonResponse({"error": "Invalid latitude value"}, status=400)
+                    if not (-180 <= lng <= 180):
+                        return JsonResponse({"error": "Invalid longitude value"}, status=400)
+                    coordinates = {"lat": lat, "lng": lng}
+                except (ValueError, TypeError):
+                    return JsonResponse({"error": "Latitude and longitude must be valid numbers"}, status=400)
+            # Check for manual input (constituency, ward)
+            elif "constituency" in data and "ward" in data:
+                constituency = data.get("constituency", "").strip().lower()
+                ward = data.get("ward", "").strip().lower()
+                
+                if not (constituency and ward):
+                    return JsonResponse({"error": "Fill all fields"}, status=400)
+                
+                locationQuery = f"{ward}, {constituency}, Kenya"
+                
+                apiKeys = [
+                    os.getenv("FakeAPI")  # Replace with real APIs as needed
+                ]
+                
+                def fetchCoordinates(apiKey):
+                    try:
+                        apiUrl = "https://api.opencagedata.com/geocode/v1/json"
+                        params = {"q": locationQuery, "key": apiKey, "limit": 1}
+                        response = requests.get(apiUrl, params=params)
+                        responseData = response.json()
+                        if responseData.get("results"):
+                            return responseData["results"][0]["geometry"]
+                    except Exception as e:
+                        print(f"OpenCage API error with key {apiKey}: {e}")
+                    return None
+                
+                coordinates = None
+                for apiKey in apiKeys:
+                    coordinates = fetchCoordinates(apiKey)
+                    if coordinates:
+                        print("Yayy location coordinates found")
+                        break
+                
+                if not coordinates:
+                    print("All API keys failed, resorting to Excel backup.")
+                    locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
+                    locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
+                    backupData = locationData[
+                        (locationData["constituency_name"] == constituency) &
+                        (locationData["constituencies_wards"] == ward)
+                    ]
+                    if not backupData.empty:
+                        latitude = backupData.iloc[0]["Latitude"]
+                        longitude = backupData.iloc[0]["Longitude"]
+                        coordinates = {"lat": latitude, "lng": longitude}
+                    else:
+                        return JsonResponse({"error": "Location not specified in backup"}, status=404)
+            else:
+                return JsonResponse({"error": "Provide either latitude/longitude or constituency/ward"}, status=400)
+            
+            # Call cropPrediction with coordinates
+            crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
+            
+            return JsonResponse({
+                "coordinates": coordinates,
+                "crop_predictions": crop_results
+            })
+        
+        except Exception as e:
+            print(f"Error has occurred: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "Invalid request method try POST"}, status=400)
 
-</script>
-{% endblock content %}
+# Location dropdown functions (unchanged)
+def countyLoad(request):
+    with open('static/data/locationData.json') as file:
+        data = json.load(file)
+    counties = [{"id": county["county_code"], "name": county["county_name"]} for county in data]
+    return JsonResponse({"counties": counties}) #returns only the countyName
+
+def subcountyLoad(request):
+    county_code = int(request.GET.get('county_code'))
+    with open('static/data/locationData.json') as file:
+        data = json.load(file)
+    for county in data:
+        if county["county_code"] == county_code:
+            constituencies = [{"name": constituency["constituency_name"]} for constituency in county["constituencies"]]
+            return JsonResponse({"constituencies": constituencies})
+    return JsonResponse({"constituencies": []})
+
+def wardLoad(request):
+    county_code = int(request.GET.get('county_code'))
+    constituency_name = request.GET.get('constituency_name')
+    with open('static/data/locationData.json') as file:
+        data = json.load(file)
+    for county in data:
+        if county["county_code"] == county_code:
+            for constituency in county["constituencies"]:
+                if constituency["constituency_name"] == constituency_name:
+                    wards = [{"name": ward} for ward in constituency["wards"]]
+                    return JsonResponse({"wards": wards})
+    return JsonResponse({"wards": []})
+
+def Homepage(request):
+    return render(request, 'Homepage.html')
