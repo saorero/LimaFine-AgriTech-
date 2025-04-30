@@ -284,7 +284,14 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Location</label>
-                        {{ form.location|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                        <div class="flex space-x-2">
+                            <input type="text" id="listingLocationInput" name="location" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Enter or select your location" value="{{ form.location.value|default:user.userprofile.county }}">
+                            <button type="button" id="useCurrentLocationListing" class="p-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300" title="Use Current Location">
+                                <i class="fas fa-location-arrow"></i>
+                            </button>
+                        </div>
+                        {{ form.latitude|add_class:"hidden" }}
+                        {{ form.longitude|add_class:"hidden" }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
@@ -298,7 +305,6 @@
             <p class="text-gray-600">This section is only available to farmers.</p>
         {% endif %}
     </div>
-
    <!-- Marketplace Section -->    
     <div id="marketplaceSection" class="tab-content hidden relative">
         <div class="mb-6">
@@ -729,11 +735,18 @@
                 </div>
                 <div>
                     <label class="block text-gray-700">Location (County)</label>
-                    <input id="orderLocation" type="text" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <div class="flex space-x-2">
+                        <input id="orderLocationInput" type="text" name="location" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Enter or select your location" required>
+                        <button type="button" id="useCurrentLocationOrder" class="p-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300" title="Use Current Location">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="orderLatitude" name="latitude">
+                    <input type="hidden" id="orderLongitude" name="longitude">
                 </div>
                 <div>
                     <label class="block text-gray-700">Delivery Mode</label>
-                    <select id="orderDeliveryMode" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                    <select id="orderDeliveryMode" name="deliveryMode" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
                         <option value="pickup">Pickup</option>
                         <option value="delivery">Delivery</option>
                     </select>
@@ -749,6 +762,9 @@
 
 
 {% block script %}
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&&libraries=places"></script>
+
 <script>
     const tabs = document.querySelectorAll('.tab-button');
     const contents = document.querySelectorAll('.tab-content');
@@ -1232,26 +1248,96 @@
             currentListingId = null;
         }
 
+        // document.getElementById('orderForm').addEventListener('submit', async (e) => {
+        //     e.preventDefault();
+        //     const quantity = parseFloat(document.getElementById('orderQuantity').value);
+        //     const location = document.getElementById('orderLocationInput').value;
+        //     const deliveryMode = document.getElementById('orderDeliveryMode').value;
+        //     const response = await fetch('/market/createOrder/', {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        //         body: JSON.stringify({ listing_id: currentListingId, quantity, location, deliveryMode }),
+        //     });
+        //     const data = await response.json();
+        //     if (data.status === 'success') {
+        //         alert('Order placed successfully!');
+        //         closeOrderModal();
+        //     } else {
+        //         alert(data.message);
+        //     }
+        // });
+
+        
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const quantity = parseFloat(document.getElementById('orderQuantity').value);
-            const location = document.getElementById('orderLocation').value;
-            const deliveryMode = document.getElementById('orderDeliveryMode').value;
-            const response = await fetch('/market/createOrder/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-                body: JSON.stringify({ listing_id: currentListingId, quantity, location, deliveryMode }),
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                alert('Order placed successfully!');
-                closeOrderModal();
-            } else {
-                alert(data.message);
+            console.log('Order form submitted');
+
+            const orderForm = document.getElementById('orderForm');
+            if (!orderForm) {
+                console.error('orderForm not found');
+                alert('Error: Order form not found.');
+                return;
+            }
+
+            const quantityInput = document.getElementById('orderQuantity');
+            const locationInput = document.getElementById('orderLocationInput'); // Fixed ID the orderers location at current
+            const latitudeInput = document.getElementById('orderLatitude');
+            const longitudeInput = document.getElementById('orderLongitude');
+            const deliveryModeInput = document.getElementById('orderDeliveryMode');
+
+            if (!quantityInput || !locationInput || !deliveryModeInput) {
+                console.error('Missing required inputs:', { quantityInput, locationInput, deliveryModeInput });
+                alert('Error: One or more form fields are missing.');
+                return;
+            }
+
+            const quantity = parseFloat(quantityInput.value);
+            const location = locationInput.value;
+            const latitude = latitudeInput ? latitudeInput.value : '';
+            const longitude = longitudeInput ? longitudeInput.value : '';
+            const deliveryMode = deliveryModeInput.value;
+            const listingId = orderForm.dataset.listingId || currentListingId; // Fallback to currentListingId
+
+            console.log('Form data:', { listingId, quantity, location, latitude, longitude, deliveryMode });
+
+            if (!listingId || isNaN(quantity) || quantity <= 0 || !location || !deliveryMode) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            try {
+                console.log('Sending AJAX request');
+                const response = await fetch('/market/createOrder/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        listing_id: listingId,
+                        quantity,
+                        location,
+                        latitude,
+                        longitude,
+                        deliveryMode,
+                    }),
+                });
+                const data = await response.json();
+                console.log('Response data:', data);
+                if (data.status === 'success') {
+                    alert('Order placed successfully!');
+                    closeOrderModal();
+                } else {
+                    alert('Error placing order: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('An error occurred while placing the order.');
             }
         });
 
-        // Farmer Orders (Requested Orders)
+       
+       // Farmer Orders (Requested Orders))
         async function showFarmerOrders() {
             const response = await fetch('/market/farmerOrders/');
             const data = await response.json();
@@ -1441,7 +1527,104 @@
         if (noDataMessage) noDataMessage.classList.add('hidden');
     }
 
+    // ADDED TODAY 30 LOCATION FUNCTIONALITIES
+    function initializeAutocomplete() {
+        // Listing Location Autocomplete
+        const listingLocationInput = document.getElementById('listingLocationInput');
+        if (listingLocationInput) {
+            const listingAutocomplete = new google.maps.places.Autocomplete(listingLocationInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ke' } // Restrict to Kenya
+            });
+            listingAutocomplete.addListener('place_changed', () => {
+                const place = listingAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('id_latitude').value = place.geometry.location.lat();
+                    document.getElementById('id_longitude').value = place.geometry.location.lng();
+                    listingLocationInput.value = place.formatted_address;
+                }
+            });
+        }
 
+        // Order Location Autocomplete
+        const orderLocationInput = document.getElementById('orderLocationInput');
+        if (orderLocationInput) {
+            const orderAutocomplete = new google.maps.places.Autocomplete(orderLocationInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ke' } // Restrict to Kenya
+            });
+            orderAutocomplete.addListener('place_changed', () => {
+                const place = orderAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('orderLatitude').value = place.geometry.location.lat();
+                    document.getElementById('orderLongitude').value = place.geometry.location.lng();
+                    orderLocationInput.value = place.formatted_address;
+                }
+            });
+        }
+    }
+
+    // Use Current Location for Listing
+    function useCurrentLocationListing() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('id_latitude').value = lat;
+                    document.getElementById('id_longitude').value = lng;
+
+                    // Reverse geocode to get address
+                    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key={{ google_maps_api_key }}&`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results[0]) {
+                                document.getElementById('listingLocationInput').value = data.results[0].formatted_address;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    alert('Unable to get location. Please allow location access or enter manually.');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+    // Use Current Location for Order
+    function useCurrentLocationOrder() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('orderLatitude').value = lat;
+                    document.getElementById('orderLongitude').value = lng;
+
+                    // Reverse geocode to get address
+                    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key={{ google_maps_api_key }}&`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results[0]) {
+                                document.getElementById('orderLocationInput').value = data.results[0].formatted_address;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    alert('Unable to get location. Please allow location access or enter manually.');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+    // ADDED TODAY 30 LOCATION FUNCTIONALITIES END
    
     //Ensure DOM has loaded before calling certain function that handle different logic
     document.addEventListener("DOMContentLoaded", function () {
@@ -1492,8 +1675,20 @@
                 });
             });
                     
+            // LOCATION BASED EVENT LISTENERS
+            initializeAutocomplete();
+            const useCurrentLocationListingBtn = document.getElementById('useCurrentLocationListing');
+            if (useCurrentLocationListingBtn) {
+                useCurrentLocationListingBtn.addEventListener('click', useCurrentLocationListing);
+            }
+            const useCurrentLocationOrderBtn = document.getElementById('useCurrentLocationOrder');
+            if (useCurrentLocationOrderBtn) {
+                useCurrentLocationOrderBtn.addEventListener('click', useCurrentLocationOrder);
+            }
+
             
-      
+            // ENDS HERE
+
     });
  
    // setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional) you will uncomment this 
@@ -1592,4 +1787,5 @@
     // Initialize sidebars on page load
     document.addEventListener('DOMContentLoaded', initializeCategorySidebars);
 </script>
+
 {% endblock script %}

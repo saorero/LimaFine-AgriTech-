@@ -8,7 +8,7 @@ from storages.backends.gcloud import GoogleCloudStorage
 # from .utils import checkContent #content validation function
 
 # Create your models here.
-# Table for the orders made for a productListing 08
+# Table for the orders made for a productListing 081
 class Order(models.Model):
     STATUS_CHOICES = (
         ('new', 'New'),
@@ -28,6 +28,8 @@ class Order(models.Model):
     quantity = models.FloatField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     location = models.CharField(max_length=100, blank=False)
+    latitude = models.FloatField(null=True, blank=True)  # New field
+    longitude = models.FloatField(null=True, blank=True)  # New field
     deliveryMode = models.CharField(max_length=20, choices=ORDER_DELIVERY_CHOICES, default='pickup')
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
@@ -105,6 +107,8 @@ class productListing(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
     description = models.TextField(blank=True)
     location = models.CharField(max_length=100, blank=False)
+    latitude = models.FloatField(null=True, blank=True)  # New field
+    longitude = models.FloatField(null=True, blank=True)  # New field
     created_at = models.DateTimeField(auto_now_add=True)
     is_available = models.BooleanField(default=True)
     image = models.ImageField(upload_to='productListingsImages/', blank=True, null=True, storage=GoogleCloudStorage())

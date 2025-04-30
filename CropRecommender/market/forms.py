@@ -1,16 +1,27 @@
 # Handles the listig forms and any other form created
-# farmers/forms.py
+# farmers/forms.pyy
 from django import forms
 from .models import productListing, ProductRequest
 # from .utils import checkContent 
 class ListingForm(forms.ModelForm):
+    latitude = forms.FloatField(widget=forms.HiddenInput(), required=False)
+    longitude = forms.FloatField(widget=forms.HiddenInput(), required=False)
+    # class Meta: ORIGINAL meta
+    #     model = productListing
+    #     fields = [ "productCategory","productName", "quantity", "unit", "price", "description", "location", "image"]
+    #     widgets = {
+    #         'location': forms.TextInput(attrs={'placeholder': 'Farmers definedd county if left blank'}),
+    #         'productCategory': forms.Select(),  # Renders as a dropdown
+    #     }
+
     class Meta:
         model = productListing
-        fields = [ "productCategory","productName", "quantity", "unit", "price", "description", "location", "image"]
+        fields = ["productCategory", "productName", "quantity", "unit", "price", "description", "location", "image", "latitude", "longitude"]
         widgets = {
-            'location': forms.TextInput(attrs={'placeholder': 'Farmers definedd county if left blank'}),
-            'productCategory': forms.Select(),  # Renders as a dropdown
+            'location': forms.TextInput(attrs={'placeholder': 'Enter or select your location', 'id': 'locationInput'}),
+            'productCategory': forms.Select(),
         }
+
     # Validating the fields to see if they have agricultural content
     def clean(self):
         cleaned_data = super().clean()

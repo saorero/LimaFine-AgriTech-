@@ -1,5 +1,5 @@
 # VIEWS.PY
-# farmers/views.py
+# farmers/views.pyy
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
@@ -313,7 +313,7 @@ def get_product_requests(request):
 
 # END OF REQUEST VIEWS
 
-# ORDERS VIEWs
+# ORDERS VIEWs changed to handle the exact location of the user when ordering
 @login_required
 def createOrder(request):
     if request.method == "POST":
@@ -321,6 +321,8 @@ def createOrder(request):
         listing_id = data.get('listing_id')
         quantity = float(data.get('quantity', 0))
         location = data.get('location', '').strip()
+        latitude = data.get('latitude')  # New field
+        longitude = data.get('longitude')  # New field
         delivery_mode = data.get('deliveryMode', 'pickup')
 
         if not listing_id or quantity <= 0 or not location:
@@ -338,6 +340,8 @@ def createOrder(request):
             requester=requester,
             quantity=quantity,
             location=location,
+            latitude=float(latitude) if latitude else None,  # Store latitude
+            longitude=float(longitude) if longitude else None,  # Store longitude
             deliveryMode=delivery_mode,
         )
         return JsonResponse({
@@ -348,6 +352,8 @@ def createOrder(request):
                 'quantity': order.quantity,
                 'total_price': float(order.total_price),
                 'location': order.location,
+                'latitude': order.latitude,
+                'longitude': order.longitude,
                 'delivery_mode': order.deliveryMode,
                 'created_at': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
                 'status': order.status,
@@ -556,36 +562,9 @@ def main(request):
         'customer_engagement': customer_engagement,
         'competitor_analysis': competitor_analysis,
         'competitor_crop_pricing': competitor_crop_pricing,  # New context variable
+        # 'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY, #passing the googlemaps api key to market.html
     }
     print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
     return render(request, 'market.html', context)
 
-
-# FORMS.PY
-# Handles the listig forms and any other form created
-# farmers/forms.py
-from django import forms
-from .models import productListing
-# from .utils import checkContent 
-class ListingForm(forms.ModelForm):
-    class Meta:
-        model = productListing
-        fields = [ "productCategory","productName", "quantity", "unit", "price", "description", "location", "image"]
-        widgets = {
-            'location': forms.TextInput(attrs={'placeholder': 'Farmers definedd county if left blank'}),
-            'productCategory': forms.Select(),  # Renders as a dropdown
-        }
-    # Validating the fields to see if they have agricultural content
-    def clean(self):
-        cleaned_data = super().clean()
-        product_name = cleaned_data.get('productName', '').strip()
-        description = cleaned_data.get('description', '').strip()
-
-        # if not checkContent(product_name):
-        #     raise forms.ValidationError({"productName": "Product name does not seem related to agriculture. Please edit."})
-
-        # if not checkContent(description):
-        #     raise forms.ValidationError({"description": "Description does not seem related to agriculture. Please edit."})
-
-        return cleaned_data
 
