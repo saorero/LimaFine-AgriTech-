@@ -26,7 +26,15 @@
       Predict
     </button>
   </div>
+
+  <!-- Loading Spinner ...data fetching-->
+  <div id="loading" class="flex items-center gap-2 text-sm text-white mt-2 hidden text-teal-700">
+      <i class="fas fa-spinner fa-spin text-white fa-3x"></i>
+      Predicting please wait...
+  </div>
+
 </form>
+
 
 <!-- Prediction Modal -->
 <div id="resultModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center hidden">
@@ -40,8 +48,8 @@
         </svg>       
       </button>
     </div>
-    <p id="coordinates" class="text-gray-700 mb-4"></p> <!--Shows the location Co-ordinates-->
-    <ul id="cropPredictions" class="text-gray-700 mb-4 space-y-4"></ul> <!--Display crops as a list-->
+    <p id="coordinates" class="text-gray-700 mb-4"></p>
+    <ul id="cropPredictions" class="text-gray-700 mb-4 space-y-4"></ul>
     <button id="visualizeButton" class="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-900 transition w-full">Visualize</button>
     <canvas id="confidenceChart" class="mt-4 hidden w-full"></canvas>
   </div>
@@ -55,7 +63,6 @@
     <!-- Crop Selection Row -->
     <div id="gapCrops" class="flex justify-around mb-4"></div>
     <!-- GAP Sections Row and horizontal scrolling-->
-
     <div class="flex items-center mb-4">
       <button id="scrollLeftButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition mr-2"><<</button>
       <div id="gapSections" class="flex flex-nowrap overflow-x-auto space-x-2 scrollbar-hide w-full"></div>
@@ -72,11 +79,11 @@ $(document).ready(function () {
   // Load counties via AJAX that calls the respective Django Views
   // Ajax make get request to specified URL
   $.ajax({
-    url: "/countyLoad/", //Django View 
+    url: "/countyLoad/",//Django View 
     method: "GET",
     success: function (response) {
       response.counties.forEach(function (county) {
-        $("#county").append(`<option value="${county.id}">${county.name}</option>`);//populates the countNames from the response gotten
+        $("#county").append(`<option value="${county.id}">${county.name}</option>`);
       });
     },
   });
@@ -129,9 +136,11 @@ $(document).ready(function () {
     }
   });
 
-  // My Location button logic (Geolocation) Newly added
+  // My Location button logic (Geolocation)
   $("#getWeatherGeo").click(function (e) {
-    e.preventDefault(); // Prevent form submission
+
+    $("#loading").removeClass("hidden"); //NOW
+    e.preventDefault();// Prevent form submission
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         function (position) {
@@ -193,21 +202,21 @@ $(document).ready(function () {
     } else {
       alert("Geolocation is not supported by your browser. Please select a location manually.");
     }
-  }); //End of MyLocation logic
+  });//End of MyLocation logic
 
-  // Predict button logic On predictButton Click
+  // Predict button logic redictButton Click
   let cropData = [];
   let gapData = {};
   $("#predictButton").click(function (e) {
-    e.preventDefault(); //prevents traditional form submission 
+    e.preventDefault();
     const constituency = $("#constituency").val();
     const ward = $("#ward").val();
 
     if (constituency && ward) {
       const locationData = { constituency, ward };
-      // sends location data (constituency and ward) to predict view
+      $("#loading").removeClass("hidden"); //NOW
       $.ajax({
-        url: "/predict/", //calls predict DjangoView, and implements all the logic
+        url: "/predict/",
         method: "POST",
         data: JSON.stringify(locationData),
         contentType: "application/json",
@@ -216,7 +225,7 @@ $(document).ready(function () {
           $("#resultModal").removeClass("hidden");
           // puts in values in the tag with coordinates id
           $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
-          $("#cropPredictions").empty(); //clears previous predictions
+          $("#cropPredictions").empty();//clears previous predictions
           cropData = [];//storing data
           gapData = {};
           response.crop_predictions.forEach(function (prediction) {
@@ -233,6 +242,7 @@ $(document).ready(function () {
             gapData[prediction.crop] = prediction.gap; // Store GAP data
           });
           $("#confidenceChart").addClass("hidden");//hidden initially the chart
+          
           // Store cropData and gapData globally for chart and GAP modal
           window.cropData = cropData;
           window.gapData = gapData;
@@ -243,21 +253,22 @@ $(document).ready(function () {
         },//incase fetching fails and its not a success Display this
       });
     } else {
-      alert("Please select all fields before predicting.");//prevents a user from predicting 
+      alert("Please select all fields before predicting.");
     }
   });
 
-  // Close prediction modal when the X button is pressed
+  // Close prediction modal
   $("#closeModal").click(function () {
     $("#resultModal").addClass("hidden");
     $("#confidenceChart").addClass("hidden");
+    $("#loading").addClass("hidden");
   });
 
-  // Visualize button logic when clicked
+  // Visualize button logic
   let chartInstance = null;
   $("#visualizeButton").click(function () {
     const chartElement = $("#confidenceChart");
-    const isChartVisible = !chartElement.hasClass("hidden"); //removes hide if chart is visible
+    const isChartVisible = !chartElement.hasClass("hidden");
 
     if (!isChartVisible) {
       chartElement.removeClass("hidden");
@@ -299,12 +310,10 @@ $(document).ready(function () {
     }
   });
 
-  // GAP button logic Displaying the GAPs
+  // GAP button logic
   $("#gapButton").click(function () {
-    $("#gapModal").removeClass("hidden"); //show the GAP modal removes hidden
-    
-    // Populate crop selection row
-    $("#gapCrops").empty(); //clear previous content
+    $("#gapModal").removeClass("hidden");
+    $("#gapCrops").empty();
     Object.keys(window.gapData).forEach(function (crop, index) {
       $("#gapCrops").append(`
         <button class="gap-crop-btn px-4 py-2 rounded-md ${index === 0 ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-teal-500 hover:text-white transition" data-crop="${crop}">
@@ -312,8 +321,6 @@ $(document).ready(function () {
         </button>
       `);
     });
-
-    // Initial GAP display (first crop)
     const firstCrop = Object.keys(window.gapData)[0];
     displayGapSections(firstCrop);
   });
@@ -323,11 +330,11 @@ $(document).ready(function () {
     $("#gapModal").addClass("hidden");
   });
 
-  // Handle crop selection To switch to the respective GAP
+  // Handle crop selection To switch to the respective GAP of a crop
   $(document).on("click", ".gap-crop-btn", function () {
     $(".gap-crop-btn").removeClass("bg-teal-600 text-white").addClass("bg-gray-200 text-gray-700");
     $(this).removeClass("bg-gray-200 text-gray-700").addClass("bg-teal-600 text-white");
-    const crop = $(this).data("crop");//retrieves the crop name of the selected crop
+    const crop = $(this).data("crop");
     displayGapSections(crop);
   });
 
@@ -337,31 +344,28 @@ $(document).ready(function () {
     $(this).removeClass("bg-gray-200 text-gray-700").addClass("bg-teal-600 text-white");
     const crop = $(".gap-crop-btn.bg-teal-600").data("crop");
     const section = $(this).data("section");
-    // $("#gapContent").text(gapData[crop][section] || "No information available.");
-    $("#gapContent").html(window.gapData[crop][section].replace(/\n/g, '<br>') || "No information available."); //ADDED NOW FOR TESTING
+    $("#gapContent").html(window.gapData[crop][section].replace(/\n/g, '<br>') || "No information available.");
   });
 
   // Function to display GAP sections
   function displayGapSections(crop) {
-    $("#gapSections").empty();//clear previous content
+    $("#gapSections").empty();
     $("#gapContent").empty();
-    const sections = Object.keys(window.gapData[crop]);//get section names  (TRY if it handles line break well)<div>{{ description|linebreaksbr }}</div>
+    const sections = Object.keys(window.gapData[crop]);
     sections.forEach(function (section, index) {
       $("#gapSections").append(`
-        
         <button class="gap-section-btn px-2 py-0.5 rounded-md ${index === 0 ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-teal-500 hover:text-white transition" data-section="${section}">
           ${section}
         </button>
       `);
     });
-    // Display first section by default
-    $("#gapContent").text(window.gapData[crop][sections[0]] || "No information available.");
+    $("#gapContent").html(window.gapData[crop][sections[0]].replace(/\n/g, '<br>') || "No information available.");
   }
 
-  // Scroll right GAP button LOGIC
+  // Scroll GAP sections
   let scrollPosition = 0;
   const scrollContainer = $("#gapSections");
-  const scrollAmount = 200; // Adjust this value to control scroll distance
+  const scrollAmount = 200;
 
   $("#scrollRightButton").click(function () {
     scrollPosition += scrollAmount;
@@ -369,15 +373,9 @@ $(document).ready(function () {
   });
 
   $("#scrollLeftButton").click(function () {
-    scrollPosition = Math.max(0, scrollPosition - scrollAmount); // Prevent negative scroll
+    scrollPosition = Math.max(0, scrollPosition - scrollAmount);
     scrollContainer.scrollLeft(scrollPosition);
-  });  
-
-
-  
-
-}); //End of $(document).ready(function () {...}) ensures the code only runs once the html has full loaded
-
-
+  });
+});
 </script>
 {% endblock content %}

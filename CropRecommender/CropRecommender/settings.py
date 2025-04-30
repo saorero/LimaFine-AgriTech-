@@ -157,6 +157,15 @@ GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
 )
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
+# ADDED BY ME 29/04 This enables caching the GAPs 
+# If you will deploy use redis this is just a temporary caching
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-cache-name',
+    }
+}
+
 
 
 

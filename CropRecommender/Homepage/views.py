@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 import json
 from django.http import JsonResponse
@@ -9,9 +10,15 @@ import pickle
 from datetime import datetime, timedelta
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from .models import Crop, GAPSection  # Import your models
+from .models import Crop #import models for this app
 import os
-from dotenv import load_dotenv #loads env file for defined APIs
+from dotenv import load_dotenv#loads env file for defined APIs
+from django.core.cache import cache #caches the result received from GAPs
+import google.generativeai as genai #for gemini model
+import re
+
+# Configure Gemini API
+genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
 load_dotenv()
 # Load pre-trained models and encoders
@@ -105,7 +112,50 @@ def soilData(lat, lon):
         
         return {"ph": 0, "sand_content": 0, "clay_content": 0}
 
-# Crop Prediction Function with Database GAP LOGIC
+# Fetch GAPs from Gemini
+def fetch_gaps_from_gemini(crop):
+    cache_key = f"gap_{crop.lower()}"
+    cached_gaps = cache.get(cache_key)
+    if cached_gaps:
+        return cached_gaps
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash-002')
+     
+        prompt = f"""
+        Provide detailed Good Agricultural Practices (GAPs) for growing {crop} in Kenya, focusing on reputable sources such as KALRO, FAO Kenya,kalrotimps, and other Kenyan agricultural institutions. Structure the response with clear section headings and provide detailed content under each section. Ensure the information is specific to the Kenyan context.
+        """
+        response = model.generate_content(prompt)
+        if not response.text:
+            raise Exception("Empty response from Gemini API")
+
+        # Parse response to extract sections and content
+        gaps = {}
+        lines = response.text.split('\n')
+        current_section = None
+        current_content = []
+
+        for line in lines:
+            # Detect section headings (e.g., ## Section Name)
+            if line.startswith('## '):
+                if current_section:
+                    gaps[current_section] = '\n'.join(current_content).strip()
+                    current_content = []
+                current_section = line[3:].strip()
+            elif current_section:
+                current_content.append(line)
+
+        if current_section and current_content:
+            gaps[current_section] = '\n'.join(current_content).strip()
+
+        # Cache the result for 24 hours
+        cache.set(cache_key, gaps, timeout=24*60*60)
+        return gaps
+    except Exception as e:
+        print(f"Gemini API error for {crop}: {e}")
+        return {}
+
+# Crop Prediction Function
 # cropPrediction also calls the other two functions(weatherPrediction & soilData) , the result from this place is sent back to
 # predict function
 def cropPrediction(lat, lon):
@@ -121,7 +171,7 @@ def cropPrediction(lat, lon):
         "Clay": [soilProperties['clay_content']]
     })
     
-    prediction = cropModel.predict_proba(newData) #feeds the user input Data
+    prediction = cropModel.predict_proba(newData)#feeds the user input Data
     indexValues = np.argsort(prediction[0])[::-1][:3]
     topCrops = label_encoder.inverse_transform(indexValues)
     cropsPredicted = prediction[0][indexValues] * 100
@@ -131,99 +181,27 @@ def cropPrediction(lat, lon):
         # Resorts to default if the crop image does not exist
         imageFile = cropImages.get(crop, "default.jpg")
         imagePath = f"/static/Images/crops/{imageFile}"
-
-        # Ensure crop exists in DB, creates an instance of the crop if it does not exist
+         # Ensure crop exists in DB, creates an instance of the crop if it does not exist
         crop_obj, _ = Crop.objects.get_or_create(
             name=crop,
             defaults={"image": imageFile}
         )
-        # Fetch GAP sections from database
-        gap_data = {section.section_name: section.description for section in crop_obj.gap_sections.all()}
+        
+        # Fetch GAPs from Gemini
+        gap_data = fetch_gaps_from_gemini(crop)
         # appends the results with the GAPs to that have bbenfetched
         # The results are used in frontend with predict function acting as a bridge between cropPredict and frontend
         results.append({
             "crop": crop,
             "confidence": float(conf),
             "image": imagePath,
-            "gap": gap_data  # Include GAP data
+            "gap": gap_data
         })
     return results
 
-# # Predict view 
-# @csrf_exempt
-# def predict(request):
-#     if request.method == "POST": #once you presss the predict button
-#         try:
-#             data = json.loads(request.body)
-#             constituency = data.get("constituency", "").strip().lower()
-#             ward = data.get("ward", "").strip().lower()
-            
-#             # If constituency and wards are missing (All should be filled)
-#             if not (constituency and ward):
-#                 return JsonResponse({"error": "Fill all fields"}, status=400)
-            
-#             locationQuery = f"{ward}, {constituency}, Kenya" #chosen ward and constituency
-#          # Geolocation APIs defined
-                    
-#             apiKeys = [
-#                 # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
-#                 # os.getenv("locationAPI2"),
-#                 os.getenv("FakeAPI")#fake api
-#             ]
-#             # Fetches location co-ordinates from the names that have been passed
-#             def fetchCoordinates(apiKey):
-#                 try:
-#                     apiUrl = "https://api.opencagedata.com/geocode/v1/json"
-#                     params = {"q": locationQuery, "key": apiKey, "limit": 1}
-#                     response = requests.get(apiUrl, params=params)
-#                     responseData = response.json()
-#                     if responseData.get("results"):
-#                         return responseData["results"][0]["geometry"]
-#                 except Exception as e:
-#                     print(f"OpenCage API error with key {apiKey}: {e}")
-#                 return None #do not return anything if it fails
-            
-#             coordinates = None
-#             for apiKey in apiKeys:#for every API key defined try all of them
-#                 coordinates = fetchCoordinates(apiKey) #calls the function to get the coOrdinates passing in the keys
-#                 if coordinates: #continue if coordinates found and proceed to call cropsPrediction
-#                     print("Yayy location coordinates found")#Debug line
-#                     break
-            
-#             if not coordinates: #if not found in API resort to Excel Backup file
-#                 print("All API keys failed, resorting to Excel backup.")
-#                 locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
-#                 locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
-#                 backupData = locationData[
-#                     (locationData["constituency_name"] == constituency) &
-#                     (locationData["constituencies_wards"] == ward)
-#                 ]
-#                 if not backupData.empty:
-#                     latitude = backupData.iloc[0]["Latitude"]
-#                     longitude = backupData.iloc[0]["Longitude"]
-#                     coordinates = {"lat": latitude, "lng": longitude}
-#                 else:
-#                     return JsonResponse({"error": "Location not specified in backup"}, status=404)
-            
-#             # Calls the Crop Prediction View and passes the coordinates found, Stores the result in cropResults
-#             crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
-            
-#             # Returns this result to frontend that is coordinates and crop_results gotten from cropPrediction function that was called
-#             return JsonResponse({
-#                 "coordinates": coordinates,
-#                 "crop_predictions": crop_results #results from cropPrediction function
-#             })
-        
-#         except Exception as e: #when an error occurs 
-#             print(f"Error has occurred: {e}")
-#             return JsonResponse({"error": str(e)}, status=500)
-    
-#     return JsonResponse({"error": "Invalid request method try POST"}, status=400)
-
-# Predict view UPDATED TODAY
 @csrf_exempt
 def predict(request):
-    if request.method == "POST":
+    if request.method == "POST":#once you presss the predict button
         try:
             data = json.loads(request.body)
             # Check for geolocation input (lat, lng)
@@ -244,15 +222,20 @@ def predict(request):
                 constituency = data.get("constituency", "").strip().lower()
                 ward = data.get("ward", "").strip().lower()
                 
+                # If constituency and wards are missing (All should be filled)
                 if not (constituency and ward):
                     return JsonResponse({"error": "Fill all fields"}, status=400)
                 
                 locationQuery = f"{ward}, {constituency}, Kenya"
                 
+                 # Geolocation APIs defined
                 apiKeys = [
+                    # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
+                    # os.getenv("locationAPI2"),
                     os.getenv("FakeAPI")  # Replace with real APIs as needed
                 ]
                 
+                # Fetches location co-ordinates from the names that have been passed ward and cosnstituency
                 def fetchCoordinates(apiKey):
                     try:
                         apiUrl = "https://api.opencagedata.com/geocode/v1/json"
@@ -263,16 +246,16 @@ def predict(request):
                             return responseData["results"][0]["geometry"]
                     except Exception as e:
                         print(f"OpenCage API error with key {apiKey}: {e}")
-                    return None
+                    return None  #do not return anything if it fails
                 
                 coordinates = None
-                for apiKey in apiKeys:
-                    coordinates = fetchCoordinates(apiKey)
-                    if coordinates:
-                        print("Yayy location coordinates found")
+                for apiKey in apiKeys:#for every API key defined try all of them
+                    coordinates = fetchCoordinates(apiKey)#calls the function to get the coOrdinates passing in the keys
+                    if coordinates:#continue if coordinates found and proceed to call cropsPrediction
+                        print("Yayy location coordinates found")#Debug line
                         break
                 
-                if not coordinates:
+                if not coordinates:#if not found in API resort to Excel Backup file
                     print("All API keys failed, resorting to Excel backup.")
                     locationData["constituency_name"] = locationData["constituency_name"].str.strip().str.lower()
                     locationData["constituencies_wards"] = locationData["constituencies_wards"].str.strip().str.lower()
@@ -289,15 +272,15 @@ def predict(request):
             else:
                 return JsonResponse({"error": "Provide either latitude/longitude or constituency/ward"}, status=400)
             
-            # Call cropPrediction with coordinates
+            # Call cropPrediction with coordinates found and stores the predictions in crop_results
             crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
-            
+            # Returns this result to frontend that is coordinates and crop_results gotten from cropPrediction function that was called
             return JsonResponse({
                 "coordinates": coordinates,
-                "crop_predictions": crop_results
+                "crop_predictions": crop_results#results from cropPrediction function
             })
         
-        except Exception as e:
+        except Exception as e:#when an error occurs 
             print(f"Error has occurred: {e}")
             return JsonResponse({"error": str(e)}, status=500)
     
