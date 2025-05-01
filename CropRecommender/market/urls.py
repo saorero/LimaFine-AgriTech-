@@ -29,5 +29,6 @@ urlpatterns = [
     path('deleteOrder/<int:order_id>/', views.deleteOrder, name='deleteOrder'),
 
 
- 
+    path('optimize_delivery_route/', views.optimize_delivery_route, name='optimize_delivery_route'),
+    path('update_farmer_location/', views.update_farmer_location, name='update_farmer_location'),
 ]

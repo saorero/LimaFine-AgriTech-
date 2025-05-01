@@ -16,6 +16,13 @@ from django.contrib import messages
 # from .utils import checkContent #confirms what is entered is valid
 from django.utils.timezone import localtime
 
+# Route optimizations
+import requests
+from django.conf import settings
+import logging
+# Set up logging
+logger = logging.getLogger(__name__)
+
 def farmer_required(view_func):
     @login_required
     def wrapper(request, *args, **kwargs):
@@ -27,6 +34,184 @@ def farmer_required(view_func):
             return HttpResponseForbidden("User profile not found. Please complete your profile.")
         return view_func(request, *args, **kwargs)
     return wrapper
+
+@farmer_required
+def optimize_delivery_route(request):
+    if request.method != "POST":
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    user_profile = request.user.userprofile
+    logger.debug(f"Optimizing delivery routes for farmer: {user_profile.user.username}")
+
+    # Get pending or confirmed delivery orders
+    orders = Order.objects.filter(
+        listing__farmer=user_profile,
+        status__in=['pending', 'confirmed'],
+        deliveryMode='delivery'
+    ).exclude(latitude__isnull=True, longitude__isnull=True).select_related('listing')
+
+    if not orders:
+        logger.warning("No valid delivery orders found for route optimization")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'No valid delivery orders found. Ensure orders have status "pending" or "confirmed", delivery mode "delivery", and valid latitude/longitude.'
+        }, status=400)
+
+    # Group orders by listing
+    orders_by_listing = {}
+    for order in orders:
+        listing_id = order.listing.id
+        if listing_id not in orders_by_listing:
+            orders_by_listing[listing_id] = {
+                'listing': order.listing,
+                'orders': []
+            }
+        orders_by_listing[listing_id]['orders'].append(order)
+
+    logger.debug(f"Grouped orders into {len(orders_by_listing)} listings")
+
+    # Optimize a route for each listing
+    routes = []
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    url = "https://maps.googleapis.com/maps/api/directions/json"
+
+    for listing_id, data in orders_by_listing.items():
+        listing = data['listing']
+        listing_orders = data['orders']
+
+        # Skip listings without valid coordinates
+        if listing.latitude is None or listing.longitude is None:
+            logger.warning(f"Skipping listing {listing.productName} (ID: {listing_id}) due to missing coordinates")
+            continue
+
+        # Use farmer's location if set, otherwise use listing's location
+        origin = (
+            f"{user_profile.latitude},{user_profile.longitude}"
+            if user_profile.latitude is not None and user_profile.longitude is not None
+            else f"{listing.latitude},{listing.longitude}"
+        )
+        logger.debug(f"Optimizing route for listing: {listing.productName} (location: {listing.location}), origin: {origin}")
+
+        # Prepare waypoints (order locations)
+        waypoints = [f"{order.latitude},{order.longitude}" for order in listing_orders]
+        if not waypoints:
+            logger.warning(f"No valid waypoints for listing {listing.productName}")
+            continue
+
+        destination = origin  # Return to starting point (TSP)
+
+        # Call Google Maps Directions API
+        params = {
+            'origin': origin,
+            'destination': destination,
+            'waypoints': f"optimize:true|{('|').join(waypoints)}",
+            'key': api_key,
+            'mode': 'driving',
+        }
+
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            logger.debug(f"Google Maps API response for listing {listing.productName}: {data}")
+        except requests.RequestException as e:
+            logger.error(f"Failed to connect to Google Maps API for listing {listing.productName}: {str(e)}")
+            continue
+
+        if data['status'] != 'OK':
+            logger.error(f"Google Maps API error for listing {listing.productName}: {data.get('error_message', 'Unknown error')}")
+            continue
+
+        # Extract optimized route
+        try:
+            route = data['routes'][0]
+            waypoint_order = route.get('waypoint_order', list(range(len(waypoints))))
+            legs = route['legs']
+            total_distance = sum(leg['distance']['value'] for leg in legs) / 1000  # Convert meters to km
+            total_duration = sum(leg['duration']['value'] for leg in legs) / 60  # Convert seconds to minutes
+
+            # Map waypoint order to orders
+            optimized_orders = [
+                {
+                    'order_id': listing_orders[i].id,
+                    'product_name': listing_orders[i].listing.productName,
+                    'quantity': listing_orders[i].quantity,
+                    'location': listing_orders[i].location,
+                    'latitude': listing_orders[i].latitude,
+                    'longitude': listing_orders[i].longitude,
+                    'customer': listing_orders[i].requester.user.username,
+                } for i in waypoint_order
+            ]
+
+            # Save waypoint order to orders
+            for i, index in enumerate(waypoint_order):
+                listing_orders[index].delivery_route = {'route_index': i, 'listing_id': listing_id}
+                listing_orders[index].save()
+
+            routes.append({
+                'listing_id': listing_id,
+                'listing_name': listing.productName,
+                'listing_location': listing.location,
+                'origin': origin,
+                'orders': optimized_orders,
+                'total_distance_km': total_distance,
+                'total_duration_minutes': total_duration,
+                'polyline': route['overview_polyline']['points'],
+            })
+            logger.info(f"Route optimization successful for listing {listing.productName}")
+        except (KeyError, IndexError) as e:
+            logger.error(f"Error processing Google Maps API response for listing {listing.productName}: {str(e)}")
+            continue
+
+    if not routes:
+        logger.error("No routes could be optimized")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'No routes could be optimized. Ensure all listings have valid coordinates and orders have valid delivery locations.'
+        }, status=400)
+
+    logger.info(f"Optimized {len(routes)} routes")
+    return JsonResponse({
+        'status': 'success',
+        'routes': routes
+    })
+
+@farmer_required
+def update_farmer_location(request):
+    if request.method != "POST":
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        logger.debug(f"Updating farmer location: latitude={latitude}, longitude={longitude}")
+
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            logger.error(f"Invalid coordinates: latitude={latitude}, longitude={longitude}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid latitude or longitude values.'
+            }, status=400)
+
+        user_profile = request.user.userprofile
+        user_profile.latitude = latitude
+        user_profile.longitude = longitude
+        user_profile.save()
+        logger.info(f"Farmer location updated for user: {user_profile.user.username}")
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Farmer location updated successfully.'
+        })
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(f"Invalid request data: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f"Invalid request data: {str(e)}"
+        }, status=400)
+    
+    
 
 @farmer_required
 def editListing(request, listing_id):

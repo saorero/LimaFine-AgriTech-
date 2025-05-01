@@ -21,6 +21,9 @@ class UserProfile(models.Model): # Model for Django authentication system
     # Followers field added
     followers = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
 
+    latitude = models.FloatField(null=True, blank=True)  # Add latitude field
+    longitude = models.FloatField(null=True, blank=True)  # Add longitude field
+
     def __str__(self):
         return f"{self.user.username}'s profile"
 

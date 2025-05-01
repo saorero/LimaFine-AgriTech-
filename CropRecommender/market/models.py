@@ -5,8 +5,9 @@ import os
 from Social.models import UserProfile
 from storages.backends.gcloud import GoogleCloudStorage
 
-# from .utils import checkContent #content validation function
-
+# from .utils import checkContent #content validation function uncomment later
+# from django.contrib.postgres.fields import JSONField  # For route optimization
+from django.db.models import JSONField
 # Create your models here.
 # Table for the orders made for a productListing 081
 class Order(models.Model):
@@ -33,7 +34,7 @@ class Order(models.Model):
     deliveryMode = models.CharField(max_length=20, choices=ORDER_DELIVERY_CHOICES, default='pickup')
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
-
+    delivery_route = JSONField(null=True, blank=True) #route optimization
     def clean(self):
         """Validate order details."""
         if self.quantity <= 0:

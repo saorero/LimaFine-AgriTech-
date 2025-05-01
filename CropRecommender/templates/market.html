@@ -1,3 +1,5 @@
+
+<!-- MARKET.HTML -->
 {% extends "base2.html" %}
 {% load widget_tweaks %}
 {% load compress %}
@@ -35,6 +37,8 @@
                 <button id="productRequestTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Product Requests</button>
             {% endif %}
             <button id="myRequestTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">My Requests</button>
+            <!-- Inside the tabs div TODAY -->
+            <button id="deliveryRouteTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Delivery Route</button>
         </div>
         <div class="ml-auto flex items-center gap-4">
             <button id="requestButton" class="p-2 text-teal-700 hover:bg-teal-100 rounded-full transition duration-300" title="Product Request">
@@ -493,8 +497,10 @@
                 </thead>
                 <tbody id="farmerOrdersTable" class="text-gray-700"></tbody>
             </table>
-        </div>
+        </div>      
+
     </div>
+
 
     <!-- My Orders Section -->
     <div id="myOrdersSection" class="tab-content hidden">
@@ -517,6 +523,28 @@
             </table>
         </div>
     </div>
+
+    <!-- Delivery Route Section -->
+    <div id="deliveryRouteSection" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4 text-teal-800">Optimized Delivery Routes</h2>
+        <div id="locationForm" class="mb-4">
+            <h3 class="text-lg font-medium mb-2">Set Your Location</h3>
+            <div class="flex space-x-2">
+                <input id="farmerLocation" type="text" placeholder="Enter your address (e.g., Nairobi, Kenya)" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                <button type="button" id="useCurrentLocationFarmer" class="p-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300" title="Use Current Location">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+            </div>
+            <input type="hidden" id="farmerLatitude">
+            <input type="hidden" id="farmerLongitude">
+            <button id="saveLocationButton" class="mt-2 px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Save Location</button>
+        </div>
+        <button id="optimizeRouteButton" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300 mb-4">Compute Delivery Routes</button>
+        <div id="routeTabs" class="flex flex-wrap gap-2 mb-4"></div>
+        <div id="routeMaps" class="space-y-4"></div>
+        <div id="routeDetails" class="bg-white p-4 rounded-2xl shadow-md"></div>
+    </div>
+
 </div>
 
 
@@ -763,7 +791,7 @@
 
 {% block script %}
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&&libraries=places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&&libraries=places,geometry"></script>
 
 <script>
     const tabs = document.querySelectorAll('.tab-button');
@@ -1562,6 +1590,24 @@
                 }
             });
         }
+
+        // 1ST
+        // Farmer Location Autocomplete
+        const farmerLocationInput = document.getElementById('farmerLocation');
+        if (farmerLocationInput) {
+            const farmerAutocomplete = new google.maps.places.Autocomplete(farmerLocationInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ke' }
+            });
+            farmerAutocomplete.addListener('place_changed', () => {
+                const place = farmerAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('farmerLatitude').value = place.geometry.location.lat();
+                    document.getElementById('farmerLongitude').value = place.geometry.location.lng();
+                    farmerLocationInput.value = place.formatted_address;
+                }
+            });
+        }
     }
 
     // Use Current Location for Listing
@@ -1610,6 +1656,36 @@
                         .then(data => {
                             if (data.results[0]) {
                                 document.getElementById('orderLocationInput').value = data.results[0].formatted_address;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    alert('Unable to get location. Please allow location access or enter manually.');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+     // Use Current Location for Farmer
+    function useCurrentLocationFarmer() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('farmerLatitude').value = lat;
+                    document.getElementById('farmerLongitude').value = lng;
+
+                    // Reverse geocode to get address
+                    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key={{ google_maps_api_key }}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results[0]) {
+                                document.getElementById('farmerLocation').value = data.results[0].formatted_address;
                             }
                         })
                         .catch(error => console.error('Error reverse geocoding:', error));
@@ -1786,6 +1862,281 @@
 
     // Initialize sidebars on page load
     document.addEventListener('DOMContentLoaded', initializeCategorySidebars);
+
+    // ROUTE OPTIMIZATION FUNCTIONS
+    // Initialize Google Maps for route display
+    // let map, directionsService, directionsRenderer;
+
+    // Map and directions service for each route
+    const mapInstances = {};
+    const polylines = {};
+
+    function initializeRouteMap(listingId) {
+        const mapContainer = document.getElementById(`map-${listingId}`);
+        if (!mapContainer) {
+            console.error(`Map container for listing ${listingId} not found`);
+            return;
+        }
+
+        const map = new google.maps.Map(mapContainer, {
+            zoom: 10,
+            center: { lat: -1.286920, lng: 36.817223 }, // Default: Nairobi
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+
+        mapInstances[listingId] = { map };
+        console.log(`Initialized map for listing ${listingId}`);
+    }
+
+    function renderPolyline(listingId, encodedPolyline, route) {
+        if (!mapInstances[listingId]) {
+            console.error(`Map instance for listing ${listingId} not initialized`);
+            return;
+        }
+
+        if (!encodedPolyline || typeof encodedPolyline !== 'string') {
+            console.warn(`Invalid or missing polyline data for listing ${listingId}:`, encodedPolyline);
+            return;
+        }
+
+        try {
+            // Decode and render polyline
+            const path = google.maps.geometry.encoding.decodePath(encodedPolyline);
+            if (!path || path.length === 0) {
+                console.warn(`Decoded polyline is empty for listing ${listingId}`);
+                return;
+            }
+
+            // Remove existing polyline if any
+            if (polylines[listingId]) {
+                polylines[listingId].setMap(null);
+            }
+
+            const polyline = new google.maps.Polyline({
+                path: path,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 4,
+                map: mapInstances[listingId].map
+            });
+
+            polylines[listingId] = polyline;
+            console.log(`Rendered polyline for listing ${listingId} with ${path.length} points`);
+
+            // Fit map to polyline bounds
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => bounds.extend(point));
+            mapInstances[listingId].map.fitBounds(bounds);
+
+            // Add markers for orders
+            if (route && route.orders && Array.isArray(route.orders)) {
+                route.orders.forEach(order => {
+                    new google.maps.Marker({
+                        position: { lat: order.latitude, lng: order.longitude },
+                        map: mapInstances[listingId].map,
+                        title: `${order.product_name} for @${order.customer}`,
+                    });
+                });
+
+                // ADEED THIS FOR ORIGIN point
+                const [lat, lng] = route.origin.split(',').map(parseFloat);
+                new google.maps.Marker({
+                    position: { lat, lng },
+                    map: mapInstances[listingId].map,
+                    title: `Origin: ${route.listing_location}`,
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                    }
+                }); //ENDS HERE
+
+                console.log(`Added ${route.orders.length} markers for listing ${listingId}`);
+            } else {
+                console.warn(`No valid orders data for markers in listing ${listingId}`);
+            }
+
+            
+
+
+        } catch (error) {
+            console.error(`Failed to render polyline for listing ${listingId}:`, error);
+            document.getElementById('routeDetails').innerHTML += `<p class="text-red-600">Error: Failed to render route for listing ${listingId}. Please try again.</p>`;
+        }
+    }
+
+
+    function optimizeDeliveryRoute() {
+        const optimizeRouteButton = document.getElementById('optimizeRouteButton');
+        optimizeRouteButton.disabled = true;
+        optimizeRouteButton.textContent = 'Computing...';
+
+        fetch('/market/optimize_delivery_route/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const routeTabs = document.getElementById('routeTabs');
+            const routeMaps = document.getElementById('routeMaps');
+            const routeDetails = document.getElementById('routeDetails');
+            routeTabs.innerHTML = '';
+            routeMaps.innerHTML = '';
+            routeDetails.innerHTML = '';
+
+            if (data.status === 'success') {
+                data.routes.forEach((route, index) => {
+                    console.log(`Processing route for listing ${route.listing_name}:`, route);
+
+                    // Create tab
+                    const tab = document.createElement('button');
+                    tab.className = `px-4 py-2 font-semibold text-teal-700 border-b-2 ${index === 0 ? 'border-teal-600' : 'border-transparent'} hover:border-teal-600 focus:outline-none transition duration-300`;
+                    tab.textContent = `${route.listing_name} (${route.listing_location})`;
+                    tab.dataset.listingId = route.listing_id;
+                    tab.addEventListener('click', () => {
+                        // Toggle active tab
+                        routeTabs.querySelectorAll('button').forEach(t => t.classList.remove('border-teal-600'));
+                        tab.classList.add('border-teal-600');
+                        // Show/hide maps
+                        routeMaps.querySelectorAll('.route-map').forEach(m => m.classList.add('hidden'));
+                        const mapContainer = document.getElementById(`map-${route.listing_id}`);
+                        if (mapContainer) {
+                            mapContainer.classList.remove('hidden');
+                        } else {
+                            console.error(`Map container for listing ${route.listing_id} not found`);
+                        }
+                        // Update details
+                        updateRouteDetails(route);
+                    });
+                    routeTabs.appendChild(tab);
+
+                    // Create map container
+                    const mapContainer = document.createElement('div');
+                    mapContainer.id = `map-${route.listing_id}`;
+                    mapContainer.className = `route-map w-full h-[400px] rounded-lg shadow-md ${index !== 0 ? 'hidden' : ''}`;
+                    routeMaps.appendChild(mapContainer);
+
+                    // Initialize map
+                    initializeRouteMap(route.listing_id);
+
+                    // Render polyline from backend
+                    if (route.polyline) {
+                        renderPolyline(route.listing_id, route.polyline, route);
+                    } else {
+                        console.warn(`No polyline data for listing ${route.listing_name}`);
+                        routeDetails.innerHTML += `<p class="text-yellow-600">Warning: No polyline data for ${route.listing_name}. Route may not display correctly.</p>`;
+                    }
+
+                    // Show details for the first route
+                    if (index === 0) {
+                        updateRouteDetails(route);
+                    }
+                });
+            } else {
+                routeDetails.innerHTML = `<p class="text-gray-600">No delivery routes available: ${data.message}</p>`;
+                console.error('Route optimization failed:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error optimizing routes:', error);
+            alert('Failed to optimize delivery routes. Check console for details.');
+        })
+        .finally(() => {
+            optimizeRouteButton.disabled = false;
+            optimizeRouteButton.textContent = 'Compute Delivery Routes';
+        });
+    }
+
+
+    function updateRouteDetails(route) {
+        const routeDetails = document.getElementById('routeDetails');
+        routeDetails.innerHTML = `
+            <h3 class="text-lg font-medium mb-2">Route for ${route.listing_name} (${route.listing_location})</h3>
+            <p class="text-gray-700 mb-2">Total Distance: ${route.total_distance_km.toFixed(2)} km, Total Duration: ${route.total_duration_minutes.toFixed(2)} minutes</p>
+            <ol class="list-decimal list-inside space-y-2">
+                ${route.orders.map((order, index) => `
+                    <li><strong>${order.product_name}</strong> (${order.quantity} units) for @${order.customer} at ${order.location}</li>
+                `).join('')}
+            </ol>
+        `;
+    }
+
+
+    function saveFarmerLocation() {
+        const latitude = document.getElementById('farmerLatitude').value;
+        const longitude = document.getElementById('farmerLongitude').value;
+        if (!latitude || !longitude) {
+            alert('Please select a valid location using the address field or current location button.');
+            return;
+        }
+        fetch('/market/update_farmer_location/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ latitude: parseFloat(latitude), longitude: parseFloat(longitude) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Location saved successfully!');
+            } else {
+                alert('Failed to save location: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving location:', error);
+            alert('Failed to save location. Check console for details.');
+        });
+    }
+
+
+
+    // Update DOMContentLoaded to initialize map and button
+    document.addEventListener('DOMContentLoaded', function () {
+        // Existing code...
+
+        
+        // Initialize route map
+        // initializeRouteMap(); COMMMENTED OUT FOR NOW
+
+
+        // Route optimization button
+        const optimizeRouteButton = document.getElementById('optimizeRouteButton');
+        if (optimizeRouteButton) {
+            optimizeRouteButton.addEventListener('click', optimizeDeliveryRoute);
+        }
+
+        // Save location button
+        const saveLocationButton = document.getElementById('saveLocationButton');
+        if (saveLocationButton) {
+            saveLocationButton.addEventListener('click', saveFarmerLocation);
+        }
+
+        // Use current location button
+        const useCurrentLocationFarmerBtn = document.getElementById('useCurrentLocationFarmer');
+        if (useCurrentLocationFarmerBtn) {
+            useCurrentLocationFarmerBtn.addEventListener('click', useCurrentLocationFarmer);
+        }
+
+        // Initialize autocomplete
+        initializeAutocomplete();
+
+        // Add delivery route tab handling
+        const deliveryRouteTab = document.getElementById('deliveryRouteTab');
+        if (deliveryRouteTab) {
+            deliveryRouteTab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
+                contents.forEach(c => c.classList.add('hidden'));
+                deliveryRouteTab.classList.add('active-tab', 'border-blue-600');
+                document.getElementById('deliveryRouteSection').classList.remove('hidden');
+                optimizeDeliveryRoute(); // Auto-compute on tab open
+            });
+        }
+    });
 </script>
 
 {% endblock script %}

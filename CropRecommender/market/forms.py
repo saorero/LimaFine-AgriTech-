@@ -6,14 +6,6 @@ from .models import productListing, ProductRequest
 class ListingForm(forms.ModelForm):
     latitude = forms.FloatField(widget=forms.HiddenInput(), required=False)
     longitude = forms.FloatField(widget=forms.HiddenInput(), required=False)
-    # class Meta: ORIGINAL meta
-    #     model = productListing
-    #     fields = [ "productCategory","productName", "quantity", "unit", "price", "description", "location", "image"]
-    #     widgets = {
-    #         'location': forms.TextInput(attrs={'placeholder': 'Farmers definedd county if left blank'}),
-    #         'productCategory': forms.Select(),  # Renders as a dropdown
-    #     }
-
     class Meta:
         model = productListing
         fields = ["productCategory", "productName", "quantity", "unit", "price", "description", "location", "image", "latitude", "longitude"]
