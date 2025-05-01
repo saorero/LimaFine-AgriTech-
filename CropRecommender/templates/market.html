@@ -539,7 +539,11 @@
             <input type="hidden" id="farmerLongitude">
             <button id="saveLocationButton" class="mt-2 px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Save Location</button>
         </div>
-        <button id="optimizeRouteButton" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300 mb-4">Compute Delivery Routes</button>
+        <button id="optimizeRouteButton" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300 mb-4">Find Delivery Routes</button>
+        <div id="loading" class="flex items-center gap-2 text-sm text-teal-700 mt-2 hidden">
+            <i class="fas fa-spinner fa-spin fa-2x text-teal-700"></i>
+            Finding routes...
+        </div>
         <div id="routeTabs" class="flex flex-wrap gap-2 mb-4"></div>
         <div id="routeMaps" class="space-y-4"></div>
         <div id="routeDetails" class="bg-white p-4 rounded-2xl shadow-md"></div>
@@ -1967,8 +1971,12 @@
 
     function optimizeDeliveryRoute() {
         const optimizeRouteButton = document.getElementById('optimizeRouteButton');
+        const loadingDiv = document.getElementById('loading');
         optimizeRouteButton.disabled = true;
-        optimizeRouteButton.textContent = 'Computing...';
+
+        loadingDiv.classList.remove('hidden');
+        // optimizeRouteButton.textContent = 'Loading...';
+        
 
         fetch('/market/optimize_delivery_route/', {
             method: 'POST',
@@ -2045,7 +2053,9 @@
         })
         .finally(() => {
             optimizeRouteButton.disabled = false;
-            optimizeRouteButton.textContent = 'Compute Delivery Routes';
+            optimizeRouteButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            loadingDiv.classList.add('hidden');
+            // optimizeRouteButton.textContent = 'Compute Delivery Routes';
         });
     }
 
@@ -2054,12 +2064,24 @@
         const routeDetails = document.getElementById('routeDetails');
         routeDetails.innerHTML = `
             <h3 class="text-lg font-medium mb-2">Route for ${route.listing_name} (${route.listing_location})</h3>
-            <p class="text-gray-700 mb-2">Total Distance: ${route.total_distance_km.toFixed(2)} km, Total Duration: ${route.total_duration_minutes.toFixed(2)} minutes</p>
-            <ol class="list-decimal list-inside space-y-2">
+            <p class="text-gray-700 mb-2">Total One-Way Distance: ${route.total_distance_km.toFixed(2)} km, Total Duration: ${route.total_duration_minutes.toFixed(2)} minutes</p>
+            <h4 class="text-md font-medium mt-4 mb-2">Individual Order Estimates:</h4>
+            <ul class="list-disc list-inside space-y-2">
                 ${route.orders.map((order, index) => `
-                    <li><strong>${order.product_name}</strong> (${order.quantity} units) for @${order.customer} at ${order.location}</li>
+                    <li>
+                        <strong>${order.product_name}</strong> (${order.quantity} units) for @${order.customer} at ${order.location}<br>
+                        Distance from ${route.listing_location}: ${
+                            order.individual_distance_km !== null 
+                                ? order.individual_distance_km.toFixed(2) + ' km' 
+                                : 'Not available'
+                        }, Duration: ${
+                            order.individual_duration_minutes !== null 
+                                ? order.individual_duration_minutes.toFixed(2) + ' minutes' 
+                                : 'Not available'
+                        }
+                    </li>
                 `).join('')}
-            </ol>
+            </ul>
         `;
     }
 

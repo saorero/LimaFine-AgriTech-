@@ -98,13 +98,15 @@ def optimize_delivery_route(request):
             logger.warning(f"No valid waypoints for listing {listing.productName}")
             continue
 
-        destination = origin  # Return to starting point (TSP)
+        # Set destination as the last order's location (one-way route)
+        destination = waypoints[-1] if len(waypoints) > 1 else origin
+        logger.debug(f"Destination for one-way route: {destination}")
 
-        # Call Google Maps Directions API
+        # Call Google Maps Directions API for the optimized route
         params = {
             'origin': origin,
             'destination': destination,
-            'waypoints': f"optimize:true|{('|').join(waypoints)}",
+            'waypoints': f"optimize:true|{('|').join(waypoints[:-1])}" if len(waypoints) > 1 else None,
             'key': api_key,
             'mode': 'driving',
         }
@@ -125,26 +127,57 @@ def optimize_delivery_route(request):
         # Extract optimized route
         try:
             route = data['routes'][0]
-            waypoint_order = route.get('waypoint_order', list(range(len(waypoints))))
+            waypoint_order = route.get('waypoint_order', list(range(len(waypoints) - 1)))
             legs = route['legs']
             total_distance = sum(leg['distance']['value'] for leg in legs) / 1000  # Convert meters to km
             total_duration = sum(leg['duration']['value'] for leg in legs) / 60  # Convert seconds to minutes
 
-            # Map waypoint order to orders
-            optimized_orders = [
-                {
-                    'order_id': listing_orders[i].id,
-                    'product_name': listing_orders[i].listing.productName,
-                    'quantity': listing_orders[i].quantity,
-                    'location': listing_orders[i].location,
-                    'latitude': listing_orders[i].latitude,
-                    'longitude': listing_orders[i].longitude,
-                    'customer': listing_orders[i].requester.user.username,
-                } for i in waypoint_order
-            ]
+            # Calculate individual distance and time for each order
+            optimized_orders = []
+            for i, order in enumerate(listing_orders):
+                # Use the optimized order for waypoint indices
+                optimized_index = waypoint_order[i] if i < len(waypoint_order) else len(waypoint_order)
+                order_location = f"{order.latitude},{order.longitude}"
+
+                # Call Directions API for individual distance from origin to order
+                individual_params = {
+                    'origin': origin,
+                    'destination': order_location,
+                    'key': api_key,
+                    'mode': 'driving',
+                }
+                try:
+                    individual_response = requests.get(url, params=individual_params)
+                    individual_response.raise_for_status()
+                    individual_data = individual_response.json()
+                    if individual_data['status'] == 'OK':
+                        individual_leg = individual_data['routes'][0]['legs'][0]
+                        individual_distance = individual_leg['distance']['value'] / 1000  # km
+                        individual_duration = individual_leg['duration']['value'] / 60  # minutes
+                        logger.debug(f"Individual estimate for order {order.id} to {order.location}: {individual_distance} km, {individual_duration} minutes")
+                    else:
+                        logger.warning(f"Individual API error for order {order.id}: {individual_data.get('error_message', 'Unknown error')}")
+                        individual_distance = null
+                        individual_duration = null
+                except requests.RequestException as e:
+                    logger.error(f"Failed to get individual distance for order {order.id}: {str(e)}")
+                    individual_distance = null
+                    individual_duration = null
+
+                optimized_orders.append({
+                    'order_id': order.id,
+                    'product_name': order.listing.productName,
+                    'quantity': order.quantity,
+                    'location': order.location,
+                    'latitude': order.latitude,
+                    'longitude': order.longitude,
+                    'customer': order.requester.user.username,
+                    'individual_distance_km': individual_distance,
+                    'individual_duration_minutes': individual_duration,
+                })
 
             # Save waypoint order to orders
-            for i, index in enumerate(waypoint_order):
+            for i, index in enumerate(waypoint_order + [len(waypoint_order)]):
                 listing_orders[index].delivery_route = {'route_index': i, 'listing_id': listing_id}
                 listing_orders[index].save()
 
@@ -211,7 +244,7 @@ def update_farmer_location(request):
             'message': f"Invalid request data: {str(e)}"
         }, status=400)
     
-    
+
 
 @farmer_required
 def editListing(request, listing_id):
