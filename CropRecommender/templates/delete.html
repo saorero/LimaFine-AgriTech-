@@ -61,7 +61,24 @@
             <input type="hidden" id="farmerLongitude">
             <button id="saveLocationButton" class="mt-2 px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Save Location</button>
         </div>
-        <button id="optimizeRouteButton" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300 mb-4">Compute Delivery Routes</button>
+        <div class="mb-4">
+            <h3 class="text-lg font-medium mb-2">Delivery Settings</h3>
+            <div class="flex space-x-4">
+                <div>
+                    <label for="costPerKm" class="block text-sm font-medium text-gray-700">Cost per km (KShs.)</label>
+                    <input id="costPerKm" type="number" step="0.01" min="0" value="50" class="w-24 p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="startTime" class="block text-sm font-medium text-gray-700">Start Time</label>
+                    <input id="startTime" type="time" value="09:00" class="w-32 p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+            </div>
+        </div>
+        <button id="optimizeRouteButton" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300 mb-2">Compute Delivery Routes</button>
+        <div id="loading" class="flex items-center gap-2 text-sm text-teal-700 mt-2 hidden">
+            <i class="fas fa-spinner fa-spin fa-2x text-teal-700"></i>
+            Finding routes...
+        </div>
         <div id="routeTabs" class="flex flex-wrap gap-2 mb-4"></div>
         <div id="routeMaps" class="space-y-4"></div>
         <div id="routeDetails" class="bg-white p-4 rounded-2xl shadow-md"></div>
@@ -75,12 +92,12 @@
 {% endblock modalsContent %}
 
 {% block script %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry"></script>
 
 <script>
     // Existing JavaScript code (initializeAutocomplete, useCurrentLocationFarmer, saveFarmerLocation unchanged)
 
-    // Map and directions service for each route
+    // Map and polylines for each route
     const mapInstances = {};
     const polylines = {};
 
@@ -101,38 +118,84 @@
         console.log(`Initialized map for listing ${listingId}`);
     }
 
-    function renderPolyline(listingId, encodedPolyline) {
+    function renderPolyline(listingId, encodedPolyline, route) {
         if (!mapInstances[listingId]) {
             console.error(`Map instance for listing ${listingId} not initialized`);
             return;
         }
 
-        // Remove existing polyline if any
-        if (polylines[listingId]) {
-            polylines[listingId].setMap(null);
+        if (!encodedPolyline || typeof encodedPolyline !== 'string') {
+            console.warn(`Invalid or missing polyline data for listing ${listingId}:`, encodedPolyline);
+            return;
         }
 
-        // Decode and render polyline
-        const path = google.maps.geometry.encoding.decodePath(encodedPolyline);
-        const polyline = new google.maps.Polyline({
-            path: path,
-            geodesic: true,
-            strokeColor: '#FF0000',
-            strokeOpacity: 1.0,
-            strokeWeight: 4,
-            map: mapInstances[listingId].map
-        });
+        try {
+            // Decode and render polyline
+            const path = google.maps.geometry.encoding.decodePath(encodedPolyline);
+            if (!path || path.length === 0) {
+                console.warn(`Decoded polyline is empty for listing ${listingId}`);
+                return;
+            }
 
-        polylines[listingId] = polyline;
-        console.log(`Rendered polyline for listing ${listingId}`);
+            // Remove existing polyline if any
+            if (polylines[listingId]) {
+                polylines[listingId].setMap(null);
+            }
 
-        // Fit map to polyline bounds
-        const bounds = new google.maps.LatLngBounds();
-        path.forEach(point => bounds.extend(point));
-        mapInstances[listingId].map.fitBounds(bounds);
+            const polyline = new google.maps.Polyline({
+                path: path,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 4,
+                map: mapInstances[listingId].map
+            });
+
+            polylines[listingId] = polyline;
+            console.log(`Rendered polyline for listing ${listingId} with ${path.length} points`);
+
+            // Fit map to polyline bounds
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => bounds.extend(point));
+            mapInstances[listingId].map.fitBounds(bounds);
+
+            // Add markers for orders
+            if (route && route.orders && Array.isArray(route.orders)) {
+                route.orders.forEach(order => {
+                    new google.maps.Marker({
+                        position: { lat: order.latitude, lng: order.longitude },
+                        map: mapInstances[listingId].map,
+                        title: `${order.product_name} for @${order.customer}`,
+                    });
+                });
+                console.log(`Added ${route.orders.length} markers for listing ${listingId}`);
+            } else {
+                console.warn(`No valid orders data for markers in listing ${listingId}`);
+            }
+
+            // Add origin marker
+            const [lat, lng] = route.origin.split(',').map(parseFloat);
+            new google.maps.Marker({
+                position: { lat, lng },
+                map: mapInstances[listingId].map,
+                title: `Origin: ${route.listing_location}`,
+                icon: {
+                    url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                }
+            });
+        } catch (error) {
+            console.error(`Failed to render polyline for listing ${listingId}:`, error);
+            document.getElementById('routeDetails').innerHTML += `<p class="text-red-600">Error: Failed to render route for listing ${listingId}. Please try again.</p>`;
+        }
     }
 
     function optimizeDeliveryRoute() {
+        const optimizeRouteButton = document.getElementById('optimizeRouteButton');
+        const loadingDiv = document.getElementById('loading');
+        optimizeRouteButton.disabled = true;
+        optimizeRouteButton.classList.add('opacity-50', 'cursor-not-allowed');
+        loadingDiv.classList.remove('hidden');
+
         fetch('/market/optimize_delivery_route/', {
             method: 'POST',
             headers: {
@@ -167,6 +230,7 @@
                         const mapContainer = document.getElementById(`map-${route.listing_id}`);
                         if (mapContainer) {
                             mapContainer.classList.remove('hidden');
+                            google.maps.event.trigger(mapInstances[route.listing_id].map, 'resize');
                         } else {
                             console.error(`Map container for listing ${route.listing_id} not found`);
                         }
@@ -186,9 +250,10 @@
 
                     // Render polyline from backend
                     if (route.polyline) {
-                        renderPolyline(route.listing_id, route.polyline);
+                        renderPolyline(route.listing_id, route.polyline, route);
                     } else {
                         console.warn(`No polyline data for listing ${route.listing_name}`);
+                        routeDetails.innerHTML += `<p class="text-yellow-600">Warning: No polyline data for ${route.listing_name}. Route may not display correctly.</p>`;
                     }
 
                     // Show details for the first route
@@ -197,27 +262,116 @@
                     }
                 });
             } else {
-                routeDetails.innerHTML = `<p class="text-gray-600">No delivery routes available: ${data.message}</p>`;
+                routeDetails.innerHTML = `<p class="text-red-600">No delivery routes available: ${data.message}</p>`;
                 console.error('Route optimization failed:', data.message);
             }
         })
         .catch(error => {
             console.error('Error optimizing routes:', error);
-            alert('Failed to optimize delivery routes. Check console for details.');
+            document.getElementById('routeDetails').innerHTML = `<p class="text-red-600">Failed to optimize routes. Please try again.</p>`;
+        })
+        .finally(() => {
+            optimizeRouteButton.disabled = false;
+            optimizeRouteButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            loadingDiv.classList.add('hidden');
         });
+    }
+
+    function calculateArrivalTime(startTime, minutes) {
+        if (!startTime || !minutes) return 'Not available';
+        const [hours, mins] = startTime.split(':').map(Number);
+        const startDate = new Date();
+        startDate.setHours(hours, mins, 0, 0);
+        startDate.setMinutes(startDate.getMinutes() + Math.round(minutes));
+        return startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     function updateRouteDetails(route) {
         const routeDetails = document.getElementById('routeDetails');
+        const costPerKm = parseFloat(document.getElementById('costPerKm').value) || 0;
+        const startTime = document.getElementById('startTime').value;
+
+        // Calculate total cost
+        const totalCost = route.total_distance_km * costPerKm;
+
+        // Calculate cumulative duration for arrival times
+        let cumulativeMinutes = 0;
+        const ordersWithArrival = route.orders.map(order => {
+            const arrivalTime = order.individual_duration_minutes !== null
+                ? calculateArrivalTime(startTime, cumulativeMinutes + order.individual_duration_minutes)
+                : 'Not available';
+            cumulativeMinutes += order.individual_duration_minutes || 0;
+            return { ...order, arrivalTime };
+        });
+
         routeDetails.innerHTML = `
-            <h3 class="text-lg font-medium mb-2">Route for ${route.listing_name} (${route.listing_location})</h3>
-            <p class="text-gray-700 mb-2">Total Distance: ${route.total_distance_km.toFixed(2)} km, Total Duration: ${route.total_duration_minutes.toFixed(2)} minutes</p>
-            <ol class="list-decimal list-inside space-y-2">
-                ${route.orders.map((order, index) => `
-                    <li><strong>${order.product_name}</strong> (${order.quantity} units) for @${order.customer} at ${order.location}</li>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Route for ${route.listing_name} (${route.listing_location})</h3>
+                <button id="downloadRoute-${route.listing_id}" class="px-3 py-1 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Download Route</button>
+            </div>
+            <p class="text-gray-700 mb-2">
+                Total One-Way Distance: ${route.total_distance_km.toFixed(2)} km, 
+                Total Duration: ${route.total_duration_minutes.toFixed(2)} minutes, 
+                Estimated Cost: $${totalCost.toFixed(2)}
+            </p>
+            <h4 class="text-md font-medium mt-4 mb-2">Individual Order Estimates (in optimized order):</h4>
+            <ul class="list-disc list-inside space-y-2">
+                ${ordersWithArrival.map((order, index) => `
+                    <li>
+                        <strong>${order.product_name}</strong> (${order.quantity} units) for @${order.customer} at ${order.location}<br>
+                        Distance from ${route.listing_location}: ${
+                            order.individual_distance_km !== null 
+                                ? order.individual_distance_km.toFixed(2) + ' km' 
+                                : 'Not available'
+                        }, 
+                        Duration: ${
+                            order.individual_duration_minutes !== null 
+                                ? order.individual_duration_minutes.toFixed(2) + ' minutes' 
+                                : 'Not available'
+                        }, 
+                        Cost: ${
+                            order.individual_distance_km !== null 
+                                ? '$' + (order.individual_distance_km * costPerKm).toFixed(2)
+                                : 'Not available'
+                        }, 
+                        Estimated Arrival: ${order.arrivalTime}
+                    </li>
                 `).join('')}
-            </ol>
+            </ul>
         `;
+
+        // Add download button event listener
+        document.getElementById(`downloadRoute-${route.listing_id}`).addEventListener('click', () => {
+            const csvContent = [
+                `Route for ${route.listing_name} (${route.listing_location})`,
+                `Total Distance,${route.total_distance_km.toFixed(2)} km`,
+                `Total Duration,${route.total_duration_minutes.toFixed(2)} minutes`,
+                `Total Cost,$${totalCost.toFixed(2)}`,
+                '',
+                'Order,Product,Quantity,Customer,Location,Distance (km),Duration (minutes),Cost ($),Arrival Time',
+                ...ordersWithArrival.map((order, index) => [
+                    index + 1,
+                    order.product_name,
+                    order.quantity,
+                    order.customer,
+                    order.location,
+                    order.individual_distance_km !== null ? order.individual_distance_km.toFixed(2) : 'N/A',
+                    order.individual_duration_minutes !== null ? order.individual_duration_minutes.toFixed(2) : 'N/A',
+                    order.individual_distance_km !== null ? (order.individual_distance_km * costPerKm).toFixed(2) : 'N/A',
+                    order.arrivalTime
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `route_${route.listing_name}_${route.listing_id}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
     }
 
     // Update DOMContentLoaded
