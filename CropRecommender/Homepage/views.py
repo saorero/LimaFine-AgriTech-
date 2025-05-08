@@ -16,22 +16,33 @@ from dotenv import load_dotenv#loads env file for defined APIs
 from django.core.cache import cache #caches the result received from GAPs
 import google.generativeai as genai #for gemini model
 import re
+from xgboost import XGBRegressor
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Configure Gemini API
 genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
+
 load_dotenv()
 # Load pre-trained models and encoders
-cropModel = joblib.load("Homepage/modelsMe/model_2.joblib")
-label_encoder = joblib.load("Homepage/modelsMe/encoder2.joblib")
+cropModel = joblib.load("Homepage/modelsMe/model_2.joblib")#model for crop prediction
+label_encoder = joblib.load("Homepage/modelsMe/encoder2.joblib")#crop prediction
+
+# Weather models loaded
 with open('Homepage/modelsMe/weatherScaler.pkl', 'rb') as f:
     weatherScaler = pickle.load(f)
-with open('Homepage/modelsMe/rainModel.pkl', 'rb') as f:
-    rainModel = pickle.load(f)
-with open('Homepage/modelsMe/tempModel.pkl', 'rb') as f:
-    tempModel = pickle.load(f)
-with open('Homepage/modelsMe/humidityModel.pkl', 'rb') as f:
-    humidityModel = pickle.load(f)
+# with open('Homepage/modelsMe/rainModel.pkl', 'rb') as f:
+#     rainModel = pickle.load(f)
+# with open('Homepage/modelsMe/tempModel.pkl', 'rb') as f:
+#     tempModel = pickle.load(f)
+# with open('Homepage/modelsMe/humidityModel.pkl', 'rb') as f:
+#     humidityModel = pickle.load(f)
+rainModel = XGBRegressor()
+rainModel.load_model(os.path.join(BASE_DIR, 'Homepage', 'modelsMe', 'rainModel.json'))
+tempModel = XGBRegressor()
+tempModel.load_model(os.path.join(BASE_DIR, 'Homepage', 'modelsMe', 'tempModel.json'))
+humidityModel = XGBRegressor()
+humidityModel.load_model(os.path.join(BASE_DIR, 'Homepage', 'modelsMe', 'humidityModel.json'))
 
 # Backup coordinates file
 locationData = pd.read_excel("static/data/countyCoordinates.xlsx")
@@ -44,40 +55,201 @@ cropImages = {
     "Onion": "onion.jpg"
 }
 
-# Weather Prediction Function  //RANDOM forest
+# # Weather Prediction Function  //RANDOM forest ORIGINAL the one pasted below uses the new models
+# def weatherPrediction(latitude, longitude):
+#     featureNames = ['month', 'latitude', 'longitude']
+#     currentDate = datetime.now()
+#     print(f"Current Date: {currentDate}")
+#     nextMonth = currentDate.replace(day=1) + timedelta(days=32)
+#     startDate = nextMonth.replace(day=1)
+    
+#     predictions = {'rainfall': [], 'temperature': [], 'humidity': []}
+#     current_pred_date = startDate
+    
+#     for i in range(12):
+#         month = current_pred_date.month
+#         features = pd.DataFrame([[month, latitude, longitude]], columns=featureNames)
+#         featureScale = weatherScaler.transform(features) #scales the features
+        
+#         # prediction of weather conditions takes place via model loading
+#         rainPrediction = rainModel.predict(featureScale)[0]
+#         tempPrediction = tempModel.predict(featureScale)[0]
+#         humidityPrediction = humidityModel.predict(featureScale)[0]
+        
+#         predictions['rainfall'].append(max(0, rainPrediction))
+#         predictions['temperature'].append(tempPrediction)
+#         predictions['humidity'].append(max(0, min(100, humidityPrediction)))
+        
+#         nextMonth = current_pred_date.month % 12 + 1
+#         nextYear = current_pred_date.year + (current_pred_date.month // 12)
+#         current_pred_date = current_pred_date.replace(year=nextYear, month=nextMonth, day=1)
+
+#     totalRain = sum(predictions['rainfall'])
+#     avgTemp = sum(predictions['temperature']) / 12
+#     avgHumidity = sum(predictions['humidity']) / 12
+#     print(f"Weather Values {totalRain},{avgTemp},{avgHumidity}")
+#     return totalRain, avgTemp, avgHumidity
+
+# **************************The new function for weather prediction(preceding two functions)*********************************************
+
+# Historical weather data is processed to get previous weather values
+
+def processData(file_path=os.path.join(BASE_DIR, 'Homepage', 'daily.csv')):
+    df = pd.read_csv(file_path)
+    df['date'] = pd.to_datetime(df['date'])
+    df['year'] = df['date'].dt.year
+    df['month'] = df['date'].dt.month
+    
+    # Aggregate to monthly data
+    monthly_data = df.groupby(['year', 'month', 'latitude', 'longitude']).agg({
+        'rainfall': 'sum',
+        'temperature': 'mean',
+        'humidity': 'mean'
+    }).reset_index()
+    
+    # Sort by date and location
+    monthly_data = monthly_data.sort_values(['latitude', 'longitude', 'year', 'month'])
+    
+    # Add lagged features
+    for var in ['rainfall', 'temperature', 'humidity']:
+        monthly_data[f'prev_{var}'] = monthly_data.groupby(['latitude', 'longitude'])[var].shift(1)
+        monthly_data[f'prev2_{var}'] = monthly_data.groupby(['latitude', 'longitude'])[var].shift(2)
+    
+    # Add moving averages
+    for var in ['rainfall', 'temperature', 'humidity']:
+        monthly_data[f'ma6_{var}'] = monthly_data.groupby(['latitude', 'longitude'])[var].rolling(window=6, min_periods=1).mean().reset_index(level=[0,1], drop=True)
+        monthly_data[f'ma12_{var}'] = monthly_data.groupby(['latitude', 'longitude'])[var].rolling(window=12, min_periods=1).mean().reset_index(level=[0,1], drop=True)
+    
+    # Cyclical encoding for month
+    monthly_data['month_sin'] = np.sin(2 * np.pi * monthly_data['month'] / 12)
+    monthly_data['month_cos'] = np.cos(2 * np.pi * monthly_data['month'] / 12)
+    
+    # Drop rows with NaN values
+    monthly_data = monthly_data.dropna()
+    
+    return monthly_data
+
 def weatherPrediction(latitude, longitude):
-    featureNames = ['month', 'latitude', 'longitude']
+ 
+    
+    # Define feature names expected by the models
+    featureNames = ['month_sin', 'month_cos', 'latitude', 'longitude',
+                    'prev_rainfall', 'prev_temperature', 'prev_humidity',
+                    'prev2_rainfall', 'prev2_temperature', 'prev2_humidity',
+                    'ma6_rainfall', 'ma6_temperature', 'ma6_humidity',
+                    'ma12_rainfall', 'ma12_temperature', 'ma12_humidity']
+    
+    # Get current date and move to the first of next month
     currentDate = datetime.now()
     print(f"Current Date: {currentDate}")
     nextMonth = currentDate.replace(day=1) + timedelta(days=32)
     startDate = nextMonth.replace(day=1)
     
-    predictions = {'rainfall': [], 'temperature': [], 'humidity': []}
+    predictions = {'month': [], 'rainfall': [], 'temperature': [], 'humidity': []}
+    
+    # Load historical data for initial lagged and moving average features
+    monthly_data = processData()
+    location_data = monthly_data[(monthly_data['latitude'] == latitude) & (monthly_data['longitude'] == longitude)]
+    
+    if not location_data.empty:
+        recent_data = location_data.tail(2)  # Last two months for prev and prev2
+        prev_rainfall = recent_data['rainfall'].iloc[-1]
+        prev_temperature = recent_data['temperature'].iloc[-1]
+        prev_humidity = recent_data['humidity'].iloc[-1]
+        prev2_rainfall = recent_data['rainfall'].iloc[-2] if len(recent_data) > 1 else prev_rainfall
+        prev2_temperature = recent_data['temperature'].iloc[-2] if len(recent_data) > 1 else prev_temperature
+        prev2_humidity = recent_data['humidity'].iloc[-2] if len(recent_data) > 1 else prev_humidity
+        ma6_rainfall = recent_data['ma6_rainfall'].iloc[-1]
+        ma6_temperature = recent_data['ma6_temperature'].iloc[-1]
+        ma6_humidity = recent_data['ma6_humidity'].iloc[-1]
+        ma12_rainfall = recent_data['ma12_rainfall'].iloc[-1]
+        ma12_temperature = recent_data['ma12_temperature'].iloc[-1]
+        ma12_humidity = recent_data['ma12_humidity'].iloc[-1]
+    else:
+        # Fallback: use global averages
+        prev_rainfall = monthly_data['rainfall'].mean()
+        prev_temperature = monthly_data['temperature'].mean()
+        prev_humidity = monthly_data['humidity'].mean()
+        prev2_rainfall = prev_rainfall
+        prev2_temperature = prev_temperature
+        prev2_humidity = prev_humidity
+        ma6_rainfall = monthly_data['rainfall'].mean()
+        ma6_temperature = monthly_data['temperature'].mean()
+        ma6_humidity = monthly_data['humidity'].mean()
+        ma12_rainfall = monthly_data['rainfall'].mean()
+        ma12_temperature = monthly_data['temperature'].mean()
+        ma12_humidity = monthly_data['humidity'].mean()
+    
     current_pred_date = startDate
     
     for i in range(12):
         month = current_pred_date.month
-        features = pd.DataFrame([[month, latitude, longitude]], columns=featureNames)
-        featureScale = weatherScaler.transform(features) #scales the features
+        # Cyclical encoding for month
+        month_sin = np.sin(2 * np.pi * month / 12)
+        month_cos = np.cos(2 * np.pi * month / 12)
         
-        # prediction of weather conditions takes place via model loading
+        # Prepare features
+        features = pd.DataFrame([[month_sin, month_cos, latitude, longitude,
+                                 prev_rainfall, prev_temperature, prev_humidity,
+                                 prev2_rainfall, prev2_temperature, prev2_humidity,
+                                 ma6_rainfall, ma6_temperature, ma6_humidity,
+                                 ma12_rainfall, ma12_temperature, ma12_humidity]],
+                               columns=featureNames)
+        featureScale = weatherScaler.transform(features)
+        
+        # Predict weather conditions
         rainPrediction = rainModel.predict(featureScale)[0]
         tempPrediction = tempModel.predict(featureScale)[0]
         humidityPrediction = humidityModel.predict(featureScale)[0]
         
-        predictions['rainfall'].append(max(0, rainPrediction))
-        predictions['temperature'].append(tempPrediction)
-        predictions['humidity'].append(max(0, min(100, humidityPrediction)))
+        # Ensure realistic values
+        rainPrediction = max(0, rainPrediction)
+        humidityPrediction = max(0, min(100, humidityPrediction))
         
+        # Store predictions
+        predictions['month'].append(current_pred_date.strftime('%B %Y'))
+        predictions['rainfall'].append(rainPrediction)
+        predictions['temperature'].append(tempPrediction)
+        predictions['humidity'].append(humidityPrediction)
+        
+        # Update lagged and moving average features
+        prev2_rainfall = prev_rainfall
+        prev2_temperature = prev_temperature
+        prev2_humidity = prev_humidity
+        prev_rainfall = rainPrediction
+        prev_temperature = tempPrediction
+        prev_humidity = humidityPrediction
+        # Approximate moving averages
+        ma6_rainfall = (ma6_rainfall * 5 + rainPrediction) / 6
+        ma6_temperature = (ma6_temperature * 5 + tempPrediction) / 6
+        ma6_humidity = (ma6_humidity * 5 + humidityPrediction) / 6
+        ma12_rainfall = (ma12_rainfall * 11 + rainPrediction) / 12
+        ma12_temperature = (ma12_temperature * 11 + tempPrediction) / 12
+        ma12_humidity = (ma12_humidity * 11 + humidityPrediction) / 12
+        
+        # Move to next month
         nextMonth = current_pred_date.month % 12 + 1
         nextYear = current_pred_date.year + (current_pred_date.month // 12)
         current_pred_date = current_pred_date.replace(year=nextYear, month=nextMonth, day=1)
-
+    
     totalRain = sum(predictions['rainfall'])
     avgTemp = sum(predictions['temperature']) / 12
     avgHumidity = sum(predictions['humidity']) / 12
-    print(f"Weather Values {totalRain},{avgTemp},{avgHumidity}")
+    
+    # # Display results
+    # print("\nWeather Predictions for the Next 12 Months:")
+    # print(f"{'Month':<15} {'Rainfall (mm)':<15} {'Temperature (°C)':<15} {'Humidity (%)':<15}")
+    # print("-" * 60)
+    # for i in range(12):
+    #     print(f"{predictions['month'][i]:<15} {predictions['rainfall'][i]:<15.2f} {predictions['temperature'][i]:<15.2f} {predictions['humidity'][i]:<15.2f}")
+    
+    print("\nSummary for the Next 12 Months:")
+    print(f"Total Rainfall: {totalRain:.2f} mm")
+    print(f"Average Temperature: {avgTemp:.2f} °C")
+    print(f"Average Humidity: {avgHumidity:.2f} %")
+    
     return totalRain, avgTemp, avgHumidity
+
 
 # Soil Data Fetching
 def soilData(lat, lon): 

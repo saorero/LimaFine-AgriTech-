@@ -9,4 +9,5 @@ urlpatterns = [
     path('subcountyLoad/', views.subcountyLoad, name='subcountyLoad'),
     path('wardLoad/', views.wardLoad, name='wardLoad'),
     path("predict/", views.predict, name="predict"),
+   
 ]
