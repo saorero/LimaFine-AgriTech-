@@ -41,6 +41,7 @@
   <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative opacity-95 max-h-[80vh] overflow-y-auto flex flex-col">
     <button id="closeModal" class="fixed top-4 right-4 text-white hover:text-gray-800 text-2xl z-10">×</button>
     <div class="flex justify-between items-center mb-4">
+     
       <h2 class="text-teal-800 text-xl font-bold">Suitable Crops</h2>
       <button id="gapButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-800 transition" title="Good Agricultural Practices">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,6 +49,8 @@
         </svg>       
       </button>
     </div>
+   
+    <p id="location" class="text-gray-700 mb-4 hidden">Location: Fetching...</p> <!-- NEW -->
     <p id="coordinates" class="text-gray-700 mb-4"></p>
     <ul id="cropPredictions" class="text-gray-700 mb-4 space-y-4"></ul>
     <button id="visualizeButton" class="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-900 transition w-full">Visualize</button>
@@ -136,17 +139,43 @@ $(document).ready(function () {
     }
   });
 
-  // My Location button logic (Geolocation)
+  // My Location button logic (Geolocation) 
   $("#getWeatherGeo").click(function (e) {
+    
+    $("#loading").removeClass("hidden"); // Show loading spinner
+    e.preventDefault(); // Prevent form submission
 
-    $("#loading").removeClass("hidden"); //NOW
-    e.preventDefault();// Prevent form submission
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         function (position) {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          // Send coordinates to backend for predictions
+
+          // Step 1: Reverse Geocoding with Google Maps API
+          console.log("heu")
+          $.ajax({
+            url: `https://maps.googleapis.com/maps/api/geocode/json`,
+            method: "GET",
+            data: {
+           
+              latlng: `${lat},${lng}`,
+              key: "AIzaSyC4wAAwZIIE1J_zs8g5V4tewgBzfxaHmP4" // Replace with your Google Maps API key
+            },
+            success: function (data) {
+              // Extract location details
+              const locationName = data.results[0]?.formatted_address || "Unknown location";
+              // Display location in the UI
+              // $("#location").text(`Location: ${locationName}`);
+              $("#location").text(`Location: ${locationName}`).removeClass("hidden");
+            },
+            error: function (err) {
+              console.error("Error fetching location:", err);
+              // $("#location").text("Location: Unable to retrieve location");
+              $("#location").text("Location: Unable to retrieve location").removeClass("hidden");
+            }
+          });
+
+          // Step 2: Send coordinates to backend for predictions (your existing code)
           $.ajax({
             url: "/predict/",
             method: "POST",
@@ -174,14 +203,17 @@ $(document).ready(function () {
               // Store cropData and gapData globally for chart and GAP modal
               window.cropData = cropData;
               window.gapData = gapData;
+              $("#loading").addClass("hidden"); // Hide loading spinner
             },
             error: function (err) {
               console.error("Error fetching predictions:", err);
               alert("Failed to fetch predictions. Please try again.");
-            },
+              $("#loading").addClass("hidden"); // Hide loading spinner
+            }
           });
         },
         function (error) {
+          $("#loading").addClass("hidden"); // Hide loading spinner
           let errorMessage;
           switch (error.code) {
             case error.PERMISSION_DENIED:
@@ -200,9 +232,13 @@ $(document).ready(function () {
         }
       );
     } else {
+      $("#loading").addClass("hidden"); // Hide loading spinner
       alert("Geolocation is not supported by your browser. Please select a location manually.");
     }
   });//End of MyLocation logic
+
+
+
 
   // Predict button logic predictButton Click
   let cropData = [];
@@ -215,6 +251,7 @@ $(document).ready(function () {
     if (constituency && ward) {
       const locationData = { constituency, ward };
       $("#loading").removeClass("hidden"); //NOW
+      $("#location").addClass("hidden"); // Ensure location is hidden for dropdown predictions
       $.ajax({
         url: "/predict/",
         method: "POST",
@@ -262,6 +299,7 @@ $(document).ready(function () {
     $("#resultModal").addClass("hidden");
     $("#confidenceChart").addClass("hidden");
     $("#loading").addClass("hidden");
+    $("#location").addClass("hidden").text("Location: Not specified"); // Reset and hide 
   });
 
   // Visualize button logic
