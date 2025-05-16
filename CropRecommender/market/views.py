@@ -1,5 +1,5 @@
 # VIEWS.PY
-# farmers/views.pyy
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
@@ -784,5 +784,4 @@ def main(request):
     }
     print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
     return render(request, 'market.html', context)
-
 

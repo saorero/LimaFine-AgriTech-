@@ -28,7 +28,19 @@ urlpatterns = [
     path('myOrders/', views.getMyOrders, name='getMyOrders'),
     path('deleteOrder/<int:order_id>/', views.deleteOrder, name='deleteOrder'),
 
-
+    # ROUTES
     path('optimize_delivery_route/', views.optimize_delivery_route, name='optimize_delivery_route'),
     path('update_farmer_location/', views.update_farmer_location, name='update_farmer_location'),
+    # Invoice
+    # path('send_invoice/', views.send_invoice, name='send_invoice'),
+    # path('confirm_order/', views.confirm_order, name='confirm_order'),
+    
+    # MPESA
+    # path('get_cart_orders/', views.get_cart_orders, name='get_cart_orders'),
+    # path('initiate_payment/', views.initiate_payment, name='initiate_payment'),
+    # path('mpesa_callback/', views.mpesa_callback, name='mpesa_callback'),
+
+    # path('cart/', views.get_cart_orders, name='cart_orders'),
+    # path('pay/<int:order_id>/', views.initiate_payment, name='initiate_payment'),
+    # path('mpesa/callback/', views.mpesa_callback, name='mpesa_callback'),
 ]
