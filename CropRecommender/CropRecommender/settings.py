@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'market', #Farmer market place
     'forecast', #for app forecasting
     'widget_tweaks', #form customization pip installed
+    'django_daraja',#For Mpesa
     
 
 ]
@@ -184,10 +185,5 @@ MPESA_SHORTCODE_TYPE = 'paybill'
 MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
 MPESA_INITIATOR_USERNAME = 'testapi'
 MPESA_INITIATOR_SECURITY_CREDENTIAL = 'Safaricom123!' 
-
-MPESA_CALLBACK_URL = 'https://8854-154-159-252-189.ngrok-free.app.io/market/mpesa/callback/'
-
-
-
 
 

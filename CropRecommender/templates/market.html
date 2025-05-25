@@ -1438,14 +1438,29 @@
             if (data.status !== 'success') alert(data.message);
         }
 
-        // My Orders
+        // My Orders Changed to accomodate mpesa 16/05/2025
         async function showMyOrders() {
             const response = await fetch('/market/myOrders/');
             const data = await response.json();
             const tbody = document.getElementById('myOrdersTable');
             tbody.innerHTML = '';
+
             data.orders.forEach(order => {
                 const tr = document.createElement('tr');
+
+                let actionHtml = '';
+                if (order.status === 'confirmed' && order.payment_status !== 'paid') {
+                    actionHtml = `<button onclick="payOrder(${order.id})" class="text-green-600 hover:text-green-800 font-semibold">
+                                    <i class="fas fa-money-bill-wave"></i> Pay
+                                </button>`;
+                } else if (order.payment_status === 'paid') {
+                    actionHtml = `<span class="text-green-700 font-bold">✅ Paid</span>`;
+                } else if (order.payment_status === 'failed') {
+                    actionHtml = `<span class="text-red-600 font-bold">❌ Failed</span>`;
+                } else {
+                    actionHtml = `<span class="text-gray-500">—</span>`;
+                }
+
                 tr.innerHTML = `
                     <td class="p-2">${order.farmer}</td>
                     <td class="p-2">${order.crop}</td>
@@ -1454,11 +1469,35 @@
                     <td class="p-2">${order.total.toFixed(2)}</td>
                     <td class="p-2">${order.status}</td>
                     <td class="p-2">${order.deliveryMode}</td>
-                    <td class="p-2">
-                        ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600"><i class="fas fa-trash"></i></button>` : ''}
-                    </td>
+                    <td class="p-2">${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600"><i class="fas fa-trash"></i></button>` : ''}</td>
+                    <td class="p-2">${actionHtml}</td>
                 `;
+
                 tbody.appendChild(tr);
+            });
+        }
+
+        // accomodate mpesa 16/05/2025
+        function payOrder(orderId) {
+            fetch(`/market/pay-order/${orderId}/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+            })
+            .then(res => res.json())
+            .then(data => {
+            if (data.success) {
+                alert("STK Push sent. Please check your phone and enter your MPesa PIN.");
+                setTimeout(() => location.reload(), 15000); // Reload after 15 seconds
+            } else {
+                alert("Payment Error: " + data.error);
+            }
+            })
+            .catch(err => {
+            alert("Payment Failed. Try again.");
+            console.log("Payment failed")
+            console.error(err);
             });
         }
 

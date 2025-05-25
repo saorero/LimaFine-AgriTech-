@@ -5,6 +5,8 @@ import os
 from Social.models import UserProfile
 from storages.backends.gcloud import GoogleCloudStorage
 
+from django.core.exceptions import ValidationError
+
 # from .utils import checkContent #content validation function uncomment later
 # from django.contrib.postgres.fields import JSONField  # For route optimization
 from django.db.models import JSONField
@@ -17,11 +19,9 @@ class Order(models.Model):
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
     )
-
     ORDER_DELIVERY_CHOICES = (
         ('pickup', 'Pickup'),
         ('delivery', 'Delivery'),
-
     )
     
     listing = models.ForeignKey('productListing', on_delete=models.CASCADE, related_name='orders')
@@ -35,6 +35,18 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
     delivery_route = JSONField(null=True, blank=True) #route optimization
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('unpaid', 'Unpaid'),
+            ('paid', 'Paid'),
+            ('failed', 'Failed'),
+        ],
+        default='unpaid'
+    )
+    checkout_id = models.CharField(max_length=100, blank=True, null=True)# accomodate mpesa 16/05/2025
+
+
     def clean(self):
         """Validate order details."""
         if self.quantity <= 0:
@@ -61,10 +73,8 @@ class Order(models.Model):
 # 08
 
 # Table that store the requests made by users 
-class ProductRequest(models.Model):
-   
-    requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='product_requests')
-    
+class ProductRequest(models.Model):   
+    requester = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='product_requests')    
     product_name = models.CharField(max_length=100, blank=False)
     quantity = models.FloatField()
     unit = models.CharField(max_length=20, default="kg")

@@ -20,6 +20,14 @@ from django.utils.timezone import localtime
 import requests
 from django.conf import settings
 import logging
+
+# MPESA
+from django.views.decorators.csrf import csrf_exempt
+from django_daraja.mpesa.core import MpesaClient
+from django.utils.timezone import now
+
+
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -784,4 +792,62 @@ def main(request):
     }
     print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
     return render(request, 'market.html', context)
+
+
+# MPESA INTEGRATION VIEWS
+# ORIGINAL working well
+@login_required
+def initiate_payment(request, order_id):
+    order = get_object_or_404(Order, id=order_id, requester__user=request.user)
+
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)       
+        cl = MpesaClient()
+        phone_number = user_profile.phoneNo
+        # amount = int(order.total_price)
+        amount = 1
+        account_reference = f"Order{order.id}"
+        transaction_desc = f"Payment for Order {order.id} for {order.listing}"      
+        callback_url = 'https://8e00-105-160-6-41.ngrok-free.app/market/mpesa/callback/'
+
+        response = cl.stk_push(phone_number, amount, account_reference, transaction_desc, callback_url)
+      
+        return JsonResponse({'success': True, 'message': 'STK Push sent. Enter MPesa pin.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+# ORIGINAL slightly working well
+@csrf_exempt
+def mpesa_callback(request):
+    from django.utils.timezone import now
+    import json
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        # testing but left out here
+        print("✅ MPESA CALLBACK RECEIVED:")
+        print(json.dumps(data, indent=2))
+        # end testing but left out here
+
+        try:
+            result_code = data['Body']['stkCallback']['ResultCode']
+            metadata = data['Body']['stkCallback'].get('CallbackMetadata', {})
+            reference = metadata.get('Item', [{}])[0].get('Value', '')
+
+            # Extract order_id from AccountReference
+            order_id = int(data['Body']['stkCallback']['CheckoutRequestID'][-6:])  # you can pass order_id in metadata too
+            order = Order.objects.filter(id=order_id).first()
+
+            if order:
+                if result_code == 0:
+                    order.payment_status = 'paid'
+                else:
+                    order.payment_status = 'failed'
+                order.save()
+
+            return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Success'})
+        except Exception as e:
+            return JsonResponse({'ResultCode': 1, 'ResultDesc': str(e)})
+    return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Invalid request method'})
 
