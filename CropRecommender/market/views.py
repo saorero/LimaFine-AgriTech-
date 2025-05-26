@@ -13,8 +13,10 @@ from Social.models import UserProfile
 from django.db.models import Q
 import json
 from django.contrib import messages
+from decimal import Decimal, ROUND_HALF_UP
 # from .utils import checkContent #confirms what is entered is valid
 from django.utils.timezone import localtime
+from django.utils.timezone import now
 
 # Route optimizations
 import requests
@@ -561,14 +563,18 @@ def createOrder(request):
         listing = get_object_or_404(productListing, id=listing_id, is_available=True)
         requester = request.user.userprofile
 
+        total_price = Decimal(str(quantity)) * Decimal(str(listing.price))
+        total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
         order = Order.objects.create(
             listing=listing,
             requester=requester,
-            quantity=quantity,
+            quantity=quantity,            
             location=location,
             latitude=float(latitude) if latitude else None,  # Store latitude
             longitude=float(longitude) if longitude else None,  # Store longitude
             deliveryMode=delivery_mode,
+            total_price=total_price,
         )
         return JsonResponse({
             'status': 'success',
@@ -603,6 +609,8 @@ def getFarmerOrders(request):
         'status': order.status,
         'deliveryMode': order.deliveryMode,
         'phone_number': order.requester.phoneNo,
+        'payment_status': order.payment_status,
+
     } for order in orders]
     return JsonResponse({'orders': orders_data})
 
@@ -627,14 +635,14 @@ def getMyOrders(request):
     orders_data = [{
         'id': order.id,
         'farmer': order.listing.farmer.user.username,
-        'crop': order.listing.productName,
-        # 'date': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'crop': order.listing.productName,    
         'date': localtime(order.created_at).strftime('%Y-%m-%d %H:%M:%S'),
         'quantity': order.quantity,
         'total': float(order.total_price),
         'status': order.status,
         'deliveryMode': order.deliveryMode,
         'can_delete': order.status in ('new', 'pending'),
+        "payment_status": order.payment_status,
     } for order in orders]
     return JsonResponse({'orders': orders_data})
 
@@ -793,51 +801,129 @@ def main(request):
     print("Context competitor_crop_pricing:", context.get('competitor_crop_pricing'))
     return render(request, 'market.html', context)
 
-
 # MPESA INTEGRATION VIEWS
 # ORIGINAL working well
+# @login_required
+# def initiate_payment(request, order_id):
+#     order = get_object_or_404(Order, id=order_id, requester__user=request.user)
+
+#     try:
+#         user_profile = UserProfile.objects.get(user=request.user)       
+#         cl = MpesaClient()
+#         phone_number = user_profile.phoneNo
+#         # amount = int(order.total_price)
+#         amount = 1
+#         account_reference = f"Order{order.id}"
+#         transaction_desc = f"Payment for Order {order.id} for {order.listing}"      
+#         callback_url = 'https://8e00-105-160-6-41.ngrok-free.app/market/mpesa/callback/'
+
+#         response = cl.stk_push(phone_number, amount, account_reference, transaction_desc, callback_url)
+      
+#         return JsonResponse({'success': True, 'message': 'STK Push sent. Enter MPesa pin.'})
+#     except Exception as e:
+#         return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
+# # ORIGINAL slightly working well
+# @csrf_exempt
+# def mpesa_callback(request):
+#     from django.utils.timezone import now
+#     import json
+
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         # testing but left out here
+#         print("✅ MPESA CALLBACK RECEIVED:")
+#         print(json.dumps(data, indent=2))
+#         # end testing but left out here
+
+#         try:
+#             result_code = data['Body']['stkCallback']['ResultCode']
+#             metadata = data['Body']['stkCallback'].get('CallbackMetadata', {})
+#             reference = metadata.get('Item', [{}])[0].get('Value', '')
+
+#             # Extract order_id from AccountReference
+#             order_id = int(data['Body']['stkCallback']['CheckoutRequestID'][-6:])  # you can pass order_id in metadata too
+#             order = Order.objects.filter(id=order_id).first()
+
+#             if order:
+#                 if result_code == 0:
+#                     order.payment_status = 'paid'
+#                 else:
+#                     order.payment_status = 'failed'
+#                 order.save()
+
+#             return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Success'})
+#         except Exception as e:
+#             return JsonResponse({'ResultCode': 1, 'ResultDesc': str(e)})
+#     return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Invalid request method'})
+
+
+# Confirm order received by the buyer
+@login_required
+# @csrf_exempt
+def completeOrder(request, order_id):
+    print("Debug completeOrder")
+    if request.method == 'POST':
+        try:
+            # order = Order.objects.get(id=order_id, requester=request.user)
+            order = Order.objects.get(id=order_id, requester=request.user.userprofile)
+
+            if order.status != 'confirmed':
+                return JsonResponse({'error': 'Only confirmed orders can be marked as completed'}, status=400)
+            order.status = 'completed'
+            order.save()
+            return JsonResponse({'success': True})
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found or you are not allowed to update this order'}, status=404)
+
+
+
+#   PAYMENT CONFIGURATION
 @login_required
 def initiate_payment(request, order_id):
     order = get_object_or_404(Order, id=order_id, requester__user=request.user)
 
     try:
-        user_profile = UserProfile.objects.get(user=request.user)       
+        user_profile = UserProfile.objects.get(user=request.user)
         cl = MpesaClient()
         phone_number = user_profile.phoneNo
-        # amount = int(order.total_price)
-        amount = 1
+        amount = 1  # for testing; use `int(order.total_price)` in production
         account_reference = f"Order{order.id}"
-        transaction_desc = f"Payment for Order {order.id} for {order.listing}"      
-        callback_url = 'https://8e00-105-160-6-41.ngrok-free.app/market/mpesa/callback/'
+        transaction_desc = f"Payment for Order {order.id} for {order.listing}"
+        callback_url = 'https://da0b-197-136-99-52.ngrok-free.app/market/mpesa/callback/'
 
         response = cl.stk_push(phone_number, amount, account_reference, transaction_desc, callback_url)
-      
+
+        print(response)
+        # Store the checkout request ID from response
+        checkout_id = response.checkout_request_id  
+
+        order.checkout_id = checkout_id        
+        order.save()
+
         return JsonResponse({'success': True, 'message': 'STK Push sent. Enter MPesa pin.'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
-
-# ORIGINAL slightly working well
 @csrf_exempt
 def mpesa_callback(request):
-    from django.utils.timezone import now
-    import json
-
+    
+    print("✅ MPESA CALLBACK RECEIVED:")
     if request.method == 'POST':
         data = json.loads(request.body)
-        # testing but left out here
         print("✅ MPESA CALLBACK RECEIVED:")
         print(json.dumps(data, indent=2))
-        # end testing but left out here
 
         try:
             result_code = data['Body']['stkCallback']['ResultCode']
+            checkout_id = data['Body']['stkCallback']['CheckoutRequestID']
             metadata = data['Body']['stkCallback'].get('CallbackMetadata', {})
-            reference = metadata.get('Item', [{}])[0].get('Value', '')
 
-            # Extract order_id from AccountReference
-            order_id = int(data['Body']['stkCallback']['CheckoutRequestID'][-6:])  # you can pass order_id in metadata too
-            order = Order.objects.filter(id=order_id).first()
+            # Match order using the stored checkout_id
+            order = Order.objects.filter(checkout_id=checkout_id).first()
 
             if order:
                 if result_code == 0:
@@ -848,6 +934,9 @@ def mpesa_callback(request):
 
             return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Success'})
         except Exception as e:
+            print("❌ Callback error:", e)
             return JsonResponse({'ResultCode': 1, 'ResultDesc': str(e)})
+
     return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Invalid request method'})
+
 

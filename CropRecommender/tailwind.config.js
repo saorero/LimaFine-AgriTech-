@@ -33,6 +33,8 @@ module.exports = {
       fontFamily: {
         italianno: ["Italianno", "cursive"],
       },
+
+      
       
     },
   },

@@ -27,16 +27,15 @@ urlpatterns = [
     path('updateOrderStatus/<int:order_id>/', views.updateOrderStatus, name='updateOrderStatus'),
     path('myOrders/', views.getMyOrders, name='getMyOrders'),
     path('deleteOrder/<int:order_id>/', views.deleteOrder, name='deleteOrder'),
+    # confirms orders
+    path('completeOrder/<int:order_id>/', views.completeOrder, name='completeOrder'),
+
 
     # ROUTES
     path('optimize_delivery_route/', views.optimize_delivery_route, name='optimize_delivery_route'),
     path('update_farmer_location/', views.update_farmer_location, name='update_farmer_location'),
-    # Invoice Sending canceled out for now
-    # path('send_invoice/', views.send_invoice, name='send_invoice'),
-    # path('confirm_order/', views.confirm_order, name='confirm_order'),
-    
+       
     # MPESA   
-
     path('pay-order/<int:order_id>/', views.initiate_payment, name='pay_order'),
     path('mpesa/callback/', views.mpesa_callback, name='mpesa_callback'),
 ]

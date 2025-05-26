@@ -51,10 +51,11 @@
     </div>
    
     <p id="location" class="text-gray-700 mb-4 hidden">Location: Fetching...</p> <!-- NEW -->
-    <p id="coordinates" class="text-gray-700 mb-4"></p>
+    <!-- <p id="coordinates" class="text-teal-700 mb-4 font-bold"></p> -->
+     <p id="coordinates" class="text-teal-700 mb-4 font-bold bg-teal-100 p-4 rounded-md shadow"></p>
+
     <ul id="cropPredictions" class="text-gray-700 mb-4 space-y-4"></ul>
-    <button id="visualizeButton" class="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-900 transition w-full">Visualize</button>
-    <canvas id="confidenceChart" class="mt-4 hidden w-full"></canvas>
+   
   </div>
 </div>
 
@@ -183,23 +184,28 @@ $(document).ready(function () {
             contentType: "application/json",
             success: function (response) {
               $("#resultModal").removeClass("hidden");
-              $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
+              $("#coordinates").text(`Coordinates: Latitude: ${response.coordinates.lat}, Longitude: ${response.coordinates.lng}`);
               $("#cropPredictions").empty();
               let cropData = [];
               let gapData = {};
               response.crop_predictions.forEach(function (prediction) {
+
+                const label = getSuitabilityLabel(prediction.confidence); //calls getSuitabilityLabel function 
+                // <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence195
+
                 $("#cropPredictions").append(`
                   <li class="flex items-center space-x-4">
                     <img src="${prediction.image}" alt="${prediction.crop}" class="w-16 h-16 object-cover rounded-md">
                     <div>
-                      <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence
+                      
+                      <strong>${prediction.crop}</strong>${label}
                     </div>
                   </li>
                 `);
                 cropData.push({ crop: prediction.crop, confidence: prediction.confidence });
                 gapData[prediction.crop] = prediction.gap;
               });
-              $("#confidenceChart").addClass("hidden");
+              // $("#confidenceChart").addClass("hidden");
               // Store cropData and gapData globally for chart and GAP modal
               window.cropData = cropData;
               window.gapData = gapData;
@@ -261,24 +267,28 @@ $(document).ready(function () {
         success: function (response) {
           $("#resultModal").removeClass("hidden");
           // puts in values in the tag with coordinates id
-          $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
+          // $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
+          $("#coordinates").text(`Constituency: ${constituency} Ward: ${ward} (Latitude: ${response.coordinates.lat}, Longitude: ${response.coordinates.lng})`);
           $("#cropPredictions").empty();//clears previous predictions
           cropData = [];//storing data
           gapData = {};
           response.crop_predictions.forEach(function (prediction) {
             //Adds the predicted results that is crop images and confidence
+            // <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence2
+            const label = getSuitabilityLabel(prediction.confidence);
             $("#cropPredictions").append(`
               <li class="flex items-center space-x-4">
                 <img src="${prediction.image}" alt="${prediction.crop}" class="w-16 h-16 object-cover rounded-md">
                 <div>
-                  <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence
+                  
+                  <strong>${prediction.crop}</strong>${label}
                 </div>
               </li>
             `);
             cropData.push({ crop: prediction.crop, confidence: prediction.confidence });
             gapData[prediction.crop] = prediction.gap; // Store GAP data
           });
-          $("#confidenceChart").addClass("hidden");//hidden initially the chart
+          // $("#confidenceChart").addClass("hidden");//hidden initially the chart
           
           // Store cropData and gapData globally for chart and GAP modal
           window.cropData = cropData;
@@ -297,56 +307,19 @@ $(document).ready(function () {
   // Close prediction modal
   $("#closeModal").click(function () {
     $("#resultModal").addClass("hidden");
-    $("#confidenceChart").addClass("hidden");
+    // $("#confidenceChart").addClass("hidden");
     $("#loading").addClass("hidden");
     $("#location").addClass("hidden").text("Location: Not specified"); // Reset and hide 
   });
 
-  // Visualize button logic
-  let chartInstance = null;
-  $("#visualizeButton").click(function () {
-    const chartElement = $("#confidenceChart");
-    const isChartVisible = !chartElement.hasClass("hidden");
 
-    if (!isChartVisible) {
-      chartElement.removeClass("hidden");
-      const ctx = chartElement[0].getContext("2d");
-
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-
-      chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: window.cropData.map(data => data.crop),
-          datasets: [{
-            label: "Confidence (%)",
-            data: window.cropData.map(data => data.confidence),
-            backgroundColor: "rgba(13, 148, 136, 0.6)",
-            borderColor: "rgba(13, 148, 136, 1)",
-            borderWidth: 1
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true, max: 100 },
-            x: { ticks: { autoSkip: false } }
-          },
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: "Crop Confidence Levels" }
-          }
-        }
-      });
-    } else {
-      chartElement.addClass("hidden");
-      if (chartInstance) {
-        chartInstance.destroy();
-        chartInstance = null;
-      }
-    }
-  });
+  // Function that analyzes the confidence level
+  function getSuitabilityLabel(confidence) {
+    if (confidence <= 20) return "❌Not Suitable";
+    else if (confidence <= 40) return "⚠️Slightly Suitable";
+    else if (confidence <= 70) return "✅Suitable";
+    else return "🌟🌟Highly Suitable";
+  }
 
   // GAP button logic
   $("#gapButton").click(function () {

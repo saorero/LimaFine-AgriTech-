@@ -10,7 +10,8 @@ from django.core.exceptions import ValidationError
 # from .utils import checkContent #content validation function uncomment later
 # from django.contrib.postgres.fields import JSONField  # For route optimization
 from django.db.models import JSONField
-# Create your models here.
+from decimal import Decimal, ROUND_HALF_UP
+
 # Table for the orders made for a productListing 081
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -41,11 +42,38 @@ class Order(models.Model):
             ('unpaid', 'Unpaid'),
             ('paid', 'Paid'),
             ('failed', 'Failed'),
+            ('released', 'Released'),
         ],
         default='unpaid'
     )
     checkout_id = models.CharField(max_length=100, blank=True, null=True)# accomodate mpesa 16/05/2025
+  
 
+    # def clean(self):
+    #     """Validate order details."""
+    #     if self.quantity <= 0:
+    #         raise ValidationError({'quantity': 'Quantity must be greater than 0.'})
+    #     if self.quantity > self.listing.quantity:
+    #         raise ValidationError({'quantity': f'Quantity requested ({self.quantity}) exceeds available ({self.listing.quantity}).'})
+
+    #     expected_price = Decimal(self.quantity) * self.listing.price
+    #     expected_price = expected_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    #     if self.total_price != expected_price:
+    #         raise ValidationError({'total_price': 'Total price does not match quantity × listing price.'})
+
+
+    # def save(self, *args, **kwargs):
+    #     """Override save to calculate total_price and reduce listing quantity."""
+    #     if not self.pk:  # Only on creation
+    #         self.total_price = self.quantity * float(self.listing.price)          
+           
+    #         self.listing.quantity -= self.quantity
+    #         if self.listing.quantity <= 0:
+    #             self.listing.is_available = False
+    #         self.listing.save()
+    #     self.clean()
+    #     super().save(*args, **kwargs)
 
     def clean(self):
         """Validate order details."""
@@ -53,18 +81,27 @@ class Order(models.Model):
             raise ValidationError({'quantity': 'Quantity must be greater than 0.'})
         if self.quantity > self.listing.quantity:
             raise ValidationError({'quantity': f'Quantity requested ({self.quantity}) exceeds available ({self.listing.quantity}).'})
-        if self.total_price != (self.quantity * float(self.listing.price)):
-            raise ValidationError({'total_price': 'Total price does not match quantity × listing price.'})
 
+        # ✅ Safely convert float to Decimal
+        quantity_decimal = Decimal(str(self.quantity))
+        expected_price = quantity_decimal * self.listing.price
+        expected_price = expected_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        if self.total_price != expected_price:
+            raise ValidationError({'total_price': 'Total price does not match quantity × listing price.'})
+    
     def save(self, *args, **kwargs):
         """Override save to calculate total_price and reduce listing quantity."""
         if not self.pk:  # Only on creation
-            self.total_price = self.quantity * float(self.listing.price)
+            quantity_decimal = Decimal(str(self.quantity))
+            self.total_price = quantity_decimal * self.listing.price
+            self.total_price = self.total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
             self.listing.quantity -= self.quantity
             if self.listing.quantity <= 0:
                 self.listing.is_available = False
             self.listing.save()
-        # self.clean()
+        self.clean()
         super().save(*args, **kwargs)
 
     def __str__(self):

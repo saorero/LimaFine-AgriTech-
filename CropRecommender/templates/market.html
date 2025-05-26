@@ -136,8 +136,8 @@
     <!-- My Products Section -->
     <div id="myProductsSection" class="tab-content hidden relative">
         <div class="flex justify-end p-2">
-            <button id="createListingTab" class="px-4 py-2 font-semibold text-teal-700 hover:bg-teal-700 hover:text-white transition duration-300 tab-button">
-                <i class="fa-solid fa-plus"></i>Create Listing
+            <button id="createListingTab" class="px-4 py-2 font-semibold text-teal-700 hover:bg-teal-700 hover:text-white hover:rounded-full transition duration-300 tab-button">
+                <i class="fa-solid fa-plus"></i> Create Listing
             </button>
         </div>
         
@@ -151,11 +151,12 @@
             
             <div class="flex gap-4">
                 <div class="w-full">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="myProductsGrid">
+                    <!-- <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="myProductsGrid"> -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6" id="myProductsGrid">
                         {% if listings %}
                             {% for listing in listings %}
                                 <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300" data-category="{{ listing.productCategory }}">
-                                    <div class="h-40 w-full overflow-hidden">
+                                    <div class="h-80 w-full overflow-hidden">
                                         <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
                                     </div>
                                     <div class="p-4 flex flex-col flex-grow">
@@ -183,7 +184,7 @@
                                                 <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-red-500 hover:text-red-600" title="Delete Listing">
+                                                <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-teal-700 hover:text-green-800" title="Delete Listing">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </div>
@@ -291,7 +292,8 @@
                         <div class="flex space-x-2">
                             <input type="text" id="listingLocationInput" name="location" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Enter or select your location" value="{{ form.location.value|default:user.userprofile.county }}">
                             <button type="button" id="useCurrentLocationListing" class="p-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300" title="Use Current Location">
-                                <i class="fas fa-location-arrow"></i>
+                                <!-- <i class="fas fa-location-arrow"></i> -->
+                                <i class="fa-solid fa-location-dot"></i>
                             </button>
                         </div>
                         {{ form.latitude|add_class:"hidden" }}
@@ -480,6 +482,13 @@
     <!-- Farmer Orders Section -->
     <div id="farmerOrdersSection" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4 text-teal-800">Received Orders</h2>
+        <div id="orderSummary" class="mb-4 flex gap-6 text-sm font-semibold">
+            <span id="paidCount" class="text-green-600">Paid Orders: 0</span>
+            <span id="unpaidCount" class="text-gray-600">Unpaid Orders: 0</span>
+            <!-- Hold the total amount of orders that have been completed and disbursed to the farmers account -->
+            <span id="completedTotal" class="text-green-600">AccountBalance: 0</span> 
+
+        </div>
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <table class="w-full">
                 <thead class="bg-teal-100">
@@ -487,10 +496,10 @@
                         <th class="p-2 text-left text-teal-800">Date</th>
                         <th class="p-2 text-left text-teal-800">Requester</th>
                         <th class="p-2 text-left text-teal-800">Crop</th>
-                        <th class="p-2 text-left text-teal-800">Quantity</th>
+                        <th class="p-2 text-left text-teal-800">Quantity(Kg.)</th>
                         <th class="p-2 text-left text-teal-800">Total (KES)</th>
                         <th class="p-2 text-left text-teal-800">Location</th>
-                        <th class="p-2 text-left text-teal-800">Delivery</th>
+                        <th class="p-2 text-left text-teal-800">Mode</th>
                         <th class="p-2 text-left text-teal-800">Status</th>
                         
                     </tr>
@@ -512,10 +521,10 @@
                         <th class="p-2 text-left text-teal-800">Farmer</th>
                         <th class="p-2 text-left text-teal-800">Crop</th>
                         <th class="p-2 text-left text-teal-800">Date</th>
-                        <th class="p-2 text-left text-teal-800">Quantity</th>
+                        <th class="p-2 text-left text-teal-800">Quantity (Kg.)</th>
                         <th class="p-2 text-left text-teal-800">Total (KES)</th>
                         <th class="p-2 text-left text-teal-800">Status</th>
-                        <th class="p-2 text-left text-teal-800">Delivery</th>
+                        <th class="p-2 text-left text-teal-800">Mode</th>
                         <th class="p-2 text-left text-teal-800">Action</th>
                     </tr>
                 </thead>
@@ -1389,6 +1398,11 @@
             const response = await fetch('/market/farmerOrders/');
             const data = await response.json();
             const tbody = document.getElementById('farmerOrdersTable');
+
+            let paidOrders = 0;
+            let unpaidOrders = 0;
+            let completedTotal = 0; //keeps a record of the total amount that should be disbursed to the users account
+
             tbody.innerHTML = '';
             data.orders.forEach(order => {
                 const tr = document.createElement('tr');
@@ -1402,6 +1416,23 @@
                 : '<span class="text-gray-400"><i class="fab fa-whatsapp"></i></span>'; // Disabled icon if no phone number
                 // END OF WHATSAPP
 
+                //// PAYMENT ICON <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                let paymentIcon = '';
+                if (order.payment_status === 'paid' && order.status === 'confirmed') {
+                    paymentIcon = '<span class="text-green-600 ml-2" title="Payment Received"><i class="fas fa-check-circle"></i>Paid</span>';
+                    paidOrders += 1;
+                }else if (order.status === 'confirmed' && order.payment_status !== 'paid'){
+                    paymentIcon = '<span class="text-gray-500 ml-2" title="Payment Not Received"><i class="fas fa-times-circle"></i>Unpaid</span>';
+                    unpaidOrders += 1;
+                }
+                else{
+                    paymentIcon = '<span class="text-gray-400 ml-2">_</span>';
+                }
+
+                if (order.status === 'completed') {
+                    completedTotal += order.total;
+                }
+
                 tr.innerHTML = `
                     <td class="p-2">${order.date}</td>
                     <td class="p-2">${order.requester}</td>
@@ -1411,21 +1442,28 @@
                     <td class="p-2">${order.location}</td>
                     <td class="p-2">${order.deliveryMode}</td>
                     <td class="p-2">
-                        <select onchange="updateOrderStatus(${order.id}, this.value)" class="p-1 border rounded">
+                        <select onchange="updateOrderStatus(${order.id}, this.value)" class="p-1 border rounded"
+                            ${order.status === 'completed' ? 'disabled' : ''}>
                             <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
                             <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
                             <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
-                            <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                            
                         </select>
                     </td>
 
                     <td class="p-2">
                         ${whatsappLink}
+                        ${paymentIcon}
                         ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+            
+            document.getElementById('paidCount').textContent = `Paid Orders: ${paidOrders}`;
+            document.getElementById('unpaidCount').textContent = `Unpaid Orders: ${unpaidOrders}`;
+            document.getElementById('completedTotal').textContent = `AccountBalance: KES ${completedTotal.toFixed(2)}`;
+
         }
 
         async function updateOrderStatus(orderId, status) {
@@ -1453,11 +1491,19 @@
                     actionHtml = `<button onclick="payOrder(${order.id})" class="text-green-600 hover:text-green-800 font-semibold">
                                     <i class="fas fa-money-bill-wave"></i> Pay
                                 </button>`;
-                } else if (order.payment_status === 'paid') {
-                    actionHtml = `<span class="text-green-700 font-bold">✅ Paid</span>`;
-                } else if (order.payment_status === 'failed') {
-                    actionHtml = `<span class="text-red-600 font-bold">❌ Failed</span>`;
-                } else {
+                }
+                
+                else if (order.status === 'new' || order.status === 'pending'){
+                    actionHtml = `<span class="text-gray-500">—</span>`;
+                }else if (order.status === 'confirmed' && order.payment_status === 'paid') {
+                    actionHtml = `<button onclick="markOrderCompleted(${order.id})" class="text-green-600 hover:text-green-800 font-semibold">
+                                    <i class="fas fa-check-circle"></i>Received
+                                </button>`;
+                }
+                else if (order.status === 'completed') {
+                    actionHtml = `<span class="text-green-600 font-bold">✅</span>`;
+                }
+                else {
                     actionHtml = `<span class="text-gray-500">—</span>`;
                 }
 
@@ -1477,7 +1523,43 @@
             });
         }
 
-        // accomodate mpesa 16/05/2025
+        function getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue;
+        }
+
+        async function markOrderCompleted(orderId) {
+            if (!confirm("Are you sure you want to mark this order as completed?")) return;
+
+            const url = `/market/completeOrder/${orderId}/`;
+            const csrf = getCSRFToken();
+
+            console.log("✅ About to send fetch to:", url);
+            console.log("✅ CSRF Token:", csrf);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrf,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                alert('Order marked as completed!');
+                showMyOrders();
+            } else {
+                const data = await response.json();
+                alert(`Error: ${data.error || 'Something went wrong'}`);
+            }
+        }
+
+
+
+        // FUNCTION THAT handles payment
         function payOrder(orderId) {
             fetch(`/market/pay-order/${orderId}/`, {
             method: 'GET',
@@ -1524,7 +1606,6 @@
     
 
     // ORDERS
-
     // Dashboard functions
     // New: Competitor Crop Pricing Chart Logic
     function initializeCompetitorCropPricingChart() {
@@ -1761,6 +1842,7 @@
     // ADDED TODAY 30 LOCATION FUNCTIONALITIES END
    
     //Ensure DOM has loaded before calling certain function that handle different logic
+    // Combine this DOM with th eone below
     document.addEventListener("DOMContentLoaded", function () {
           
             // LISTING FORM
@@ -1828,8 +1910,7 @@
    // setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional) you will uncomment this 
 
 
-   // Category Sidebar Toggle and Filter Logic
-    
+   // Category Sidebar Toggle and Filter Logic    
     function initializeCategorySidebars() {
     // Marketplace Sidebar
     const openMarketplaceSidebar = document.getElementById('openMarketplaceSidebar');
@@ -1922,9 +2003,6 @@
     document.addEventListener('DOMContentLoaded', initializeCategorySidebars);
 
     // ROUTE OPTIMIZATION FUNCTIONS
-    // Initialize Google Maps for route display
-    // let map, directionsService, directionsRenderer;
-
     // Map and directions service for each route
     const mapInstances = {};
     const polylines = {};
@@ -2240,17 +2318,8 @@
         });
     }
 
-
-
     // Update DOMContentLoaded to initialize map and button
-    document.addEventListener('DOMContentLoaded', function () {
-        // Existing code...
-
-        
-        // Initialize route map
-        // initializeRouteMap(); COMMMENTED OUT FOR NOW
-
-
+    document.addEventListener('DOMContentLoaded', function () {       
         // Route optimization button
         const optimizeRouteButton = document.getElementById('optimizeRouteButton');
         if (optimizeRouteButton) {
