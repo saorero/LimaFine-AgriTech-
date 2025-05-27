@@ -89,17 +89,22 @@ def optimize_delivery_route(request):
         listing = data['listing']
         listing_orders = data['orders']
 
-        # Skip listings without valid coordinates
-        if listing.latitude is None or listing.longitude is None:
-            logger.warning(f"Skipping listing {listing.productName} (ID: {listing_id}) due to missing coordinates")
+        # Check if either the listing or the farmer has valid coordinates
+        has_listing_coords = listing.latitude is not None and listing.longitude is not None
+        has_farmer_coords = user_profile.latitude is not None and user_profile.longitude is not None
+
+        if not has_listing_coords and not has_farmer_coords:
+            logger.warning(f"Skipping listing {listing.productName} (ID: {listing_id}) due to missing coordinates for both listing and farmer")
             continue
 
-        # Use farmer's location if set, otherwise use listing's location
-        origin = (
-            f"{user_profile.latitude},{user_profile.longitude}"
-            if user_profile.latitude is not None and user_profile.longitude is not None
-            else f"{listing.latitude},{listing.longitude}"
-        )
+        # Prefer farmer's location as origin; fallback to listing's location
+        if has_farmer_coords:
+            origin = f"{user_profile.latitude},{user_profile.longitude}"
+            logger.debug(f"Using farmer's location as origin: {origin}")
+        else:
+            origin = f"{listing.latitude},{listing.longitude}"
+            logger.debug(f"Using listing's location as origin: {origin} for listing: {listing.productName}")
+
         logger.debug(f"Optimizing route for listing: {listing.productName} (location: {listing.location}), origin: {origin}")
 
         # Prepare waypoints (order locations)
@@ -167,12 +172,12 @@ def optimize_delivery_route(request):
                         logger.debug(f"Individual estimate for order {order.id} to {order.location}: {individual_distance} km, {individual_duration} minutes")
                     else:
                         logger.warning(f"Individual API error for order {order.id}: {individual_data.get('error_message', 'Unknown error')}")
-                        individual_distance = null
-                        individual_duration = null
+                        individual_distance = None
+                        individual_duration = None
                 except requests.RequestException as e:
                     logger.error(f"Failed to get individual distance for order {order.id}: {str(e)}")
-                    individual_distance = null
-                    individual_duration = null
+                    individual_distance = None
+                    individual_duration = None
 
                 optimized_orders.append({
                     'order_id': order.id,
@@ -202,7 +207,7 @@ def optimize_delivery_route(request):
                 'polyline': route['overview_polyline']['points'],
             })
             logger.info(f"Route optimization successful for listing {listing.productName}")
-        except (KeyError, IndexError) as e:
+        except (KeyError, IndexIndexError) as e:
             logger.error(f"Error processing Google Maps API response for listing {listing.productName}: {str(e)}")
             continue
 
@@ -210,7 +215,7 @@ def optimize_delivery_route(request):
         logger.error("No routes could be optimized")
         return JsonResponse({
             'status': 'error',
-            'message': 'No routes could be optimized. Ensure all listings have valid coordinates and orders have valid delivery locations.'
+            'message': 'No routes could be optimized. Ensure at least one listing or the farmer has valid coordinates, and orders have valid delivery locations.'
         }, status=400)
 
     logger.info(f"Optimized {len(routes)} routes")
