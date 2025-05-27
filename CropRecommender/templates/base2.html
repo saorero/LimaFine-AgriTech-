@@ -11,49 +11,49 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>    
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
-<!-- <body class="bg-gray-300"> ORIGINAL-->
+
 <body class="bg-gradient-to-b from-teal-50 via-brown-50 to-white min-h-screen">
     <div class="flex h-screen">
         <!-- Sidebar text-white-->
-        <!-- <div id="sidebar" class="w-16 lg:w-16 bg-teal-700 shadow-lg p-4 transition-all duration-300">         -->
-        <div id="sidebar" class=" w-16 lg:w-16 bg-teal-700 p-4 transition-all duration-300 ">         
         
+        <!-- <div id="sidebar" class=" w-16 lg:w-16 bg-teal-700 p-4 transition-all duration-300 ">          -->
+        <div id="sidebar" class="fixed top-0 left-0 h-screen bg-teal-700 p-4 transition-all duration-300 z-50 w-16">
 
             <button onclick="toggleSidebar()" class="mb-4 "><i class="fa-solid fa-seedling fa-xl"></i></button>
             <ul class="text-teal-100 space-y-4">
-                <li class="my-2 flex items-center py-4"><a href="{% url 'Homepage' %}"><i class="fa-solid fa-house fa-xl mr-2"></i><span id="home-text" class="hidden">Home</span></a></li>
+                <li class="my-2 flex items-center py-4 "><a href="{% url 'Homepage' %}"><i class="fa-solid fa-house fa-xl mr-2"></i><span id="home-text" class="hidden">Home</span></a></li>
                 
-                 <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'mainSection' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-3xl{% endif %}">
-                    <a href="{% url 'mainSection' %}" >
+                <li class="my-2 flex items-center py-4  {% if request.resolver_match.url_name == 'mainSection' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-2xl{% endif %}">
+                    <a href="{% url 'mainSection' %}"  >
                         <i class="fa-solid fa-cloud-sun-rain fa-xl mr-2"></i>
                         <span id="forecast-text" class="hidden">Forecast</span>
                     </a>
                 </li>
-                <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'hub' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-3xl{% endif %}">
+                <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'hub' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-2xl{% endif %}">
                     <a href="{% url 'hub' %}" >
                         <i class="fa-solid fa-book fa-xl mr-2"></i>
                         <span id="learning-text" class="hidden">Resource Hub</span>
                     </a>
                 </li>
-                <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'chat' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-3xl{% endif %}">
+                <li class="my-2 flex items-center py-4  {% if request.resolver_match.url_name == 'chat' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-2xl{% endif %}">
                     <a href="{% url 'chat' %}">
                         <i class="fa-solid fa-comments fa-xl mr-2"></i>
                         <span id="botText" class="hidden">AgriBot</span>
                     </a>
                 </li>
-                <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'main' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-3xl{% endif %}">
+                <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'main' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-2xl{% endif %}">
                     <a href="{% url 'main' %}" >
                         <i class="fa-solid fa-cart-shopping fa-xl mr-2"></i>
                         <span id="marketText" class="hidden">Market</span>
                     </a>
                 </li>
-                <li class="my-2 flex items-center py-4 {% if request.resolver_match.url_name == 'feed' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-3xl{% endif %}">
+                <li class="my-2 flex items-center py-4  {% if request.resolver_match.url_name == 'feed' %}bg-teal-100 text-teal-800 py-4 my-2 rounded-2xl{% endif %}">
                     <a href="{% url 'feed' %}" >
                         <i class="fa-solid fa-people-arrows fa-xl mr-2"></i>
                         <span id="feed-text" class="hidden">Community</span>
                     </a>
                 </li>
-                <li class="my-2 flex items-center py-4">
+                <li class="my-2 flex items-center py-4 ">
                     <a href="{% url 'logout' %}" >
                         <i class="fa-solid fa-right-from-bracket fa-xl mr-2"></i>
                         <span id="logout-text" class="hidden">Logout</span>
@@ -64,17 +64,10 @@
         </div>
         
         <!-- Main Area -->
-        <div class="flex-1 flex flex-col">
-        <!-- <div class="flex-1 flex flex-col ml-16 lg:ml-56"> -->
+        <!-- <div class="flex-1 flex flex-col"> -->
+        <div id="main-content" class="flex-1 flex flex-col ml-16 transition-all duration-300">
 
-            <!-- Social Page Top ORIGINAL-->
-            <!-- <div class="bg-gray-200 shadow-md p-4 flex justify-between items-center">
-                <h2 class="text-lg md:text-xl">Welcome, {{ user.username }}!</h2>
-                <div class="flex items-center">
-                    <button onclick="toggleProfilePopup()" class="mr-2">👤</button>
-                </div>
-            </div> -->
-            <!-- Social Page Top -->
+
             <div class="bg-teal-100 shadow-md p-4 flex justify-between items-center">
                 <h2 class="text-lg md:text-xl text-teal-800">Welcome, {{ user.username }}!</h2>
                 <div class="flex items-center">
@@ -119,21 +112,32 @@
 // Scripts for the navbar
 function toggleSidebar() {
     let sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('w-16'); // Collapsed width
-    sidebar.classList.toggle('lg:w-56'); // Expanded width on large screens
+    let mainContent = document.getElementById('main-content');
+    
+    sidebar.classList.toggle('w-16');
+    sidebar.classList.toggle('w-56');
+
 
     let textElements = ['home-text', 'forecast-text', 'learning-text', 'botText', 'marketText', 'feed-text', 'logout-text'];
     textElements.forEach(id => {
         let element = document.getElementById(id);
         if (sidebar.classList.contains('w-16')) {
-            element.classList.add('hidden');  // Hide text
-            // element.parentElement.classList.add('py-2');  // Increase space
+            element.classList.add('hidden');
         } else {
-            element.classList.remove('hidden');  // Show text
-            // element.parentElement.classList.remove('py-2');  // Reset space
+            element.classList.remove('hidden');
         }
     });
-} 
+
+    // Adjust the main content margin
+    if (sidebar.classList.contains('w-56')) {
+        mainContent.classList.remove('ml-16');
+        mainContent.classList.add('ml-56');
+    } else {
+        mainContent.classList.remove('ml-56');
+        mainContent.classList.add('ml-16');
+    }
+}
+ 
 
 // Function for the profile details pop up
 function toggleProfilePopup() {

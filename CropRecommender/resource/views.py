@@ -61,7 +61,8 @@ def fetchDocuments(request):
 
     files = [
         {
-            "name": blob.name,
+            # "name": blob.name,
+            "name": os.path.basename(blob.name),  # extracts only filename
             "url": blob.public_url,
             "extension": blob.name.split('.')[-1]
         }

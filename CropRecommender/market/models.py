@@ -182,7 +182,7 @@ class productListing(models.Model):
                 return f"/static/Images/crops/{product_image_name}"
             return "/static/Images/crops/default.jpg"
 
-    def __str__(self):#easy identification in admin tomatoes by akeyo
+    def __str__(self):#easy identification in admin tomatoes by akeyoo
         return f"{self.productName} by {self.farmer.user.username}"
 
 

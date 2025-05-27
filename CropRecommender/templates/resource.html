@@ -66,10 +66,12 @@
         <!-- Article Section -->
         {% if section == "articles" %}
         <div class="mb-10">
-            <h2 class="text-3xl sm:text-4xl font-bold text-center text-teal-800 mb-6">Available Documents</h2>
+            <h2 class="text-3xl sm:text-4xl font-bold text-center text-teal-800 mb-6">Shared Documents</h2>
             
             <!-- File list container -->
-            <div id="file-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+            <!-- <div id="file-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div> -->
+            <div id="file-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-4"></div>
+
 
             <!-- File preview section -->
             <div class="mt-10">
@@ -103,8 +105,28 @@
 
     // Article Section (only fetch files if we're in the articles section)
     {% if section == "articles" %}
+    // function fetchFiles() {
+    //     fetch('/resource/fetchDocuments/') //fetchDocuments View is called here <p class="text-xs text-gray-500 mt-1">(${file.extension})</p>
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             const fileContainer = document.getElementById("file-container");
+    //             fileContainer.innerHTML = "";
+
+    //             data.files.forEach(file => {
+    //                 const fileBox = document.createElement("div");
+    //                 fileBox.className = "bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition duration-300 cursor-pointer";
+    //                 fileBox.innerHTML = `
+    //                     <div onclick="showFileContent('${file.url}', '${file.name}')">
+    //                         <p class="text-sm font-semibold text-teal-800">${file.name}</p>
+                            
+    //                     </div>
+    //                 `;
+    //                 fileContainer.appendChild(fileBox);
+    //             });
+    //         });
+    // }
     function fetchFiles() {
-        fetch('/resource/fetchDocuments/') //fetchDocuments View is called here
+        fetch('/resource/fetchDocuments/')
             .then(response => response.json())
             .then(data => {
                 const fileContainer = document.getElementById("file-container");
@@ -112,17 +134,24 @@
 
                 data.files.forEach(file => {
                     const fileBox = document.createElement("div");
-                    fileBox.className = "bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition duration-300 cursor-pointer";
+                    fileBox.className = "bg-white rounded-2xl shadow p-4 hover:shadow-lg transition duration-300 cursor-pointer flex flex-col justify-between";
+
+                    // Create inner HTML with a text wrapper and truncate
                     fileBox.innerHTML = `
-                        <div onclick="showFileContent('${file.url}', '${file.name}')">
-                            <p class="text-sm font-semibold text-teal-800">${file.name}</p>
-                            <p class="text-xs text-gray-500 mt-1">(${file.extension})</p>
+                        <div onclick="showFileContent('${file.url}', '${file.name}')" class="truncate">
+                            <div class="flex items-center space-x-2">
+                                <div class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1 rounded-full">${file.extension.toUpperCase()}</div>
+                                <p class="text-sm font-medium text-gray-800 truncate w-full" title="${file.name}">
+                                    ${file.name}
+                                </p>
+                            </div>
                         </div>
                     `;
                     fileContainer.appendChild(fileBox);
                 });
             });
     }
+
 
     function showFileContent(url, name) {
         document.getElementById("viewer").src = url;

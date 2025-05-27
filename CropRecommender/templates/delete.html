@@ -1,437 +1,2499 @@
-{% extends "base.html" %}
+
+<!-- MARKET.HTML -->
+{% extends "base2.html" %}
+{% load widget_tweaks %}
+{% load compress %}
+{% load static %}
+{% load tz %}
+
 {% block content %}
-<main class="flex-grow flex flex-col items-center px-4">
-<h1 class="mt-6 text-teal-800 italic text-center text-2xl font-bold">
-  Bringing recommendations at your doorstep
-</h1>
+{% if user.userprofile.role == 'farmer' %}
+    {{ competitor_crop_pricing|json_script:"competitorCropPricing" }}
+{% endif %}
 
-<!-- Dropdown Form -->
-<form class="flex flex-col bg-teal-600 p-4 rounded-md shadow-lg mt-4 w-full max-w-2xl gap-4">
-  <div class="flex flex-wrap gap-4 justify-between items-center mb-4">
-    <select name="county" id="county" class="form-select bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-400 w-full md:w-auto">
-      <option value="">County</option>
-    </select>
-    <select name="constituency" id="constituency" disabled class="form-select bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-400 w-full md:w-auto">
-      <option value="">Sub-County</option>
-    </select>
-    <select id="ward" name="ward" disabled class="form-select bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-400 w-full md:w-auto">
-      <option value="">Ward</option>
-    </select>
-    <button type="button" id="getWeatherGeo" class="bg-white text-teal-600 font-semibold px-6 py-2 border border-gray-300 rounded-md shadow-md hover:bg-teal-600 hover:text-white transition w-full md:w-auto">
-      My Location
-    </button>
-  </div>
-  <div class="flex justify-center w-full">
-    <button type="button" id="predictButton" class="bg-white text-teal-600 font-semibold px-4 py-2 border border-gray-300 rounded-md shadow-md hover:bg-teal-600 hover:text-white transition w-full md:w-auto">
-      Predict
-    </button>
-  </div>
-
-  <!-- Loading Spinners ...data fetching-->
-  <div id="loading" class="flex items-center gap-2 text-sm text-white mt-2 hidden text-teal-700">
-      <i class="fas fa-spinner fa-spin text-white fa-3x"></i>
-      Predicting please wait...
-  </div>
-
-</form>
-
-
-<!-- Prediction Modal -->
-<div id="resultModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center hidden">
-  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative opacity-95 max-h-[80vh] overflow-y-auto flex flex-col">
-    <button id="closeModal" class="fixed top-4 right-4 text-white hover:text-gray-800 text-2xl z-10">×</button>
-    <div class="flex justify-between items-center mb-4">
-     
-      <h2 class="text-teal-800 text-xl font-bold">Suitable Crops</h2>
-      <button id="gapButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-800 transition" title="Good Agricultural Practices">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>       
-      </button>
+<!-- Messages (Alerts) -->
+{% if messages %}
+    <div class="bg-teal-600 text-white p-4 rounded-2xl shadow-lg mb-6 mx-auto max-w-6xl">
+        {% for message in messages %}
+            <p class="text-sm">{{ message }}</p>
+        {% endfor %}
     </div>
-   
-    <p id="location" class="text-gray-700 mb-4 hidden">Location: Fetching...</p> <!-- NEW -->
-    <!-- <p id="coordinates" class="text-teal-700 mb-4 font-bold"></p> -->
-     <p id="coordinates" class="text-teal-700 mb-4 font-bold bg-teal-100 p-4 rounded-md shadow"></p>
+{% endif %}
 
-    <ul id="cropPredictions" class="text-gray-700 mb-4 space-y-4"></ul>
-   
-  </div>
+
+<!-- Main Container -->
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 "> 
+    <!-- Header -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <h1 class="text-3xl font-bold text-teal-800 mb-6">{{ message }}</h1>
+
+    <!-- Tabs and Icons -->
+    <div class="flex items-center border-b-2 border-teal-200 mb-6">
+        <div class="flex flex-wrap gap-2">
+            <button id="dashboardTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button active-tab transition duration-300 rounded-t-lg">Dashboard</button>
+            <button id="marketplaceTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Marketplace</button>
+            {% if user.userprofile.role == 'farmer' %}
+                <button id="myProductsTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">My Products</button>
+                <button id="productRequestTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Product Requests</button>
+            {% endif %}
+            <button id="myRequestTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">My Requests</button>
+            <!-- Inside the tabs div TODAY -->
+            <button id="deliveryRouteTab" class="px-4 py-2 font-semibold text-teal-700 border-b-2 border-transparent hover:border-teal-600 focus:outline-none tab-button transition duration-300 rounded-t-lg">Delivery Route</button>
+        </div>
+        <div class="ml-auto flex items-center gap-4">
+            <button id="requestButton" class="p-2 text-teal-700 hover:bg-teal-100 rounded-full transition duration-300" title="Product Request">
+                <i class="fa-solid fa-circle-question fa-lg"></i>
+            </button>
+            <button onclick="openChatModal()" class="p-2 text-teal-700 hover:bg-teal-100 rounded-full transition duration-300" title="Message Farmer">
+                <i class="fas fa-envelope fa-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="dashboardSection" class="tab-content">
+        {% if user.userprofile.role == 'farmer' and order_analytics %}
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+                <!-- Left Column -->
+                <div class="lg:col-span-3 space-y-6">
+                    <!-- Earnings Card -->
+                    <div class="bg-gradient-to-r from-teal-600 to-teal-800 text-white p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center transform hover:scale-105 transition-transform duration-300">
+                        <h3 class="text-lg font-bold mb-2">Earnings</h3>
+                        <div class="text-center">
+                            <p class="text-sm font-semibold">Estimated</p>
+                            <p class="text-xl font-bold">KES {{ earnings.estimated|floatformat:2 }}</p>
+                            <p class="text-xs mt-1">From ongoing orders</p>
+                        </div>
+                        <div class="text-center mt-4">
+                            <p class="text-sm font-semibold">Total</p>
+                            <p class="text-xl font-bold">KES {{ earnings.total|floatformat:2 }}</p>
+                            <p class="text-xs mt-1">From completed orders</p>
+                        </div>
+                    </div>
+
+                    <!-- Competitor Analysis Card -->
+                    <div class="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-balance-scale mr-2 text-teal-600"></i>Competitor Analysis</h3>
+                        <p class="text-gray-700">Avg. Competitor Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.avg_price|floatformat:2 }}</span></p>
+                        <p class="text-gray-700">Your Avg. Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.my_avg_price|floatformat:2 }}</span></p>
+                        <p class="text-gray-700">Competing Listings: <span class="font-semibold text-teal-600">{{ competitor_analysis.listing_count }}</span></p>
+                    </div>
+
+                    <!-- Top Selling Products Card -->
+                    <div class="bg-white p-4 rounded-2xl shadow-md cursor-pointer hover:shadow-lg transition-shadow duration-300" onclick="showTopProductsDetails()">
+                        <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-star mr-2 text-teal-600"></i>Top Selling Products</h3>
+                        {% if top_products %}
+                            {% for product in top_products %}
+                                <p class="text-gray-700 text-sm">{{ product.name }}: <span class="font-semibold text-teal-600">KES {{ product.revenue|floatformat:2 }}</span> ({{ product.quantity }} sold)</p>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-sm text-gray-600">No sales yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Middle Section -->
+                <div class="lg:col-span-9 space-y-6">
+                    <!-- Top Row -->
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <!-- Orders Made Card -->
+                        <div class="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full lg:w-1/2">
+                            <button id="farmerOrdersTab" class="w-full text-left text-xl font-semibold text-teal-800 hover:text-teal-600 focus:outline-none tab-button mb-3" onclick="showFarmerOrders()">
+                                <i class="fas fa-shopping-cart mr-2 text-teal-600"></i>Orders Made
+                            </button>
+                            <p class="text-gray-700">New: <span class="font-semibold text-teal-600">{{ order_analytics.new }}</span></p>
+                            <p class="text-gray-700">Pending: <span class="font-semibold text-teal-600">{{ order_analytics.pending }}</span></p>
+                            <p class="text-gray-700">Confirmed: <span class="font-semibold text-teal-600">{{ order_analytics.confirmed }}</span></p>
+                            <p class="text-gray-700">Completed: <span class="font-semibold text-teal-600">{{ order_analytics.completed }}</span></p>
+                        </div>
+
+                        <!-- Customer Engagement Card -->
+                        <div class="bg-gradient-to-r from-teal-600 to-teal-800 text-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full lg:w-1/2">
+                            <h3 class="text-xl font-semibold mb-3 text-white"><i class="fas fa-users mr-2"></i>Customer Engagement</h3>
+                            <p>Unique Customers: <span class="font-semibold">{{ customer_engagement.unique_customers }}</span></p>
+                            <p>Unread Messages: <span class="font-semibold">{{ customer_engagement.unread_messages }}</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Competitor Crop Pricing Graph -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-chart-bar mr-2 text-teal-600"></i>Competitor Crop Pricing</h3>
+                        <div class="relative w-full h-[200px]">
+                            <canvas id="competitorCropPricingChart"></canvas>
+                            <p id="noPricingData" class="absolute inset-0 flex items-center justify-center text-gray-600 hidden">No pricing data available for your crops.</p>
+                        </div>
+                    </div>
+
+                    <!-- My Orders Button -->
+                    <div class="flex justify-end mt-4">
+                        <button id="myOrdersTab" class="px-6 py-3 font-semibold text-white bg-teal-700 rounded-full hover:bg-teal-800 transition-colors duration-300 tab-button" onclick="showMyOrders()">My Orders</button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- My Products Section -->
+    <div id="myProductsSection" class="tab-content hidden relative">
+        <div class="flex justify-end p-2">
+            <button id="createListingTab" class="px-4 py-2 font-semibold text-teal-700 hover:bg-teal-700 hover:text-white hover:rounded-full transition duration-300 tab-button">
+                <i class="fa-solid fa-plus"></i> Create Listing
+            </button>
+        </div>
+        
+        {% if user.userprofile.role == 'farmer' %}
+            <!-- Mobile toggle button -->
+            <div class="flex justify-end mb-4 lg:hidden">
+                <button id="openMyProductsSidebar" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                    <i class="fas fa-filter"></i> Categories
+                </button>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="w-full">
+                    <!-- <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="myProductsGrid"> -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6" id="myProductsGrid">
+                        {% if listings %}
+                            {% for listing in listings %}
+                                <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300" data-category="{{ listing.productCategory }}">
+                                    <div class="h-80 w-full overflow-hidden">
+                                        <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                                    </div>
+                                    <div class="p-4 flex flex-col flex-grow">
+                                        <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
+                                        <p class="text-gray-500 text-sm">{{ listing.get_productCategory_display }}</p>
+                                        <div class="mt-2">
+                                            <p class="text-gray-700 font-bold">KES {{ listing.price }} / {{ listing.unit }}</p>
+                                            <p class="text-gray-500 text-sm">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                            <p class="text-gray-500 text-sm">{{ listing.location }}</p>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-2 line-clamp-2 flex-grow">{{ listing.description }}</p>
+                                        <div class="mt-2 flex items-center justify-between">
+                                            <form method="POST" action="{% url 'toggle_availability' listing.id %}" class="flex items-center">
+                                                {% csrf_token %}
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="is_available" {% if listing.is_available %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
+                                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors duration-200"></div>
+                                                    <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></div>
+                                                </label>
+                                                <span class="ml-2 text-sm font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
+                                                    {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                                </span>
+                                            </form>
+                                            <div class="flex space-x-2">
+                                                <button onclick="openEditModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.productCategory }}', '{{ listing.quantity }}', '{{ listing.unit }}', '{{ listing.price }}', '{{ listing.description }}', '{{ listing.location }}', '{{ listing.get_image_url }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Listing">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="openDeleteModal('{{ listing.id }}', '{{ listing.productName }}')" class="text-teal-700 hover:text-green-800" title="Delete Listing">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class="text-gray-500 text-sm">Listed: {{ listing.created_at|localtime|date:"Y-m-d H:i:s" }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-gray-600 col-span-full">No listings found. {% if request.GET.query %}Try adjusting your search query.{% else %}Use the "Create Listing" tab to add a new listing.{% endif %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Category Sidebar -->
+                <div id="myProductsCategorySidebar" class="fixed right-0 top-0 w-72 bg-white border-l border-teal-100 transform transition-transform duration-300 ease-in-out translate-x-full lg:relative lg:w-64 lg:transform-none z-20 shadow-lg lg:shadow-none rounded-l-lg lg:rounded-none overflow-y-auto">
+                    <div class="p-5">
+                        <!-- Close button for mobile -->
+                        <div class="flex justify-end lg:hidden mb-4">
+                            <button id="closeMyProductsSidebar" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-lg"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Category List -->
+                        <ul class="space-y-2">
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="all">
+                                    <i class="fas fa-layer-group text-teal-500 mr-3 w-5 text-center"></i>
+                                    All Categories
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="fruits">
+                                    <i class="fas fa-apple-alt text-teal-500 mr-3 w-5 text-center"></i>
+                                    Fruits
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="vegetables">
+                                    <i class="fas fa-carrot text-teal-500 mr-3 w-5 text-center"></i>
+                                    Vegetables
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="cereals">
+                                    <i class="fas fa-bread-slice text-teal-500 mr-3 w-5 text-center"></i>
+                                    Cereals
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="legumes">
+                                    <i class="fas fa-seedling text-teal-500 mr-3 w-5 text-center"></i>
+                                    Legumes
+                                </button>
+                            </li>
+                            <li>
+                                <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="other">
+                                    <i class="fas fa-ellipsis-h text-teal-500 mr-3 w-5 text-center"></i>
+                                    Other
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p class="text-gray-600">This section is only available to farmers.</p>
+        {% endif %}
+    </div>
+
+    <!-- Create Listing Section -->
+    <div id="createListingSection" class="tab-content hidden">
+        {% if user.userprofile.role == 'farmer' %}
+            <div class="bg-white p-6 rounded-2xl shadow-lg w-full">
+                <h2 class="text-2xl font-bold mb-4 text-center text-teal-800">Create a New Listing</h2>
+                <form method="POST" id="listingForm" class="space-y-4" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Product Category</label>
+                        {{ form.productCategory|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                        {{ form.productName|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                        {{ form.quantity|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                        {{ form.unit|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
+                        {{ form.price|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        {{ form.description|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Location</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="listingLocationInput" name="location" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Enter or select your location" value="{{ form.location.value|default:user.userprofile.county }}">
+                            <button type="button" id="useCurrentLocationListing" class="p-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300" title="Use Current Location">
+                                <!-- <i class="fas fa-location-arrow"></i> -->
+                                <i class="fa-solid fa-location-dot"></i>
+                            </button>
+                        </div>
+                        {{ form.latitude|add_class:"hidden" }}
+                        {{ form.longitude|add_class:"hidden" }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
+                        {{ form.image|add_class:"w-full p-2 border rounded-md" }}
+                        <p class="text-sm text-gray-500 mt-1">If no image is uploaded, a default image will be used.</p>
+                    </div>
+                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Create Listing</button>
+                </form>
+            </div>
+        {% else %}
+            <p class="text-gray-600">This section is only available to farmers.</p>
+        {% endif %}
+    </div>
+   <!-- Marketplace Section -->    
+    <div id="marketplaceSection" class="tab-content hidden relative">
+        <div class="mb-6">
+            <form method="GET" class="flex space-x-4">
+                <div class="flex-1">
+                    <input type="text" name="marketplace_query" value="{{ request.GET.marketplace_query }}" placeholder="Search marketplace by product name..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-gray-700">
+                </div>
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="bg-teal-700 text-white p-3 rounded-lg hover:bg-teal-600 transition duration-300">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <a href="{% url 'main' %}" class="bg-gray-200 text-gray-700 p-3 rounded-lg hover:bg-gray-300 transition duration-300" title="Clear Search">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </form>
+            {% if request.GET.marketplace_query %}
+                <p class="text-gray-600 mt-2">Showing results for: <strong>{{ request.GET.marketplace_query }}</strong></p>
+            {% endif %}
+        </div>
+        <!-- Mobile toggle button -->
+        <div class="flex justify-end mb-4 lg:hidden">
+            <button id="openMarketplaceSidebar" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-600 transition duration-300">
+                <i class="fa-solid fa-list"></i> Categories
+            </button>
+        </div>
+        <div class="flex gap-4">
+            <div class="w-full">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="marketplaceGrid">
+                    {% if marketplace_listings %}
+                        {% for listing in marketplace_listings %}
+                            <div class="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col transition-transform duration-300 hover:shadow-xl hover:-translate-y-1" data-category="{{ listing.productCategory }}">
+                                <div class="relative h-40 w-full">
+                                    <img src="{{ listing.get_image_url|default:'https://via.placeholder.com/300x200?text=No+Image' }}" alt="{{ listing.productName }}" class="w-full h-full object-cover">
+                                </div>
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">{{ listing.get_productCategory_display }}</p>
+                                            <h2 class="text-lg font-bold text-teal-800 mt-1 truncate">{{ listing.productName }}</h2>
+                                            <p class="text-gray-500 text-xs mt-1">by @{{ listing.farmer.user.username }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-gray-800 font-semibold text-md">KES {{ listing.price }} / {{ listing.unit }}</p>
+                                            <p class="text-gray-600 text-xs">Qty Left: {{ listing.quantity }} {{ listing.unit }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 flex justify-between items-end">
+                                        <span class="text-xs font-semibold {% if listing.is_available %}text-teal-600{% else %}text-red-600{% endif %}">
+                                            {% if listing.is_available %}Available{% else %}Sold Out{% endif %}
+                                        </span>
+                                        <div class="flex space-x-2">
+                                            <button onclick="openChatModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.get_image_url }}', '{{ listing.farmer.id|default:0 }}')" class="text-teal-700 hover:text-teal-900 transition-colors" title="Message Farmer">
+                                                <i class="fas fa-envelope text-sm"></i>
+                                            </button>
+                                            <button onclick="openOrderModal('{{ listing.id }}', '{{ listing.productName }}', '{{ listing.price }}', '{{ listing.quantity }}')" class="text-teal-700 hover:text-teal-900 transition-colors" title="Order Item">
+                                                <i class="fa-solid fa-cart-shopping text-sm"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-500 text-xs mt-2">Listed: {{ listing.created_at|localtime|date:"Y-m-d" }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-gray-600 col-span-full text-center py-6">No listings found in the marketplace.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Category Sidebar -->
+            <div id="marketplaceCategorySidebar" class="fixed right-0 top-0 h-full w-72 bg-white border-l border-teal-100 transform transition-transform duration-300 ease-in-out translate-x-full lg:relative lg:h-auto lg:w-64 lg:transform-none z-20">
+            
+                <div class="p-5 h-full flex flex-col">                
+                    
+                    <!-- Category List -->
+                    <ul class="space-y-2 flex-grow">
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="all">
+                                <i class="fas fa-layer-group text-teal-500 mr-3 w-5 text-center"></i>
+                                All Categories
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="fruits">
+                                <i class="fas fa-apple-alt text-teal-500 mr-3 w-5 text-center"></i>
+                                Fruits
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="vegetables">
+                                <i class="fas fa-carrot text-teal-500 mr-3 w-5 text-center"></i>
+                                Vegetables
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="cereals">
+                                <i class="fas fa-bread-slice text-teal-500 mr-3 w-5 text-center"></i>
+                                Cereals
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="legumes">
+                                <i class="fas fa-seedling text-teal-500 mr-3 w-5 text-center"></i>
+                                Legumes
+                            </button>
+                        </li>
+                        <li>
+                            <button class="category-filter w-full text-left p-3 rounded-lg hover:bg-teal-50 text-teal-700 font-medium flex items-center transition-all duration-200 border border-transparent hover:border-teal-200 active:bg-teal-100" data-category="other">
+                                <i class="fas fa-ellipsis-h text-teal-500 mr-3 w-5 text-center"></i>
+                                Other
+                            </button>
+                        </li>
+                    </ul>                   
+                    
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+    <!-- My Requests Section -->
+    <div id="myRequestSection" class="tab-content hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {% for request in my_requests %}
+                <div class="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300">
+                    <h3 class="text-lg font-semibold text-teal-800">{{ request.product_name }}</h3>
+                    <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
+                    <p class="text-gray-600">{{ request.description }}</p>
+                    <p class="text-gray-600">{{ request.location }}</p>
+                    <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+                    <div class="mt-2 flex space-x-2">
+                        <button onclick="openEditRequestModal('{{ request.id }}', '{{ request.product_name }}', '{{ request.quantity }}', '{{ request.unit }}', '{{ request.description }}', '{{ request.location }}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="openDeleteRequestModal('{{ request.id }}', '{{ request.product_name }}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Product Requests Section (Farmers Only) -->
+    <div id="productRequestSection" class="tab-content hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {% for request in product_requests %}
+                <div class="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300">
+                    <h3 class="text-lg font-semibold text-teal-800">{{ request.product_name }}</h3>
+                    <p class="text-gray-600">{{ request.quantity }} {{ request.unit }}</p>
+                    <p class="text-gray-600">{{ request.description }}</p>
+                    <p class="text-gray-600">{{ request.location }}</p>
+                    <p class="text-gray-500 text-sm">Requested by @{{ request.requester.user.username }}</p>
+                    <p class="text-gray-500 text-sm">{{ request.created_at }}</p>
+                    <button onclick="openChatModal(null, '{{ request.product_name }}', '', '{{ request.requester.id }}')" class="text-teal-700 hover:text-teal-800 mt-2" title="Message Requester">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                </div>
+            {% empty %}
+                <p class="text-gray-600 col-span-full">No product requests available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Farmer Orders Section -->
+    <div id="farmerOrdersSection" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4 text-teal-800">Received Orders</h2>
+        <div id="orderSummary" class="mb-4 flex gap-6 text-sm font-semibold">
+            <span id="paidCount" class="text-green-600">Paid Orders: 0</span>
+            <span id="unpaidCount" class="text-gray-600">Unpaid Orders: 0</span>
+            <!-- Hold the total amount of orders that have been completed and disbursed to the farmers account -->
+            <span id="completedTotal" class="text-green-600">AccountBalance: 0</span> 
+
+        </div>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-teal-100">
+                    <tr>
+                        <th class="p-2 text-left text-teal-800">Date</th>
+                        <th class="p-2 text-left text-teal-800">Requester</th>
+                        <th class="p-2 text-left text-teal-800">Crop</th>
+                        <th class="p-2 text-left text-teal-800">Quantity(Kg.)</th>
+                        <th class="p-2 text-left text-teal-800">Total (KES)</th>
+                        <th class="p-2 text-left text-teal-800">Location</th>
+                        <th class="p-2 text-left text-teal-800">Mode</th>
+                        <th class="p-2 text-left text-teal-800">Status</th>
+                        
+                    </tr>
+                </thead>
+                <tbody id="farmerOrdersTable" class="text-gray-700"></tbody>
+            </table>
+        </div>      
+
+    </div>
+
+
+    <!-- My Orders Section -->
+    <div id="myOrdersSection" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4 text-teal-800">My Orders</h2>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-teal-100">
+                    <tr>
+                        <th class="p-2 text-left text-teal-800">Farmer</th>
+                        <th class="p-2 text-left text-teal-800">Crop</th>
+                        <th class="p-2 text-left text-teal-800">Date</th>
+                        <th class="p-2 text-left text-teal-800">Quantity (Kg.)</th>
+                        <th class="p-2 text-left text-teal-800">Total (KES)</th>
+                        <th class="p-2 text-left text-teal-800">Status</th>
+                        <th class="p-2 text-left text-teal-800">Mode</th>
+                        <th class="p-2 text-left text-teal-800">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="myOrdersTable" class="text-gray-700"></tbody>
+            </table>
+        </div>
+    </div>
+
+   <!-- Delivery Route Section -->
+    
+    <div id="deliveryRouteSection" class="tab-content hidden p-4 bg-white rounded-xl shadow-md space-y-6">
+        <h2 class="text-2xl font-bold text-teal-800">Optimized Delivery Routes</h2>
+
+        <!-- Top Section: Inputs and Maps -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Left: Location + Delivery Inputs -->
+            <div class="space-y-6">
+                <!-- Location Form -->
+                <div class="bg-gray-50 p-5 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Set Your Location</h3>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+                        <input id="farmerLocation" type="text" placeholder="Enter your address (e.g., Nairobi, Kenya)" 
+                            class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                        <button type="button" id="useCurrentLocationFarmer" 
+                                class="p-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition" 
+                                title="Use Current Location">
+                            <i class="fa-solid fa-location-dot fa-xl"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="farmerLatitude">
+                    <input type="hidden" id="farmerLongitude">
+                    <button id="saveLocationButton" 
+                            class="mt-4 w-full px-6 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition">
+                        Save Location
+                    </button>
+                </div>
+
+                <!-- Delivery Estimations -->
+                <div class="bg-gray-50 p-5 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Delivery Estimations</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="costPerKm" class="block text-sm font-medium text-gray-600 mb-1">Cost per km (KSh.)</label>
+                            <input id="costPerKm" type="number" step="0.01" min="0" value="50" 
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                        </div>
+                        <div>
+                            <label for="startTime" class="block text-sm font-medium text-gray-600 mb-1">Start Time</label>
+                            <input id="startTime" type="time" value="09:00" 
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Button + Loader -->
+                <div class="space-y-3">
+                    <button id="optimizeRouteButton" 
+                            class="w-full px-6 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition">
+                        Find Delivery Routes
+                    </button>
+                    <div id="loading" class="flex items-center gap-3 text-sm text-teal-700 hidden">
+                        <i class="fas fa-spinner fa-spin fa-lg text-teal-700"></i>
+                        <span>Finding routes...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Tabs + Maps -->
+            <div class="space-y-4">
+                <div id="routeTabs" class="flex flex-wrap gap-2"></div>
+                <div id="routeMaps" class="space-y-4 bg-gray-100 p-4 rounded-xl shadow-inner h-[400px] overflow-auto">
+                    <!-- Dynamic maps will render here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Route Details -->
+        <div id="routeDetails" class="bg-teal-50 p-6 rounded-xl shadow-inner text-gray-800">
+            <!-- Route details appear here -->
+        </div>
+    </div>
+
+
+ 
+
 </div>
 
-<!-- GAP Modal -->
-<div id="gapModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center hidden">
-  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative opacity-95 max-h-[80vh] overflow-y-auto flex flex-col">
-    <button id="closeGapModal" class="absolute top-2 right-2 text-teal-600 hover:text-teal-800 text-2xl z-10">×</button>
-    <h2 class="text-teal-800 text-xl font-bold mb-4 text-center">Good Agricultural Practices</h2>
-    <!-- Crop Selection Row -->
-    <div id="gapCrops" class="flex justify-around mb-4"></div>
-    <!-- GAP Sections Row and horizontal scrolling-->
-    <div class="flex items-center mb-4">
-      <button id="scrollLeftButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition mr-2"><<</button>
-      <div id="gapSections" class="flex flex-nowrap overflow-x-auto space-x-2 scrollbar-hide w-full"></div>
-      <button id="scrollRightButton" class="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition ml-2">>></button>   
+
+{% endblock content %}
+
+{% block modalsContent %}
+    <!-- Edit Modal -->
+    <!-- Edit Modal 2-->
+    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4 text-teal-800">Edit Listing</h2>
+            <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4" action="/market/edit/{{ listing.id }}/">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" id="editListingId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Category</label>
+                    {{ form.productCategory|add_class:"w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" name="productName" id="editProductName" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" name="quantity" id="editQuantity" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                    <input type="text" name="unit" id="editUnit" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price (per unit)</label>
+                    <input type="number" name="price" id="editPrice" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" id="editDescription" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" name="location" id="editLocation" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Upload Image (Optional)</label>
+                    <input type="file" name="image" id="editImage" class="w-full p-2 border rounded-md">
+                    <p class="text-sm text-gray-500 mt-1">Current Image: <img id="editCurrentImage" src="" alt="Current Image" class="w-16 h-16 object-cover rounded inline-block ml-2"></p>
+                    <label class="mt-2 flex items-center">
+                        <input type="checkbox" name="clear_image" id="editClearImage" class="mr-2">
+                        <span class="text-sm text-gray-700">Clear current image</span>
+                    </label>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Save Changes</button>
+                    <button type="button" onclick="closeEditModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-    <!-- GAP Contents -->
-    <div id="gapContent" class="text-gray-700"></div>
-  </div>
-</div>
-</main>
+
+    <!-- Delete Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-teal-800">Delete Listing</h2>
+            <p class="text-lg mb-4">Are you sure you want to delete <strong id="deleteProductName"></strong>?</p>
+            <p class="text-gray-600 mb-4">This action cannot be undone.</p>
+            <form id="deleteForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" id="deleteListingId">
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition duration-300">Yes, Delete</button>
+                    <button type="button" onclick="closeDeleteModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-teal-800">Messages</h2>
+                <button onclick="closeChatModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="chatContainer" class="flex flex-1 overflow-hidden">
+                <div id="conversationsList" class="w-1/3 border-r overflow-y-auto max-h-[70vh] bg-teal-50 p-2">
+                    <div id="conversationItems" class="space-y-2"></div>
+                </div>
+                <div id="chatArea" class="w-2/3 flex flex-col hidden">
+                    <div id="chatHeader" class="p-2 border-b flex items-center bg-teal-100">
+                        <img id="chatListingImage" src="" alt="Listing" class="w-10 h-10 object-cover rounded mr-2" data-has-image="false">
+                        <div>
+                            <h3 id="chatListingName" class="font-semibold text-teal-800"></h3>
+                            <p id="chatOtherUser" class="text-sm text-gray-500"></p>
+                        </div>
+                    </div>
+                    <div id="messagesContainer" class="flex-1 p-4 overflow-y-auto max-h-[50vh]"></div>
+                    <form id="messageForm" class="p-2 border-t">
+                        <input type="hidden" id="chatListingId" name="listing_id">
+                        <input type="hidden" id="chatRecipientId" name="recipient_id">
+                        <div class="flex space-x-2">
+                            <input type="text" id="messageInput" class="flex-1 p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Type a message...">
+                            <button type="submit" class="bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Request Modal -->
+    <div id="requestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-teal-800">Request a Product</h2>
+            <form id="requestForm" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" id="requestProductName" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" id="requestQuantity" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                    <input type="text" id="requestUnit" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" value="kg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                    <textarea id="requestDescription" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" id="requestLocation" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Submit Request</button>
+                    <button type="button" onclick="closeRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Request Modal -->
+    <div id="editRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-teal-800">Edit Request</h2>
+            <form id="editRequestForm" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" id="editRequestId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" id="editRequestProductName" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" id="editRequestQuantity" step="0.01" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Unit (e.g., kg)</label>
+                    <input type="text" id="editRequestUnit" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                    <textarea id="editRequestDescription" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" id="editRequestLocation" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-teal-700 text-white p-2 rounded-md hover:bg-teal-800 transition duration-300">Save Changes</button>
+                    <button type="button" onclick="closeEditRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Request Modal -->
+    <div id="deleteRequestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-teal-800">Delete Request</h2>
+            <p class="text-lg mb-4">Are you sure you want to delete <strong id="deleteRequestProductName"></strong>?</p>
+            <p class="text-gray-600 mb-4">This action cannot be undone.</p>
+            <form id="deleteRequestForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="deleteRequestId">
+                <div class="flex space-x-4">
+                    <button type="submit" class="w-full bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition duration-300">Yes, Delete</button>
+                    <button type="button" onclick="closeDeleteRequestModal()" class="w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition duration-300">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Modal -->
+    <div id="orderModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold mb-4 text-teal-800">Place Order</h2>
+            <form id="orderForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700">Crop</label>
+                    <input id="orderCrop" type="text" class="w-full p-2 border rounded-md bg-gray-100" readonly>
+                </div>
+                <div>
+                    <label class="block text-gray-700">Quantity</label>
+                    <input id="orderQuantity" type="number" step="0.01" min="0" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700">Total Price (KES)</label>
+                    <input id="orderTotal" type="text" class="w-full p-2 border rounded-md bg-gray-100" readonly>
+                </div>
+                <div>
+                    <label class="block text-gray-700">Location (County)</label>
+                    <div class="flex space-x-2">
+                        <input id="orderLocationInput" type="text" name="location" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="Enter or select your location" required>
+                        <button type="button" id="useCurrentLocationOrder" class="p-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300" title="Use Current Location">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="orderLatitude" name="latitude">
+                    <input type="hidden" id="orderLongitude" name="longitude">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Delivery Mode</label>
+                    <select id="orderDeliveryMode" name="deliveryMode" class="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" required>
+                        <option value="pickup">Pickup</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock modalsContent %}
+
+
+{% block script %}
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&&libraries=places,geometry"></script>
 
 <script>
-$(document).ready(function () {
-  // Load counties via AJAX that calls the respective Django Views
-  // Ajax make get request to specified URL
-  $.ajax({
-    url: "/countyLoad/",//Django View 
-    method: "GET",
-    success: function (response) {
-      response.counties.forEach(function (county) {
-        $("#county").append(`<option value="${county.id}">${county.name}</option>`);
-      });
-    },
-  });
-
-  // Load constituencies  
-  //depending on county, send countyCode to obtain the respective constituencies
-  $("#county").change(function () {
-    const countyCode = $(this).val();
-    $("#constituency").empty().append('<option value="">Select Sub-County</option>');
-    $("#ward").empty().append('<option value="">Select Ward</option>');
-    //countyCode is valid sent to subcounty View
-    if (countyCode) {
-      $.ajax({
-        url: "/subcountyLoad/",
-        method: "GET",
-        data: { county_code: countyCode },
-        success: function (response) {
-          response.constituencies.forEach(function (constituency) {
-            $("#constituency").append(`<option value="${constituency.name}">${constituency.name}</option>`);
-          });
-          $("#constituency").prop("disabled", false);
-        },
-      });
-    } else {//county does not exist disable the other two
-      $("#constituency").prop("disabled", true);
-      $("#ward").prop("disabled", true);
-    }
-  });
-
-  // Load wards
-  $("#constituency").change(function () {
-    const countyCode = $("#county").val();
-    const constituencyName = $(this).val();
-    $("#ward").empty().append('<option value="">Select Ward</option>');
-    //sensds county and constituency to populate ward
-    if (countyCode && constituencyName) {
-      $.ajax({
-        url: "/wardLoad/",
-        method: "GET",
-        data: { county_code: countyCode, constituency_name: constituencyName },
-        success: function (response) {
-          response.wards.forEach(function (ward) {
-            $("#ward").append(`<option value="${ward.name}">${ward.name}</option>`);
-          });
-          $("#ward").prop("disabled", false);
-        },
-      });
-    } else {
-      $("#ward").prop("disabled", true);
-    }
-  });
-
-  // My Location button logic (Geolocation) 
-  $("#getWeatherGeo").click(function (e) {
-    
-    $("#loading").removeClass("hidden"); // Show loading spinner
-    e.preventDefault(); // Prevent form submission
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        function (position) {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          // Step 1: Reverse Geocoding with Google Maps API
-          console.log("heu")
-          $.ajax({
-            url: `https://maps.googleapis.com/maps/api/geocode/json`,
-            method: "GET",
-            data: {
-           
-              latlng: `${lat},${lng}`,
-              key: "AIzaSyC4wAAwZIIE1J_zs8g5V4tewgBzfxaHmP4" // Replace with your Google Maps API key
-            },
-            success: function (data) {
-              // Extract location details
-              const locationName = data.results[0]?.formatted_address || "Unknown location";
-              // Display location in the UI
-              // $("#location").text(`Location: ${locationName}`);
-              $("#location").text(`Location: ${locationName}`).removeClass("hidden");
-            },
-            error: function (err) {
-              console.error("Error fetching location:", err);
-              // $("#location").text("Location: Unable to retrieve location");
-              $("#location").text("Location: Unable to retrieve location").removeClass("hidden");
-            }
-          });
-
-          // Step 2: Send coordinates to backend for predictions (your existing code)
-          $.ajax({
-            url: "/predict/",
-            method: "POST",
-            data: JSON.stringify({ lat: lat, lng: lng }),
-            contentType: "application/json",
-            success: function (response) {
-              $("#resultModal").removeClass("hidden");
-              $("#coordinates").text(`Coordinates: Latitude: ${response.coordinates.lat}, Longitude: ${response.coordinates.lng}`);
-              $("#cropPredictions").empty();
-              let cropData = [];
-              let gapData = {};
-              response.crop_predictions.forEach(function (prediction) {
-
-                const label = getSuitabilityLabel(prediction.confidence); //calls getSuitabilityLabel function 
-                // <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence195
-
-                $("#cropPredictions").append(`
-                  <li class="flex items-center space-x-4">
-                    <img src="${prediction.image}" alt="${prediction.crop}" class="w-16 h-16 object-cover rounded-md">
-                    <div>
-                      
-                      <strong>${prediction.crop}</strong>${label}
-                    </div>
-                  </li>
-                `);
-                cropData.push({ crop: prediction.crop, confidence: prediction.confidence });
-                gapData[prediction.crop] = prediction.gap;
-              });
-              // $("#confidenceChart").addClass("hidden");
-              // Store cropData and gapData globally for chart and GAP modal
-              window.cropData = cropData;
-              window.gapData = gapData;
-              $("#loading").addClass("hidden"); // Hide loading spinner
-            },
-            error: function (err) {
-              console.error("Error fetching predictions:", err);
-              alert("Failed to fetch predictions. Please try again.");
-              $("#loading").addClass("hidden"); // Hide loading spinner
-            }
-          });
-        },
-        function (error) {
-          $("#loading").addClass("hidden"); // Hide loading spinner
-          let errorMessage;
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "Location access was denied. Please allow location access or select a location manually.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Location information is unavailable. Please try again or select a location manually.";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "The request to get your location timed out. Please try again.";
-              break;
-            default:
-              errorMessage = "An error occurred while retrieving your location.";
-          }
-          alert(errorMessage);
+    const tabs = document.querySelectorAll('.tab-button');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
+            contents.forEach(c => c.classList.add('hidden'));
+            tab.classList.add('active-tab', 'border-blue-600');
+            document.getElementById(tab.id.replace('Tab', 'Section')).classList.remove('hidden');
+        });
+    });
+   
+    // Function to validate the quantity and quality entered in List creation
+    function validateListingForm(event) {
+        const quantity = document.querySelector("[name='quantity']")?.value;
+        const price = document.querySelector("[name='price']")?.value;
+        if (quantity <= 0 || price <= 0) {
+            event.preventDefault(); // Prevent form submission
+            alert("Quantity and Price must be greater than zero!");
         }
-      );
-    } else {
-      $("#loading").addClass("hidden"); // Hide loading spinner
-      alert("Geolocation is not supported by your browser. Please select a location manually.");
     }
-  });//End of MyLocation logic
+    
+     
+  
+    function openEditModal(id, productName, productCategory, quantity, unit, price, description, location, imageUrl) {
+        document.getElementById('editModal').classList.remove('hidden');
+        document.getElementById('editListingId').value = id;
+        document.getElementById('editProductName').value = productName;
+        // Set the productCategory select field
+        const categorySelect = document.getElementById('id_productCategory'); // ID generated by Django form
+        if (categorySelect) {
+            categorySelect.value = productCategory;
+        }
+        document.getElementById('editQuantity').value = quantity;
+        document.getElementById('editUnit').value = unit;
+        document.getElementById('editPrice').value = price;
+        document.getElementById('editDescription').value = description;
+        document.getElementById('editLocation').value = location;
+        document.getElementById('editCurrentImage').src = imageUrl;
+        document.getElementById('editForm').action = `/market/edit/${id}/`;
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+        document.getElementById('editForm').reset();
+        document.getElementById('editClearImage').checked = false;
+    }
+
+    // Delete Modal Function
+    function openDeleteModal(id, ProductName) {
+        document.getElementById('deleteModal').classList.remove('hidden');
+        document.getElementById('deleteListingId').value = id;
+        document.getElementById('deleteProductName').textContent = ProductName;
+        document.getElementById('deleteForm').action = `/market/delete/${id}/`;
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+
+    // Debounce function that limits API calls
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    // Search functions for marketPlace 
+    const marketplaceSearchInput = document.querySelector('input[name="marketplace_query"]');
+    if (marketplaceSearchInput) {
+        marketplaceSearchInput.addEventListener('input', debounce(function() {
+            document.querySelector('#marketplaceSection form').submit();
+        }, 500));
+    }
+
+    function openChatModal(listingId = null, listingName = null, listingImage = null, recipientId = null) {
+        const chatModal = document.getElementById('chatModal');
+        chatModal.classList.remove('hidden');
+        console.log('Opening chat modal with:', { listingId, listingName, listingImage, recipientId });
+        loadConversations();
+
+        if (recipientId) {
+            const effectiveListingId = listingId || 'none';  // Use 'none' for product requests
+            fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetch response:', data);
+                    document.getElementById('chatArea').classList.remove('hidden');
+                    document.getElementById('chatListingId').value = effectiveListingId;
+                    document.getElementById('chatRecipientId').value = recipientId;
+                    document.getElementById('chatListingName').textContent = listingName || data.listing_name;
+                    document.getElementById('chatListingImage').src = listingImage || data.listing_image || '';
+                    document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                    loadMessages(effectiveListingId, recipientId);
+                })
+                .catch(error => {
+                    console.error('Error fetching messages:', error);
+                    alert('Failed to load chat. Check console for details.');
+                });
+        } else {
+            document.getElementById('chatArea').classList.add('hidden');
+        }
+    }
+
+    function handleMessageSubmit(e) {
+        e.preventDefault();
+        const listingId = document.getElementById('chatListingId').value || 'none';  // Default to 'none'
+        const recipientId = document.getElementById('chatRecipientId').value;
+        const content = document.getElementById('messageInput').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        console.log(`Preparing to send: listingId=${listingId}, recipientId=${recipientId}, content="${content}"`);
+
+        if (!recipientId || !content) {
+            console.error('Invalid form data:', { listingId, recipientId, content });
+            alert('Please ensure all fields are filled correctly.');
+            return;
+        }
+
+        fetch('/market/messages/send/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                listing_id: listingId === 'none' ? null : listingId,
+                recipient_id: recipientId,
+                content: content
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP error! Status: ${response.status}: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.status === 'success') {
+                loadMessages(listingId, recipientId);
+                document.getElementById('messageInput').value = '';
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error.message);
+            alert('Failed to send message. Check the console for details.');
+        });
+    }
+
+
+    function loadMessages(listingId, recipientId) {
+        const effectiveListingId = listingId || 'none';  // Ensure it's never undefined
+        const conversationKey = `${effectiveListingId}-${recipientId}`;
+        if (currentConversation === conversationKey) {
+            console.log('Skipping duplicate loadMessages call for:', conversationKey);
+            return;
+        }
+        currentConversation = conversationKey;
+
+        fetch(`/market/messages/${effectiveListingId}/${recipientId}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                const messagesContainer = document.getElementById('messagesContainer');
+                messagesContainer.innerHTML = '';
+                data.messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
+                    msgDiv.innerHTML = `
+                        <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
+                            <p class="text-sm">${msg.content}</p>
+                            <p class="text-xs text-gray-500">${msg.timestamp}</p>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(msgDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+            });
+    }
+
+
+    function closeChatModal() {
+        document.getElementById('chatModal').classList.add('hidden');
+        document.getElementById('chatArea').classList.add('hidden');
+    }
+
+    function loadConversations() {
+        console.log("Load conversation function ...")
+        fetch('/market/messages/conversations/')
+            .then(response => response.json())
+            .then(data => {
+                const conversationItems = document.getElementById('conversationItems');
+                conversationItems.innerHTML = '';
+                let unreadCount = 0;
+                data.conversations.forEach(convo => {
+                    if (convo.unread) unreadCount++;
+                    const item = document.createElement('div');
+                    item.className = `p-2 hover:bg-gray-100 cursor-pointer ${convo.unread ? 'font-bold' : ''}`;
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <img src="${convo.listing_image}" alt="${convo.listing_name}" class="w-8 h-8 object-cover rounded mr-2">
+                            <div>
+                                <p class="text-sm">${convo.listing_name}</p>
+                                <p class="text-xs text-gray-500">@${convo.other_user}: ${convo.last_message.substring(0, 20)}...</p>
+                            </div>
+                        </div>
+                    `;
+                    item.onclick = () => openConversation(convo.listing_id, convo.listing_name, convo.listing_image, convo.other_user_id);
+                    conversationItems.appendChild(item);
+                });
+                const badge = document.getElementById('unreadBadge');
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            });
+    }
+
+    function openConversation(listingId, listingName, listingImage, recipientId) {
+        document.getElementById('chatArea').classList.remove('hidden');
+        document.getElementById('chatListingId').value = listingId;
+        document.getElementById('chatRecipientId').value = recipientId;
+        document.getElementById('chatListingName').textContent = listingName;
+        document.getElementById('chatListingImage').src = listingImage;
+        document.getElementById('chatOtherUser').textContent = `@${recipientId}`; // Replace with actual username via API response
+        loadMessages(listingId, recipientId);
+    }
+
+    function loadMessages(listingId, recipientId) {
+        fetch(`/market/messages/${listingId}/${recipientId}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('chatOtherUser').textContent = `@${data.other_user}`;
+                const messagesContainer = document.getElementById('messagesContainer');
+                messagesContainer.innerHTML = '';
+                data.messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `mb-2 ${msg.is_sender ? 'text-right' : 'text-left'}`;
+                    msgDiv.innerHTML = `
+                        <div class="inline-block p-2 rounded-lg ${msg.is_sender ? 'bg-blue-100' : 'bg-gray-100'}">
+                            <p class="text-sm">${msg.content}</p>
+                            <p class="text-xs text-gray-500">${msg.timestamp}</p>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(msgDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+    }
+      
+    // PRODUCT REQUEST Functions    
+    function openRequestModal() {
+        document.getElementById('requestModal').classList.remove('hidden');
+    }
+    function closeRequestModal() {
+        document.getElementById('requestModal').classList.add('hidden');
+        document.getElementById('requestForm').reset();
+    }
+  
+    function submitRequestForm(event) { //NOW Function
+        event.preventDefault(); // Prevent default form submission
+
+        // Get form data
+        const productName = document.getElementById('requestProductName').value;
+        const quantity = document.getElementById('requestQuantity').value;
+        const unit = document.getElementById('requestUnit').value;
+        const description = document.getElementById('requestDescription').value;
+        const location = document.getElementById('requestLocation').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        console.log('Creating request');
+
+        // Send data via Fetch API
+        fetch('/market/request/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                product_name: productName,
+                quantity: quantity,
+                unit: unit,
+                description: description,
+                location: location
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeRequestModal(); // Close modal
+                loadMyRequests(); // Refresh the MyRequests tab
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Edit Request Modal Functions
+    function openEditRequestModal(id, productName, quantity, unit, description, location) {
+        document.getElementById('editRequestModal').classList.remove('hidden');
+        document.getElementById('editRequestId').value = id;
+        document.getElementById('editRequestProductName').value = productName;
+        document.getElementById('editRequestQuantity').value = quantity;
+        document.getElementById('editRequestUnit').value = unit;
+        document.getElementById('editRequestDescription').value = description;
+        document.getElementById('editRequestLocation').value = location;
+    }
+    function closeEditRequestModal() {
+        document.getElementById('editRequestModal').classList.add('hidden');
+    }
+    function editRequest(event){
+        event.preventDefault();
+        const id = document.getElementById('editRequestId').value;
+        const productName = document.getElementById('editRequestProductName').value;
+        const quantity = document.getElementById('editRequestQuantity').value;
+        const unit = document.getElementById('editRequestUnit').value;
+        const description = document.getElementById('editRequestDescription').value;
+        const location = document.getElementById('editRequestLocation').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`/market/request/edit/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ product_name: productName, quantity: quantity, unit: unit, description: description, location: location })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeEditRequestModal();
+                loadMyRequests();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    // Delete Request Modal Functions
+    function openDeleteRequestModal(id, productName) {
+        document.getElementById('deleteRequestModal').classList.remove('hidden');
+        document.getElementById('deleteRequestId').value = id;
+        document.getElementById('deleteRequestProductName').textContent = productName;
+    }
+    function closeDeleteRequestModal() {
+        document.getElementById('deleteRequestModal').classList.add('hidden');
+    }
+    //Producr request deletion function
+    function deleteRequest(event) {
+        event.preventDefault();
+        
+        const id = document.getElementById('deleteRequestId').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/market/request/delete/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeDeleteRequestModal();
+                loadMyRequests();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    // Load Requests Dynamically
+    function loadMyRequests() {
+        fetch('/market/my_requests/')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('myRequestSection').querySelector('.grid');
+                container.innerHTML = '';
+                if (data.requests.length === 0) {
+                    container.innerHTML = '<p class="text-gray-600 col-span-full">No requests yet. Use the Product Request button to create one.</p>';
+                } else {
+                    data.requests.forEach(req => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-white shadow-md rounded-lg p-4';
+                        div.innerHTML = `
+                            <h3 class="text-lg font-semibold">${req.product_name}</h3>
+                            <p class="text-gray-600">${req.quantity} ${req.unit}</p>
+                            <p class="text-gray-600">${req.description}</p>
+                            <p class="text-gray-600">${req.location}</p>
+                            <p class="text-gray-500 text-sm">${req.created_at}</p>
+                            <div class="mt-2 flex space-x-2">
+                                <button onclick="openEditRequestModal(${req.id}, '${req.product_name}', '${req.quantity}', '${req.unit}', '${req.description}', '${req.location}')" class="text-yellow-500 hover:text-yellow-600" title="Edit Request">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="openDeleteRequestModal(${req.id}, '${req.product_name}')" class="text-red-500 hover:text-red-600" title="Delete Request">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+            });
+    }
+    function loadProductRequests() {
+        console.log("loads product request")//debug
+        fetch('/market/product_requests/')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('productRequestSection').querySelector('.grid');
+                container.innerHTML = '';
+                if (data.requests.length === 0) {
+                    container.innerHTML = '<p class="text-gray-600 col-span-full">No product requests available.</p>';
+                } else {
+                    data.requests.forEach(req => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-white shadow-md rounded-lg p-4';
+                        div.innerHTML = `
+                            <h3 class="text-lg font-semibold">${req.product_name}</h3>
+                            <p class="text-gray-600">${req.quantity} ${req.unit}</p> 
+                            <p class="text-gray-600">${req.description}</p>
+                            <p class="text-gray-600">${req.location}</p>
+                            <p class="text-gray-500 text-sm">Requested by @${req.requester}</p>
+                            <p class="text-gray-500 text-sm">${req.created_at}</p>
+                            <button onclick="openChatModal(null, '${req.product_name}', '', ${req.requester_id})" class="text-blue-500 hover:text-blue-600 mt-2" title="Message Requester">
+                                <i class="fas fa-envelope"></i>
+                            </button>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+            });
+    }
+
+    // END OF PRODUCT REQUEST
+
+    // ORDERS
+    let currentListingId = null;
+        function openOrderModal(listingId, productName, price, maxQuantity) {
+            currentListingId = listingId;
+            document.getElementById('orderCrop').value = productName;
+            document.getElementById('orderQuantity').max = maxQuantity;
+            document.getElementById('orderQuantity').addEventListener('input', () => {
+                const quantity = parseFloat(document.getElementById('orderQuantity').value) || 0;
+                document.getElementById('orderTotal').value = (quantity * price).toFixed(2);
+            });
+            document.getElementById('orderModal').classList.remove('hidden');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.add('hidden');
+            document.getElementById('orderForm').reset();
+            currentListingId = null;
+        }
+
+        // document.getElementById('orderForm').addEventListener('submit', async (e) => {
+        //     e.preventDefault();
+        //     const quantity = parseFloat(document.getElementById('orderQuantity').value);
+        //     const location = document.getElementById('orderLocationInput').value;
+        //     const deliveryMode = document.getElementById('orderDeliveryMode').value;
+        //     const response = await fetch('/market/createOrder/', {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        //         body: JSON.stringify({ listing_id: currentListingId, quantity, location, deliveryMode }),
+        //     });
+        //     const data = await response.json();
+        //     if (data.status === 'success') {
+        //         alert('Order placed successfully!');
+        //         closeOrderModal();
+        //     } else {
+        //         alert(data.message);
+        //     }
+        // });
+
+        
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Order form submitted');
+
+            const orderForm = document.getElementById('orderForm');
+            if (!orderForm) {
+                console.error('orderForm not found');
+                alert('Error: Order form not found.');
+                return;
+            }
+
+            const quantityInput = document.getElementById('orderQuantity');
+            const locationInput = document.getElementById('orderLocationInput'); // Fixed ID the orderers location at current
+            const latitudeInput = document.getElementById('orderLatitude');
+            const longitudeInput = document.getElementById('orderLongitude');
+            const deliveryModeInput = document.getElementById('orderDeliveryMode');
+
+            if (!quantityInput || !locationInput || !deliveryModeInput) {
+                console.error('Missing required inputs:', { quantityInput, locationInput, deliveryModeInput });
+                alert('Error: One or more form fields are missing.');
+                return;
+            }
+
+            const quantity = parseFloat(quantityInput.value);
+            const location = locationInput.value;
+            const latitude = latitudeInput ? latitudeInput.value : '';
+            const longitude = longitudeInput ? longitudeInput.value : '';
+            const deliveryMode = deliveryModeInput.value;
+            const listingId = orderForm.dataset.listingId || currentListingId; // Fallback to currentListingId
+
+            console.log('Form data:', { listingId, quantity, location, latitude, longitude, deliveryMode });
+
+            if (!listingId || isNaN(quantity) || quantity <= 0 || !location || !deliveryMode) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            try {
+                console.log('Sending AJAX request');
+                const response = await fetch('/market/createOrder/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        listing_id: listingId,
+                        quantity,
+                        location,
+                        latitude,
+                        longitude,
+                        deliveryMode,
+                    }),
+                });
+                const data = await response.json();
+                console.log('Response data:', data);
+                if (data.status === 'success') {
+                    alert('Order placed successfully!');
+                    closeOrderModal();
+                } else {
+                    alert('Error placing order: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('An error occurred while placing the order.');
+            }
+        });
+
+       
+       // Farmer Orders (Requested Orders))
+        async function showFarmerOrders() {
+            const response = await fetch('/market/farmerOrders/');
+            const data = await response.json();
+            const tbody = document.getElementById('farmerOrdersTable');
+
+            let paidOrders = 0;
+            let unpaidOrders = 0;
+            let completedTotal = 0; //keeps a record of the total amount that should be disbursed to the users account
+
+            tbody.innerHTML = '';
+            data.orders.forEach(order => {
+                const tr = document.createElement('tr');
+
+                // WHATSAPP INTEGRATION
+                // Encode the default message to avoid URL issues
+                const defaultMessage = encodeURIComponent(`Hello, regarding your order #${order.id} for ${order.crop}`);
+                // Create WhatsApp link if phone number exists
+                const whatsappLink = order.phone_number 
+                ? `<a href="https://wa.me/${order.phone_number}?text=${defaultMessage}" target="_blank" class="text-green-600 hover:text-green-800"><i class="fab fa-whatsapp"></i></a>`
+                : '<span class="text-gray-400"><i class="fab fa-whatsapp"></i></span>'; // Disabled icon if no phone number
+                // END OF WHATSAPP
+
+                //// PAYMENT ICON <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                let paymentIcon = '';
+                if (order.payment_status === 'paid' && order.status === 'confirmed') {
+                    paymentIcon = '<span class="text-green-600 ml-2" title="Payment Received"><i class="fas fa-check-circle"></i>Paid</span>';
+                    paidOrders += 1;
+                }else if (order.status === 'confirmed' && order.payment_status !== 'paid'){
+                    paymentIcon = '<span class="text-gray-500 ml-2" title="Payment Not Received"><i class="fas fa-times-circle"></i>Unpaid</span>';
+                    unpaidOrders += 1;
+                }
+                else{
+                    paymentIcon = '<span class="text-gray-400 ml-2">_</span>';
+                }
+
+                if (order.status === 'completed') {
+                    completedTotal += order.total;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-2">${order.date}</td>
+                    <td class="p-2">${order.requester}</td>
+                    <td class="p-2">${order.crop}</td>
+                    <td class="p-2">${order.quantity}</td>
+                    <td class="p-2">${order.total.toFixed(2)}</td>
+                    <td class="p-2">${order.location}</td>
+                    <td class="p-2">${order.deliveryMode}</td>
+                    <td class="p-2">
+                        <select onchange="updateOrderStatus(${order.id}, this.value)" class="p-1 border rounded"
+                            ${order.status === 'completed' ? 'disabled' : ''}>
+                            <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
+                            <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                            
+                        </select>
+                    </td>
+
+                    <td class="p-2">
+                        ${whatsappLink}
+                        ${paymentIcon}
+                        ${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('paidCount').textContent = `Paid Orders: ${paidOrders}`;
+            document.getElementById('unpaidCount').textContent = `Unpaid Orders: ${unpaidOrders}`;
+            document.getElementById('completedTotal').textContent = `AccountBalance: KES ${completedTotal.toFixed(2)}`;
+
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            const response = await fetch(`/market/updateOrderStatus/${orderId}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ status }),
+            });
+            const data = await response.json();
+            if (data.status !== 'success') alert(data.message);
+        }
+
+        // My Orders Changed to accomodate mpesa 16/05/2025
+        async function showMyOrders() {
+            const response = await fetch('/market/myOrders/');
+            const data = await response.json();
+            const tbody = document.getElementById('myOrdersTable');
+            tbody.innerHTML = '';
+
+            data.orders.forEach(order => {
+                const tr = document.createElement('tr');
+
+                let actionHtml = '';
+                if (order.status === 'confirmed' && order.payment_status !== 'paid') {
+                    actionHtml = `<button onclick="payOrder(${order.id})" class="text-green-600 hover:text-green-800 font-semibold">
+                                    <i class="fas fa-money-bill-wave"></i> Pay
+                                </button>`;
+                }
+                
+                else if (order.status === 'new' || order.status === 'pending'){
+                    actionHtml = `<span class="text-gray-500">—</span>`;
+                }else if (order.status === 'confirmed' && order.payment_status === 'paid') {
+                    actionHtml = `<button onclick="markOrderCompleted(${order.id})" class="text-green-600 hover:text-green-800 font-semibold">
+                                    <i class="fas fa-check-circle"></i>Received
+                                </button>`;
+                }
+                else if (order.status === 'completed') {
+                    actionHtml = `<span class="text-green-600 font-bold">✅</span>`;
+                }
+                else {
+                    actionHtml = `<span class="text-gray-500">—</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-2">${order.farmer}</td>
+                    <td class="p-2">${order.crop}</td>
+                    <td class="p-2">${order.date}</td>
+                    <td class="p-2">${order.quantity}</td>
+                    <td class="p-2">${order.total.toFixed(2)}</td>
+                    <td class="p-2">${order.status}</td>
+                    <td class="p-2">${order.deliveryMode}</td>
+                    <td class="p-2">${order.can_delete ? `<button onclick="deleteOrder(${order.id})" class="text-red-600"><i class="fas fa-trash"></i></button>` : ''}</td>
+                    <td class="p-2">${actionHtml}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue;
+        }
+
+        async function markOrderCompleted(orderId) {
+            if (!confirm("Are you sure you want to mark this order as completed?")) return;
+
+            const url = `/market/completeOrder/${orderId}/`;
+            const csrf = getCSRFToken();
+
+            console.log("✅ About to send fetch to:", url);
+            console.log("✅ CSRF Token:", csrf);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrf,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                alert('Order marked as completed!');
+                showMyOrders();
+            } else {
+                const data = await response.json();
+                alert(`Error: ${data.error || 'Something went wrong'}`);
+            }
+        }
 
 
 
+        // FUNCTION THAT handles payment
+        function payOrder(orderId) {
+            fetch(`/market/pay-order/${orderId}/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+            })
+            .then(res => res.json())
+            .then(data => {
+            if (data.success) {
+                alert("STK Push sent. Please check your phone and enter your MPesa PIN.");
+                setTimeout(() => location.reload(), 15000); // Reload after 15 seconds
+            } else {
+                alert("Payment Error: " + data.error);
+            }
+            })
+            .catch(err => {
+            alert("Payment Failed. Try again.");
+            console.log("Payment failed")
+            console.error(err);
+            });
+        }
 
-  // Predict button logic predictButton Click
-  let cropData = [];
-  let gapData = {};
-  $("#predictButton").click(function (e) {
-    e.preventDefault();
-    const constituency = $("#constituency").val();
-    const ward = $("#ward").val();
+        async function deleteOrder(orderId) {
+            if (confirm('Are you sure you want to delete this order?')) {
+                const response = await fetch(`/market/deleteOrder/${orderId}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showMyOrders();
+                    alert('Order deleted successfully!');
+                } else {
+                    alert(data.message);
+                }
+            }
+        }
 
-    if (constituency && ward) {
-      const locationData = { constituency, ward };
-      $("#loading").removeClass("hidden"); //NOW
-      $("#location").addClass("hidden"); // Ensure location is hidden for dropdown predictions
-      $.ajax({
-        url: "/predict/",
-        method: "POST",
-        data: JSON.stringify(locationData),
-        contentType: "application/json",
-        //Utilizes the response gotten from predict function in views
-        success: function (response) {
-          $("#resultModal").removeClass("hidden");
-          // puts in values in the tag with coordinates id
-          // $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
-          $("#coordinates").text(`Constituency: ${constituency} Ward: ${ward} (Latitude: ${response.coordinates.lat}, Longitude: ${response.coordinates.lng})`);
-          $("#cropPredictions").empty();//clears previous predictions
-          cropData = [];//storing data
-          gapData = {};
-          response.crop_predictions.forEach(function (prediction) {
-            //Adds the predicted results that is crop images and confidence
-            // <strong>${prediction.crop}</strong> @ ${prediction.confidence.toFixed(2)}% confidence2
-            const label = getSuitabilityLabel(prediction.confidence);
-            $("#cropPredictions").append(`
-              <li class="flex items-center space-x-4">
-                <img src="${prediction.image}" alt="${prediction.crop}" class="w-16 h-16 object-cover rounded-md">
-                <div>
-                  
-                  <strong>${prediction.crop}</strong>${label}
-                </div>
-              </li>
-            `);
-            cropData.push({ crop: prediction.crop, confidence: prediction.confidence });
-            gapData[prediction.crop] = prediction.gap; // Store GAP data
-          });
-          // $("#confidenceChart").addClass("hidden");//hidden initially the chart
+        // CSRF Token Helper (ensure this is available in your template or via Django)
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+    
+
+    // ORDERS
+    // Dashboard functions
+    // New: Competitor Crop Pricing Chart Logic
+    function initializeCompetitorCropPricingChart() {
+        const ctx = document.getElementById('competitorCropPricingChart')?.getContext('2d');
+        const noDataMessage = document.getElementById('noPricingData');
+
+        if (!ctx) {
+            console.error("Canvas element 'competitorCropPricingChart' not found.");
+            return;
+        }
+
+        const competitorCropPricingElement = document.getElementById('competitorCropPricing');
+        if (!competitorCropPricingElement) {
+            console.error("Competitor crop pricing data element not found.");
+            if (noDataMessage) noDataMessage.classList.remove('hidden');
+            return;
+        }
+
+        const competitorCropPricing = JSON.parse(competitorCropPricingElement.textContent || '{}');
+        if (!competitorCropPricing || Object.keys(competitorCropPricing).length === 0) {
+            console.warn("No competitor pricing data available.");
+            if (noDataMessage) noDataMessage.classList.remove('hidden');
+            return;
+        }
+
+        // Prepare chart data
+        const crops = Object.keys(competitorCropPricing);
+        const allFarmers = new Set();
+        crops.forEach(crop => {
+            Object.keys(competitorCropPricing[crop]).forEach(farmer => allFarmers.add(farmer));
+        });
+        const farmerLabels = Array.from(allFarmers);
+
+        const datasets = crops.map((crop, index) => {
+            const prices = farmerLabels.map(farmer => competitorCropPricing[crop][farmer] || 0);
+            return {
+                label: crop,
+                data: prices,
+                backgroundColor: `rgba(${75 + index * 50 % 255}, ${192 - index * 20 % 255}, ${175 - index * 30 % 255}, 0.7)`,
+                borderColor: `rgba(${75 + index * 50 % 255}, ${192 - index * 20 % 255}, ${175 - index * 30 % 255}, 1)`,
+                borderWidth: 1,
+            };
+        });
+
+        // Destroy existing chart if it exists to prevent overlap
+        if (window.competitorCropPricingChart instanceof Chart) {
+            window.competitorCropPricingChart.destroy();
+        }
+
+        window.competitorCropPricingChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: farmerLabels,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Price (KES)' },
+                        ticks: {
+                            callback: value => `KES ${value}`,
+                        },
+                    },
+                    x: {
+                        title: { display: true, text: 'Farmers' },
+                    },
+                },
+                plugins: {
+                    legend: { position: 'top' },
+                    // title: {
+                    //     display: true,
+                    //     text: `Crop Pricing Comparison in ${userCounty || 'Your County'}`, // userCounty should be passed from Django
+                    // },
+                    tooltip: {
+                        callbacks: {
+                            label: context => `${context.dataset.label}: KES ${context.raw.toFixed(2)}`,
+                        },
+                    },
+                },
+            },
+        });
+
+        if (noDataMessage) noDataMessage.classList.add('hidden');
+    }
+
+    // ADDED TODAY 30 LOCATION FUNCTIONALITIES
+    function initializeAutocomplete() {
+        // Listing Location Autocomplete
+        const listingLocationInput = document.getElementById('listingLocationInput');
+        if (listingLocationInput) {
+            const listingAutocomplete = new google.maps.places.Autocomplete(listingLocationInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ke' } // Restrict to Kenya
+            });
+            listingAutocomplete.addListener('place_changed', () => {
+                const place = listingAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('id_latitude').value = place.geometry.location.lat();
+                    document.getElementById('id_longitude').value = place.geometry.location.lng();
+                    listingLocationInput.value = place.formatted_address;
+                }
+            });
+        }
+
+        // Order Location Autocomplete
+        const orderLocationInput = document.getElementById('orderLocationInput');
+        if (orderLocationInput) {
+            const orderAutocomplete = new google.maps.places.Autocomplete(orderLocationInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ke' } // Restrict to Kenya
+            });
+            orderAutocomplete.addListener('place_changed', () => {
+                const place = orderAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('orderLatitude').value = place.geometry.location.lat();
+                    document.getElementById('orderLongitude').value = place.geometry.location.lng();
+                    orderLocationInput.value = place.formatted_address;
+                }
+            });
+        }
+
+        // 1ST
+        // Farmer Location Autocomplete
+        const farmerLocationInput = document.getElementById('farmerLocation');
+        if (farmerLocationInput) {
+            const farmerAutocomplete = new google.maps.places.Autocomplete(farmerLocationInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ke' }
+            });
+            farmerAutocomplete.addListener('place_changed', () => {
+                const place = farmerAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('farmerLatitude').value = place.geometry.location.lat();
+                    document.getElementById('farmerLongitude').value = place.geometry.location.lng();
+                    farmerLocationInput.value = place.formatted_address;
+                }
+            });
+        }
+    }
+
+    // Use Current Location for Listing
+    function useCurrentLocationListing() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('id_latitude').value = lat;
+                    document.getElementById('id_longitude').value = lng;
+
+                    // Reverse geocode to get address
+                    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key={{ google_maps_api_key }}&`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results[0]) {
+                                document.getElementById('listingLocationInput').value = data.results[0].formatted_address;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    alert('Unable to get location. Please allow location access or enter manually.');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+    // Use Current Location for Order
+    function useCurrentLocationOrder() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('orderLatitude').value = lat;
+                    document.getElementById('orderLongitude').value = lng;
+
+                    // Reverse geocode to get address
+                    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key={{ google_maps_api_key }}&`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results[0]) {
+                                document.getElementById('orderLocationInput').value = data.results[0].formatted_address;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    alert('Unable to get location. Please allow location access or enter manually.');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+     // Use Current Location for Farmer
+    function useCurrentLocationFarmer() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('farmerLatitude').value = lat;
+                    document.getElementById('farmerLongitude').value = lng;
+
+                    // Reverse geocode to get address
+                    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key={{ google_maps_api_key }}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results[0]) {
+                                document.getElementById('farmerLocation').value = data.results[0].formatted_address;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    alert('Unable to get location. Please allow location access or enter manually.');
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+    // ADDED TODAY 30 LOCATION FUNCTIONALITIES END
+   
+    //Ensure DOM has loaded before calling certain function that handle different logic
+    // Combine this DOM with th eone below
+    document.addEventListener("DOMContentLoaded", function () {
           
-          // Store cropData and gapData globally for chart and GAP modal
-          window.cropData = cropData;
-          window.gapData = gapData;
-        },
-        error: function (err) {
-          console.error("Error fetching predictions:", err);
-          alert("Failed to fetch predictions. Please try again.");
-        },//incase fetching fails and its not a success Display this
-      });
-    } else {
-      alert("Please select all fields before predicting.");
+            // LISTING FORM
+            const listingForm = document.getElementById("listingForm");
+            if (listingForm) {
+                listingForm.addEventListener("submit", validateListingForm);
+            } else {
+                console.error("listingForm not found in the DOM.");
+            }
+            //Product Request
+            const requestForm = document.getElementById('requestForm'); 
+            if (requestForm) {
+                requestForm.addEventListener("submit", submitRequestForm);
+            } else {
+                console.error("requestForm not found in the DOM.");
+            }
+
+            // Request button
+            document.getElementById('requestButton').addEventListener('click', () => openRequestModal());
+            //Handle messages            
+            document.getElementById('messageForm').addEventListener('submit', handleMessageSubmit);
+            //Handles product request deletion
+            document.getElementById('deleteRequestForm').addEventListener('submit', deleteRequest);
+            // Handles productRequest edit
+            document.getElementById('editRequestForm').addEventListener('submit', editRequest);
+
+             // Initial Tab ORDERS
+            document.getElementById('dashboardTab').click();
+
+            // Chart
+           // Initialize the new chart
+           {% if user.userprofile.role == 'farmer' %}
+                if (document.getElementById('competitorCropPricing')) {
+                    initializeCompetitorCropPricingChart();
+                } else {
+                    console.error("competitorCropPricing element not found at DOM load time.");
+                }
+            {% endif %}
+
+                // Highlight active category
+            const categoryFilters = document.querySelectorAll('.category-filter');
+            categoryFilters.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    categoryFilters.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+                    
+            // LOCATION BASED EVENT LISTENERS
+            initializeAutocomplete();
+            const useCurrentLocationListingBtn = document.getElementById('useCurrentLocationListing');
+            if (useCurrentLocationListingBtn) {
+                useCurrentLocationListingBtn.addEventListener('click', useCurrentLocationListing);
+            }
+            const useCurrentLocationOrderBtn = document.getElementById('useCurrentLocationOrder');
+            if (useCurrentLocationOrderBtn) {
+                useCurrentLocationOrderBtn.addEventListener('click', useCurrentLocationOrder);
+            }
+
+            
+            // ENDS HERE
+
+    });
+ 
+   // setInterval(loadConversations, 10000);    // Auto-refresh conversations every 10 seconds (optional) you will uncomment this 
+
+
+   // Category Sidebar Toggle and Filter Logic    
+    function initializeCategorySidebars() {
+    // Marketplace Sidebar
+    const openMarketplaceSidebar = document.getElementById('openMarketplaceSidebar');
+    const closeMarketplaceSidebar = document.getElementById('closeMarketplaceSidebar');
+    const marketplaceSidebar = document.getElementById('marketplaceCategorySidebar');
+
+    // My Products Sidebar
+    const openMyProductsSidebar = document.getElementById('openMyProductsSidebar');
+    const closeMyProductsSidebar = document.getElementById('closeMyProductsSidebar');
+    const myProductsSidebar = document.getElementById('myProductsCategorySidebar');
+
+    // Toggle marketplace sidebar
+    if (openMarketplaceSidebar) {
+        openMarketplaceSidebar.addEventListener('click', () => {
+            marketplaceSidebar.classList.remove('translate-x-full');
+        });
     }
-  });
+    if (closeMarketplaceSidebar) {
+        closeMarketplaceSidebar.addEventListener('click', () => {
+            marketplaceSidebar.classList.add('translate-x-full');
+        });
+    }
 
-  // Close prediction modal
-  $("#closeModal").click(function () {
-    $("#resultModal").addClass("hidden");
-    // $("#confidenceChart").addClass("hidden");
-    $("#loading").addClass("hidden");
-    $("#location").addClass("hidden").text("Location: Not specified"); // Reset and hide 
-  });
+    // Toggle my products sidebar
+    if (openMyProductsSidebar) {
+        openMyProductsSidebar.addEventListener('click', () => {
+            myProductsSidebar.classList.remove('translate-x-full');
+        });
+    }
+    if (closeMyProductsSidebar) {
+        closeMyProductsSidebar.addEventListener('click', () => {
+            myProductsSidebar.classList.add('translate-x-full');
+        });
+    }
 
-  // // Visualize button logic
-  // let chartInstance = null;
-  // $("#visualizeButton").click(function () {
-  //   const chartElement = $("#confidenceChart");
-  //   const isChartVisible = !chartElement.hasClass("hidden");
-
-  //   if (!isChartVisible) {
-  //     chartElement.removeClass("hidden");
-  //     const ctx = chartElement[0].getContext("2d");
-
-  //     if (chartInstance) {
-  //       chartInstance.destroy();
-  //     }
-
-  //     chartInstance = new Chart(ctx, {
-  //       type: "bar",
-  //       data: {
-  //         labels: window.cropData.map(data => data.crop),
-  //         datasets: [{
-  //           label: "Confidence (%)",
-  //           data: window.cropData.map(data => data.confidence),
-  //           backgroundColor: "rgba(13, 148, 136, 0.6)",
-  //           borderColor: "rgba(13, 148, 136, 1)",
-  //           borderWidth: 1
-  //         }]
-  //       },
-  //       options: {
-  //         scales: {
-  //           y: { beginAtZero: true, max: 100 },
-  //           x: { ticks: { autoSkip: false } }
-  //         },
-  //         plugins: {
-  //           legend: { display: false },
-  //           title: { display: true, text: "Crop Confidence Levels" }
-  //         }
-  //       }
-  //     });
-  //   } else {
-  //     chartElement.addClass("hidden");
-  //     if (chartInstance) {
-  //       chartInstance.destroy();
-  //       chartInstance = null;
-  //     }
-  //   }
-  // });
-
-  // Function that analyzes the confidence level
-  function getSuitabilityLabel(confidence) {
-    if (confidence <= 20) return "❌ Not Suitable";
-    else if (confidence <= 40) return "⚠️ Marginally Suitable";
-    else if (confidence <= 70) return "✅ Suitable";
-    else return "🌟 Highly Suitable";
-  }
-
-  // GAP button logic
-  $("#gapButton").click(function () {
-    $("#gapModal").removeClass("hidden");
-    $("#gapCrops").empty();
-    Object.keys(window.gapData).forEach(function (crop, index) {
-      $("#gapCrops").append(`
-        <button class="gap-crop-btn px-4 py-2 rounded-md ${index === 0 ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-teal-500 hover:text-white transition" data-crop="${crop}">
-          ${crop}
-        </button>
-      `);
+    // Category filter logic for both sections
+    const categoryFilters = document.querySelectorAll('.category-filter');
+    categoryFilters.forEach(filter => {
+        filter.addEventListener('click', (e) => {
+            const category = e.target.dataset.category;
+            const section = e.target.closest('.tab-content').id.includes('marketplace') ? 'marketplace' : 'myProducts';
+            
+            filterProductsByCategory(category, section);
+            
+            // Highlight active filter
+            const currentSidebar = section === 'marketplace' ? marketplaceSidebar : myProductsSidebar;
+            currentSidebar.querySelectorAll('.category-filter').forEach(f => f.classList.remove('bg-teal-200'));
+            e.target.classList.add('bg-teal-200');
+            
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 1024) {
+                if (section === 'marketplace') {
+                    marketplaceSidebar.classList.add('translate-x-full');
+                } else {
+                    myProductsSidebar.classList.add('translate-x-full');
+                }
+            }
+        });
     });
-    const firstCrop = Object.keys(window.gapData)[0];
-    displayGapSections(firstCrop);
-  });
+    }
 
-  // Close GAP modal
-  $("#closeGapModal").click(function () {
-    $("#gapModal").addClass("hidden");
-  });
+    function filterProductsByCategory(category, section) {
+        const gridId = section === 'marketplace' ? 'marketplaceGrid' : 'myProductsGrid';
+        const grid = document.getElementById(gridId);
+        const items = grid.querySelectorAll('[data-category]');
+        let hasItems = false;
 
-  // Handle crop selection To switch to the respective GAP of a crop
-  $(document).on("click", ".gap-crop-btn", function () {
-    $(".gap-crop-btn").removeClass("bg-teal-600 text-white").addClass("bg-gray-200 text-gray-700");
-    $(this).removeClass("bg-gray-200 text-gray-700").addClass("bg-teal-600 text-white");
-    const crop = $(this).data("crop");
-    displayGapSections(crop);
-  });
+        items.forEach(item => {
+            if (category === 'all' || item.dataset.category === category) {
+                item.classList.remove('hidden');
+                hasItems = true;
+            } else {
+                item.classList.add('hidden');
+            }
+        });
 
-  // Handle GAP section selection
-  $(document).on("click", ".gap-section-btn", function () {
-    $(".gap-section-btn").removeClass("bg-teal-600 text-white").addClass("bg-gray-200 text-gray-700");
-    $(this).removeClass("bg-gray-200 text-gray-700").addClass("bg-teal-600 text-white");
-    const crop = $(".gap-crop-btn.bg-teal-600").data("crop");
-    const section = $(this).data("section");
-    $("#gapContent").html(window.gapData[crop][section].replace(/\n/g, '<br>') || "No information available.");
-  });
+        // Show message if no items match
+        const noItemsMessage = grid.querySelector('.no-items-message');
+        if (!hasItems && !noItemsMessage) {
+            const message = document.createElement('p');
+            message.className = 'no-items-message text-gray-600 col-span-full text-center py-6';
+            message.textContent = `No ${category === 'all' ? '' : category} products found.`;
+            grid.appendChild(message);
+        } else if (hasItems && noItemsMessage) {
+            noItemsMessage.remove();
+        }
+    }
 
-  // Function to display GAP sections
-  function displayGapSections(crop) {
-    $("#gapSections").empty();
-    $("#gapContent").empty();
-    const sections = Object.keys(window.gapData[crop]);
-    sections.forEach(function (section, index) {
-      $("#gapSections").append(`
-        <button class="gap-section-btn px-2 py-0.5 rounded-md ${index === 0 ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-teal-500 hover:text-white transition" data-section="${section}">
-          ${section}
-        </button>
-      `);
+    // Initialize sidebars on page load
+    document.addEventListener('DOMContentLoaded', initializeCategorySidebars);
+
+    // ROUTE OPTIMIZATION FUNCTIONS
+    // Map and directions service for each route
+    const mapInstances = {};
+    const polylines = {};
+
+    function initializeRouteMap(listingId) {
+        const mapContainer = document.getElementById(`map-${listingId}`);
+        if (!mapContainer) {
+            console.error(`Map container for listing ${listingId} not found`);
+            return;
+        }
+
+        const map = new google.maps.Map(mapContainer, {
+            zoom: 10,
+            center: { lat: -1.286920, lng: 36.817223 }, // Default: Nairobi
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+
+        mapInstances[listingId] = { map };
+        console.log(`Initialized map for listing ${listingId}`);
+    }
+
+    function renderPolyline(listingId, encodedPolyline, route) {
+        if (!mapInstances[listingId]) {
+            console.error(`Map instance for listing ${listingId} not initialized`);
+            return;
+        }
+
+        if (!encodedPolyline || typeof encodedPolyline !== 'string') {
+            console.warn(`Invalid or missing polyline data for listing ${listingId}:`, encodedPolyline);
+            return;
+        }
+
+        try {
+            // Decode and render polyline
+            const path = google.maps.geometry.encoding.decodePath(encodedPolyline);
+            if (!path || path.length === 0) {
+                console.warn(`Decoded polyline is empty for listing ${listingId}`);
+                return;
+            }
+
+            // Remove existing polyline if any
+            if (polylines[listingId]) {
+                polylines[listingId].setMap(null);
+            }
+
+            const polyline = new google.maps.Polyline({
+                path: path,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 4,
+                map: mapInstances[listingId].map
+            });
+
+            polylines[listingId] = polyline;
+            console.log(`Rendered polyline for listing ${listingId} with ${path.length} points`);
+
+            // Fit map to polyline bounds
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => bounds.extend(point));
+            mapInstances[listingId].map.fitBounds(bounds);
+
+            // Add markers for orders
+            if (route && route.orders && Array.isArray(route.orders)) {
+                route.orders.forEach(order => {
+                    new google.maps.Marker({
+                        position: { lat: order.latitude, lng: order.longitude },
+                        map: mapInstances[listingId].map,
+                        title: `${order.product_name} for @${order.customer}`,
+                    });
+                });
+
+                // ADEED THIS FOR ORIGIN point
+                const [lat, lng] = route.origin.split(',').map(parseFloat);
+                new google.maps.Marker({
+                    position: { lat, lng },
+                    map: mapInstances[listingId].map,
+                    title: `Origin: ${route.listing_location}`,
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                    }
+                }); //ENDS HERE
+
+                console.log(`Added ${route.orders.length} markers for listing ${listingId}`);
+            } else {
+                console.warn(`No valid orders data for markers in listing ${listingId}`);
+            }
+
+            
+
+
+        } catch (error) {
+            console.error(`Failed to render polyline for listing ${listingId}:`, error);
+            document.getElementById('routeDetails').innerHTML += `<p class="text-red-600">Error: Failed to render route for listing ${listingId}. Please try again.</p>`;
+        }
+    }
+
+
+    function optimizeDeliveryRoute() {
+        const optimizeRouteButton = document.getElementById('optimizeRouteButton');
+        const loadingDiv = document.getElementById('loading');
+        optimizeRouteButton.disabled = true;
+
+        loadingDiv.classList.remove('hidden');
+        // optimizeRouteButton.textContent = 'Loading...';
+        
+
+        fetch('/market/optimize_delivery_route/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const routeTabs = document.getElementById('routeTabs');
+            const routeMaps = document.getElementById('routeMaps');
+            const routeDetails = document.getElementById('routeDetails');
+            routeTabs.innerHTML = '';
+            routeMaps.innerHTML = '';
+            routeDetails.innerHTML = '';
+
+            if (data.status === 'success') {
+                data.routes.forEach((route, index) => {
+                    console.log(`Processing route for listing ${route.listing_name}:`, route);
+
+                    // Create tab
+                    const tab = document.createElement('button');
+                    tab.className = `px-4 py-2 font-semibold text-teal-700 border-b-2 ${index === 0 ? 'border-teal-600' : 'border-transparent'} hover:border-teal-600 focus:outline-none transition duration-300`;
+                    tab.textContent = `${route.listing_name} (${route.listing_location})`;
+                    tab.dataset.listingId = route.listing_id;
+                    tab.addEventListener('click', () => {
+                        // Toggle active tab
+                        routeTabs.querySelectorAll('button').forEach(t => t.classList.remove('border-teal-600'));
+                        tab.classList.add('border-teal-600');
+                        // Show/hide maps
+                        routeMaps.querySelectorAll('.route-map').forEach(m => m.classList.add('hidden'));
+                        const mapContainer = document.getElementById(`map-${route.listing_id}`);
+                        if (mapContainer) {
+                            mapContainer.classList.remove('hidden');
+                        } else {
+                            console.error(`Map container for listing ${route.listing_id} not found`);
+                        }
+                        // Update details
+                        updateRouteDetails(route);
+                    });
+                    routeTabs.appendChild(tab);
+
+                    // Create map container
+                    const mapContainer = document.createElement('div');
+                    mapContainer.id = `map-${route.listing_id}`;
+                    mapContainer.className = `route-map w-full h-[400px] rounded-lg shadow-md ${index !== 0 ? 'hidden' : ''}`;
+                    routeMaps.appendChild(mapContainer);
+
+                    // Initialize map
+                    initializeRouteMap(route.listing_id);
+
+                    // Render polyline from backend
+                    if (route.polyline) {
+                        renderPolyline(route.listing_id, route.polyline, route);
+                    } else {
+                        console.warn(`No polyline data for listing ${route.listing_name}`);
+                        routeDetails.innerHTML += `<p class="text-yellow-600">Warning: No polyline data for ${route.listing_name}. Route may not display correctly.</p>`;
+                    }
+
+                    // Show details for the first route
+                    if (index === 0) {
+                        updateRouteDetails(route);
+                    }
+                });
+            } else {
+                routeDetails.innerHTML = `<p class="text-gray-600">No delivery routes available: ${data.message}</p>`;
+                console.error('Route optimization failed:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error optimizing routes:', error);
+            alert('Failed to optimize delivery routes. Check console for details.');
+        })
+        .finally(() => {
+            optimizeRouteButton.disabled = false;
+            optimizeRouteButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            loadingDiv.classList.add('hidden');
+            // optimizeRouteButton.textContent = 'Compute Delivery Routes';
+        });
+    }
+
+    function calculateArrivalTime(startTime, minutes) {
+        if (!startTime || !minutes) return 'Not available';
+        const [hours, mins] = startTime.split(':').map(Number);
+        const startDate = new Date();
+        startDate.setHours(hours, mins, 0, 0);
+        startDate.setMinutes(startDate.getMinutes() + Math.round(minutes));
+        return startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function updateRouteDetails(route) {
+        const routeDetails = document.getElementById('routeDetails');
+        const costPerKm = parseFloat(document.getElementById('costPerKm').value) || 0;
+        const startTime = document.getElementById('startTime').value;
+
+        // Calculate total cost
+        const totalCost = route.total_distance_km * costPerKm;
+
+        // Calculate cumulative duration for arrival times
+        let cumulativeMinutes = 0;
+        const ordersWithArrival = route.orders.map(order => {
+            const arrivalTime = order.individual_duration_minutes !== null
+                ? calculateArrivalTime(startTime, cumulativeMinutes + order.individual_duration_minutes)
+                : 'Not available';
+            cumulativeMinutes += order.individual_duration_minutes || 0;
+            return { ...order, arrivalTime };
+        });
+
+        routeDetails.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Route for ${route.listing_name} (${route.listing_location})</h3>
+                <button id="downloadRoute-${route.listing_id}" class="px-3 py-1 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition duration-300">Download Route</button>
+            </div>
+            <p class="text-gray-700 mb-2">
+                Total One-Way Distance: ${route.total_distance_km.toFixed(2)} km, 
+                Total Duration: ${route.total_duration_minutes.toFixed(2)} minutes, 
+                Estimated Cost: KSh.${totalCost.toFixed(2)}
+            </p>
+            <h4 class="text-md font-medium mt-4 mb-2">Individual Order Estimates (in optimized order):</h4>
+            <ul class="list-disc list-inside space-y-2">
+                ${ordersWithArrival.map((order, index) => `
+                    <li>
+                        <strong>${order.product_name}</strong> (${order.quantity} units) for @${order.customer} at ${order.location}<br>
+                        Distance from ${route.listing_location}: ${
+                            order.individual_distance_km !== null 
+                                ? order.individual_distance_km.toFixed(2) + ' km' 
+                                : 'Not available'
+                        }, 
+                        Duration: ${
+                            order.individual_duration_minutes !== null 
+                                ? order.individual_duration_minutes.toFixed(2) + ' minutes' 
+                                : 'Not available'
+                        }, 
+                        Cost: ${
+                            order.individual_distance_km !== null 
+                                ? 'KSh.' + (order.individual_distance_km * costPerKm).toFixed(2)
+                                : 'Not available'
+                        }, 
+                        Estimated Arrival: ${order.arrivalTime}
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+
+        // Add download button event listener
+        document.getElementById(`downloadRoute-${route.listing_id}`).addEventListener('click', () => {
+            const csvContent = [
+                `Route for ${route.listing_name} (${route.listing_location})`,
+                `Total Distance,${route.total_distance_km.toFixed(2)} km`,
+                `Total Duration,${route.total_duration_minutes.toFixed(2)} minutes`,
+                `Total Cost,$${totalCost.toFixed(2)}`,
+                '',
+                'Order,Product,Quantity,Customer,Location,Distance (km),Duration (minutes),Cost ($),Arrival Time',
+                ...ordersWithArrival.map((order, index) => [
+                    index + 1,
+                    order.product_name,
+                    order.quantity,
+                    order.customer,
+                    order.location,
+                    order.individual_distance_km !== null ? order.individual_distance_km.toFixed(2) : 'N/A',
+                    order.individual_duration_minutes !== null ? order.individual_duration_minutes.toFixed(2) : 'N/A',
+                    order.individual_distance_km !== null ? (order.individual_distance_km * costPerKm).toFixed(2) : 'N/A',
+                    order.arrivalTime
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `route_${route.listing_name}_${route.listing_id}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+    }
+
+
+    function saveFarmerLocation() {
+        const latitude = document.getElementById('farmerLatitude').value;
+        const longitude = document.getElementById('farmerLongitude').value;
+        if (!latitude || !longitude) {
+            alert('Please select a valid location using the address field or current location button.');
+            return;
+        }
+        fetch('/market/update_farmer_location/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ latitude: parseFloat(latitude), longitude: parseFloat(longitude) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Location saved successfully!');
+            } else {
+                alert('Failed to save location: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving location:', error);
+            alert('Failed to save location. Check console for details.');
+        });
+    }
+
+    // Update DOMContentLoaded to initialize map and button
+    document.addEventListener('DOMContentLoaded', function () {       
+        // Route optimization button
+        const optimizeRouteButton = document.getElementById('optimizeRouteButton');
+        if (optimizeRouteButton) {
+            optimizeRouteButton.addEventListener('click', optimizeDeliveryRoute);
+        }
+
+        // Save location button
+        const saveLocationButton = document.getElementById('saveLocationButton');
+        if (saveLocationButton) {
+            saveLocationButton.addEventListener('click', saveFarmerLocation);
+        }
+
+        // Use current location button
+        const useCurrentLocationFarmerBtn = document.getElementById('useCurrentLocationFarmer');
+        if (useCurrentLocationFarmerBtn) {
+            useCurrentLocationFarmerBtn.addEventListener('click', useCurrentLocationFarmer);
+        }
+
+        // Initialize autocomplete
+        initializeAutocomplete();
+
+        // Add delivery route tab handling
+        const deliveryRouteTab = document.getElementById('deliveryRouteTab');
+        if (deliveryRouteTab) {
+            deliveryRouteTab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active-tab', 'border-blue-600'));
+                contents.forEach(c => c.classList.add('hidden'));
+                deliveryRouteTab.classList.add('active-tab', 'border-blue-600');
+                document.getElementById('deliveryRouteSection').classList.remove('hidden');
+                optimizeDeliveryRoute(); // Auto-compute on tab open
+            });
+        }
     });
-    $("#gapContent").html(window.gapData[crop][sections[0]].replace(/\n/g, '<br>') || "No information available.");
-  }
-
-  // Scroll GAP sections
-  let scrollPosition = 0;
-  const scrollContainer = $("#gapSections");
-  const scrollAmount = 200;
-
-  $("#scrollRightButton").click(function () {
-    scrollPosition += scrollAmount;
-    scrollContainer.scrollLeft(scrollPosition);
-  });
-
-  $("#scrollLeftButton").click(function () {
-    scrollPosition = Math.max(0, scrollPosition - scrollAmount);
-    scrollContainer.scrollLeft(scrollPosition);
-  });
-});
 </script>
-{% endblock content %}
+
+{% endblock script %}
+
+
+
+
+
+<!-- Dashboard Tab -->
+    <div id="dashboardSection" class="tab-content px-4 sm:px-6 lg:px-12 py-8 bg-gray-50 min-h-screen">
+        {% if user.userprofile.role == 'farmer' and order_analytics %}
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- LEFT COLUMN -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Earnings -->
+                <div class="bg-teal-100 border border-teal-200 text-teal-800 p-6 rounded-2xl shadow-sm hover:shadow-md">
+                    <h3 class="text-lg font-semibold text-teal-700 mb-4"><i class="fas fa-wallet mr-2 text-teal-600"></i>Earnings</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Estimated (Ongoing)</p>
+                            <p class="text-2xl font-bold text-teal-700">KES {{ earnings.estimated|floatformat:2 }}</p>
+                        </div>
+                        <div class="border-t pt-4">
+                            <p class="text-sm text-gray-500">Total (Completed)</p>
+                            <p class="text-2xl font-bold text-teal-700">KES {{ earnings.total|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Competitor Analysis -->
+                <div class="bg-white border border-teal-100 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+                    <h3 class="text-lg font-semibold text-teal-700 mb-4"><i class="fas fa-chart-line mr-2 text-teal-600"></i>Competitor Analysis</h3>
+                    <div class="space-y-2 text-sm text-gray-700">
+                        <p>Avg. Competitor Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.avg_price|floatformat:2 }}</span></p>
+                        <p>Your Avg. Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.my_avg_price|floatformat:2 }}</span></p>
+                        <p>Listings: <span class="font-semibold text-teal-600">{{ competitor_analysis.listing_count }}</span></p>
+                    </div>
+                </div>
+
+                <!-- Top Products -->
+                <div onclick="showTopProductsDetails()" class="bg-emerald-100 border border-emerald-200 text-emerald-800 p-6 rounded-2xl shadow-sm hover:shadow-md"">
+                    <h3 class="text-lg font-semibold text-teal-700 mb-4"><i class="fas fa-seedling mr-2 text-teal-600"></i>Top Products</h3>
+                    {% if top_products %}
+                    <div class="space-y-1 text-sm text-gray-700">
+                        {% for product in top_products %}
+                        <p>{{ product.name }}: 
+                            <span class="font-semibold text-teal-600">KES {{ product.revenue|floatformat:2 }}</span> 
+                            ({{ product.quantity }} sold)
+                        </p>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-500">No sales yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="lg:col-span-8 space-y-6">
+
+                <!-- Orders & Engagement -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Orders -->
+                    <div class="bg-white border border-teal-100 p-6 rounded-2xl shadow-sm hover:shadow-md">
+                        <button id="farmerOrdersTab" onclick="showFarmerOrders()" class="text-lg font-semibold text-teal-700 mb-4 flex items-center w-full">
+                            <i class="fas fa-box mr-2 text-teal-600"></i>Order Status
+                        </button>
+                        <div class="text-sm space-y-1 text-gray-700">
+                            <p>New: <span class="font-semibold text-teal-600">{{ order_analytics.new }}</span></p>
+                            <p>Pending: <span class="font-semibold text-teal-600">{{ order_analytics.pending }}</span></p>
+                            <p>Confirmed: <span class="font-semibold text-teal-600">{{ order_analytics.confirmed }}</span></p>
+                            <p>Completed: <span class="font-semibold text-teal-600">{{ order_analytics.completed }}</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Customer Engagement -->
+                    <div class="bg-cyan-100 border border-cyan-200 text-cyan-800 p-6 rounded-2xl shadow-sm hover:shadow-md">
+
+                        <h3 class="text-lg font-semibold text-teal-700 mb-4"><i class="fas fa-users mr-2 text-teal-600"></i>Customer Engagement</h3>
+                        <div class="text-sm space-y-2 text-gray-700">
+                            <p>Unique Customers: <span class="font-semibold text-teal-600">{{ customer_engagement.unique_customers }}</span></p>
+                            <p>Unread Messages: <span class="font-semibold text-teal-600">{{ customer_engagement.unread_messages }}</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="bg-white border border-teal-100 p-6 rounded-2xl shadow-sm hover:shadow-md">
+                    <h3 class="text-lg font-semibold text-teal-700 mb-4 flex items-center"><i class="fas fa-chart-bar mr-2 text-teal-600"></i>Crop Price Trends</h3>
+                    <div class="relative h-[220px]">
+                        <canvas id="competitorCropPricingChart"></canvas>
+                        <p id="noPricingData" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">No pricing data available.</p>
+                    </div>
+                </div>
+
+                <!-- My Orders Button -->
+                <div class="flex justify-end">
+                    <button id="myOrdersTab" onclick="showMyOrders()" class="px-6 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition">
+                        My Orders
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
