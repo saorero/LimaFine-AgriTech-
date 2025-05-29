@@ -23,6 +23,7 @@ class UserProfile(models.Model): # Model for Django authentication system
 
     latitude = models.FloatField(null=True, blank=True)  # Add latitude field
     longitude = models.FloatField(null=True, blank=True)  # Add longitude field
+    geocoded_address = models.CharField(max_length=255, blank=True, null=True)#for storing the location of the geocoded address
 
     def __str__(self):
         return f"{self.user.username}'s profile"

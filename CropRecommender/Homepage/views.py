@@ -52,45 +52,14 @@ cropImages = {
     "Beans": "beans.jpg",
     "rice": "rice.jpg",
     "Cashewnuts": "cashewnut.jpg",
-    "Onion": "onion.jpg"
+    "Onion": "onion.jpg",
+    "Banana": "banana.jpg",
+    "Cabbage": "cabbage.jpg",
+    "papaya": "papaya.jpg",
+    
+
 }
 
-# # Weather Prediction Function  //RANDOM forest ORIGINAL the one pasted below uses the new models
-# def weatherPrediction(latitude, longitude):
-#     featureNames = ['month', 'latitude', 'longitude']
-#     currentDate = datetime.now()
-#     print(f"Current Date: {currentDate}")
-#     nextMonth = currentDate.replace(day=1) + timedelta(days=32)
-#     startDate = nextMonth.replace(day=1)
-    
-#     predictions = {'rainfall': [], 'temperature': [], 'humidity': []}
-#     current_pred_date = startDate
-    
-#     for i in range(12):
-#         month = current_pred_date.month
-#         features = pd.DataFrame([[month, latitude, longitude]], columns=featureNames)
-#         featureScale = weatherScaler.transform(features) #scales the features
-        
-#         # prediction of weather conditions takes place via model loading
-#         rainPrediction = rainModel.predict(featureScale)[0]
-#         tempPrediction = tempModel.predict(featureScale)[0]
-#         humidityPrediction = humidityModel.predict(featureScale)[0]
-        
-#         predictions['rainfall'].append(max(0, rainPrediction))
-#         predictions['temperature'].append(tempPrediction)
-#         predictions['humidity'].append(max(0, min(100, humidityPrediction)))
-        
-#         nextMonth = current_pred_date.month % 12 + 1
-#         nextYear = current_pred_date.year + (current_pred_date.month // 12)
-#         current_pred_date = current_pred_date.replace(year=nextYear, month=nextMonth, day=1)
-
-#     totalRain = sum(predictions['rainfall'])
-#     avgTemp = sum(predictions['temperature']) / 12
-#     avgHumidity = sum(predictions['humidity']) / 12
-#     print(f"Weather Values {totalRain},{avgTemp},{avgHumidity}")
-#     return totalRain, avgTemp, avgHumidity
-
-# **************************The new function for weather prediction(preceding two functions)*********************************************
 
 # Historical weather data is processed to get previous weather values
 
@@ -129,8 +98,7 @@ def processData(file_path=os.path.join(BASE_DIR, 'Homepage', 'daily.csv')):
     
     return monthly_data
 
-def weatherPrediction(latitude, longitude):
- 
+def weatherPrediction(latitude, longitude): 
     
     # Define feature names expected by the models
     featureNames = ['month_sin', 'month_cos', 'latitude', 'longitude',
@@ -236,13 +204,6 @@ def weatherPrediction(latitude, longitude):
     avgTemp = sum(predictions['temperature']) / 12
     avgHumidity = sum(predictions['humidity']) / 12
     
-    # # Display results
-    # print("\nWeather Predictions for the Next 12 Months:")
-    # print(f"{'Month':<15} {'Rainfall (mm)':<15} {'Temperature (°C)':<15} {'Humidity (%)':<15}")
-    # print("-" * 60)
-    # for i in range(12):
-    #     print(f"{predictions['month'][i]:<15} {predictions['rainfall'][i]:<15.2f} {predictions['temperature'][i]:<15.2f} {predictions['humidity'][i]:<15.2f}")
-    
     print("\nSummary for the Next 12 Months:")
     print(f"Total Rainfall: {totalRain:.2f} mm")
     print(f"Average Temperature: {avgTemp:.2f} °C")
@@ -253,7 +214,8 @@ def weatherPrediction(latitude, longitude):
 
 # Soil Data Fetching
 def soilData(lat, lon): 
-    soilAPI = os.getenv('FakeAPI')
+    soilAPI = os.getenv('SoilAPI')
+    # soilAPI = os.getenv('FakeAPI')
     url = f"https://api.isda-africa.com/v1/soilproperty?key={soilAPI}&lat={lat}&lon={lon}"
     
     try:
@@ -276,6 +238,7 @@ def soilData(lat, lon):
                 soilInfo[prop] = 0
 
         # debugging prints
+        print("Using fetched soil values from iSDA")
         print(f"soilInfo: {soilInfo}") #to delete displays the soilInfo collected
         
         return soilInfo
@@ -402,9 +365,9 @@ def predict(request):
                 
                  # Geolocation APIs defined
                 apiKeys = [
-                    # os.getenv("locationAPI1"), These are correct APIs uncomment them to work as expected
-                    # os.getenv("locationAPI2"),
-                    os.getenv("FakeAPI")  # Replace with real APIs as needed
+                    os.getenv("locationAPI1"), #These are correct APIs uncomment them to work as expected
+                    os.getenv("locationAPI2"),
+                    # os.getenv("FakeAPI")  # Replace with real APIs as needed
                 ]
                 
                 # Fetches location co-ordinates from the names that have been passed ward and cosnstituency

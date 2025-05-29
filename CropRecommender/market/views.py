@@ -85,6 +85,37 @@ def optimize_delivery_route(request):
     api_key = settings.GOOGLE_MAPS_API_KEY
     url = "https://maps.googleapis.com/maps/api/directions/json"
 
+    # Use geocoded address if available, otherwise fall back to county or listing location
+    farmer_location = user_profile.geocoded_address or user_profile.county or "Nairobi, Kenya"
+    if user_profile.latitude is not None and user_profile.longitude is not None and not user_profile.geocoded_address:
+        # Reverse geocode only if geocoded_address is not already set
+        try:
+            geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+            params = {
+                'latlng': f"{user_profile.latitude},{user_profile.longitude}",
+                'key': api_key
+            }
+            response = requests.get(geocode_url, params=params)
+            response.raise_for_status()
+            geocode_data = response.json()
+            if geocode_data['status'] == 'OK' and geocode_data['results']:
+                for result in geocode_data['results']:
+                    if 'plus_code' not in result['types']:  # Skip Plus Code results
+                        farmer_location = result['formatted_address']
+                        user_profile.geocoded_address = farmer_location
+                        user_profile.save()
+                        logger.debug(f"Geocoded address: {farmer_location}")
+                        break
+                else:
+                    farmer_location = user_profile.county or "Nairobi, Kenya"
+                    logger.warning(f"No suitable address found, using fallback: {farmer_location}")
+            else:
+                farmer_location = user_profile.county or "Nairobi, Kenya"
+                logger.warning(f"Geocoding failed, using fallback: {farmer_location}")
+        except requests.RequestException as e:
+            logger.warning(f"Failed to reverse geocode: {str(e)}")
+            farmer_location = user_profile.county or "Nairobi, Kenya"
+
     for listing_id, data in orders_by_listing.items():
         listing = data['listing']
         listing_orders = data['orders']
@@ -100,12 +131,12 @@ def optimize_delivery_route(request):
         # Prefer farmer's location as origin; fallback to listing's location
         if has_farmer_coords:
             origin = f"{user_profile.latitude},{user_profile.longitude}"
-            logger.debug(f"Using farmer's location as origin: {origin}")
+            origin_location = farmer_location
+            logger.debug(f"Using farmer's location as origin: {origin} ({origin_location})")
         else:
             origin = f"{listing.latitude},{listing.longitude}"
-            logger.debug(f"Using listing's location as origin: {origin} for listing: {listing.productName}")
-
-        logger.debug(f"Optimizing route for listing: {listing.productName} (location: {listing.location}), origin: {origin}")
+            origin_location = listing.location
+            logger.debug(f"Using listing's location as origin: {origin} ({origin_location}) for listing: {listing.productName}")
 
         # Prepare waypoints (order locations)
         waypoints = [f"{order.latitude},{order.longitude}" for order in listing_orders]
@@ -146,11 +177,11 @@ def optimize_delivery_route(request):
             legs = route['legs']
             total_distance = sum(leg['distance']['value'] for leg in legs) / 1000  # Convert meters to km
             total_duration = sum(leg['duration']['value'] for leg in legs) / 60  # Convert seconds to minutes
+            estimated_cost = total_distance * 70  # Adjust cost calculation as needed
 
             # Calculate individual distance and time for each order
             optimized_orders = []
             for i, order in enumerate(listing_orders):
-                # Use the optimized order for waypoint indices
                 optimized_index = waypoint_order[i] if i < len(waypoint_order) else len(waypoint_order)
                 order_location = f"{order.latitude},{order.longitude}"
 
@@ -169,15 +200,21 @@ def optimize_delivery_route(request):
                         individual_leg = individual_data['routes'][0]['legs'][0]
                         individual_distance = individual_leg['distance']['value'] / 1000  # km
                         individual_duration = individual_leg['duration']['value'] / 60  # minutes
+                        individual_cost = individual_distance * 70  # Adjust cost calculation
+                        estimated_arrival = (timezone.now() + timedelta(minutes=individual_duration)).strftime('%I:%M %p')
                         logger.debug(f"Individual estimate for order {order.id} to {order.location}: {individual_distance} km, {individual_duration} minutes")
                     else:
                         logger.warning(f"Individual API error for order {order.id}: {individual_data.get('error_message', 'Unknown error')}")
                         individual_distance = None
                         individual_duration = None
+                        individual_cost = None
+                        estimated_arrival = None
                 except requests.RequestException as e:
                     logger.error(f"Failed to get individual distance for order {order.id}: {str(e)}")
                     individual_distance = None
                     individual_duration = None
+                    individual_cost = None
+                    estimated_arrival = None
 
                 optimized_orders.append({
                     'order_id': order.id,
@@ -189,6 +226,9 @@ def optimize_delivery_route(request):
                     'customer': order.requester.user.username,
                     'individual_distance_km': individual_distance,
                     'individual_duration_minutes': individual_duration,
+                    'individual_cost_ksh': individual_cost,
+                    'estimated_arrival': estimated_arrival,
+                    'origin_location': origin_location,  # Use farmer's geocoded address
                 })
 
             # Save waypoint order to orders
@@ -199,15 +239,16 @@ def optimize_delivery_route(request):
             routes.append({
                 'listing_id': listing_id,
                 'listing_name': listing.productName,
-                'listing_location': listing.location,
+                'listing_location': origin_location,  # Use farmer's geocoded address
                 'origin': origin,
                 'orders': optimized_orders,
                 'total_distance_km': total_distance,
                 'total_duration_minutes': total_duration,
+                'estimated_cost_ksh': estimated_cost,
                 'polyline': route['overview_polyline']['points'],
             })
             logger.info(f"Route optimization successful for listing {listing.productName}")
-        except (KeyError, IndexIndexError) as e:
+        except (KeyError, IndexError) as e:
             logger.error(f"Error processing Google Maps API response for listing {listing.productName}: {str(e)}")
             continue
 
@@ -223,6 +264,251 @@ def optimize_delivery_route(request):
         'status': 'success',
         'routes': routes
     })
+
+# @farmer_required ORIGINAL
+# def optimize_delivery_route(request):
+#     if request.method != "POST":
+#         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+#     user_profile = request.user.userprofile
+#     logger.debug(f"Optimizing delivery routes for farmer: {user_profile.user.username}")
+
+#     # Get pending or confirmed delivery orders
+#     orders = Order.objects.filter(
+#         listing__farmer=user_profile,
+#         status__in=['pending', 'confirmed'],
+#         deliveryMode='delivery'
+#     ).exclude(latitude__isnull=True, longitude__isnull=True).select_related('listing')
+
+#     if not orders:
+#         logger.warning("No valid delivery orders found for route optimization")
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': 'No valid delivery orders found. Ensure orders have status "pending" or "confirmed", delivery mode "delivery", and valid latitude/longitude.'
+#         }, status=400)
+
+#     # Group orders by listing
+#     orders_by_listing = {}
+#     for order in orders:
+#         listing_id = order.listing.id
+#         if listing_id not in orders_by_listing:
+#             orders_by_listing[listing_id] = {
+#                 'listing': order.listing,
+#                 'orders': []
+#             }
+#         orders_by_listing[listing_id]['orders'].append(order)
+
+#     logger.debug(f"Grouped orders into {len(orders_by_listing)} listings")
+
+#     # Optimize a route for each listing
+#     routes = []
+#     api_key = settings.GOOGLE_MAPS_API_KEY
+#     url = "https://maps.googleapis.com/maps/api/directions/json"
+
+#     # Reverse geocode farmer's location (optional, for better display)
+#     farmer_location = user_profile.county
+#     if user_profile.latitude is not None and user_profile.longitude is not None:
+#         try:
+#             geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+#             params = {
+#                 'latlng': f"{user_profile.latitude},{user_profile.longitude}",
+#                 'key': api_key
+#             }
+#             response = requests.get(geocode_url, params=params)
+#             response.raise_for_status()
+#             geocode_data = response.json()
+#             if geocode_data['status'] == 'OK' and geocode_data['results']:
+#                 farmer_location = geocode_data['results'][0]['formatted_address']
+#                 logger.debug(f"Reverse geocoded farmer's location: {farmer_location}")
+#         except requests.RequestException as e:
+#             logger.warning(f"Failed to reverse geocode farmer's location: {str(e)}")
+
+#     for listing_id, data in orders_by_listing.items():
+#         listing = data['listing']
+#         listing_orders = data['orders']
+
+#         # Check if either the listing or the farmer has valid coordinates
+#         has_listing_coords = listing.latitude is not None and listing.longitude is not None
+#         has_farmer_coords = user_profile.latitude is not None and user_profile.longitude is not None
+
+#         if not has_listing_coords and not has_farmer_coords:
+#             logger.warning(f"Skipping listing {listing.productName} (ID: {listing_id}) due to missing coordinates for both listing and farmer")
+#             continue
+
+#         # Prefer farmer's location as origin; fallback to listing's location
+#         if has_farmer_coords:
+#             origin = f"{user_profile.latitude},{user_profile.longitude}"
+#             origin_location = farmer_location
+#             logger.debug(f"Using farmer's location as origin: {origin} ({origin_location})")
+#         else:
+#             origin = f"{listing.latitude},{listing.longitude}"
+#             origin_location = listing.location
+#             logger.debug(f"Using listing's location as origin: {origin} ({origin_location}) for listing: {listing.productName}")
+
+#         # Prepare waypoints (order locations)
+#         waypoints = [f"{order.latitude},{order.longitude}" for order in listing_orders]
+#         if not waypoints:
+#             logger.warning(f"No valid waypoints for listing {listing.productName}")
+#             continue
+
+#         # Set destination as the last order's location (one-way route)
+#         destination = waypoints[-1] if len(waypoints) > 1 else origin
+#         logger.debug(f"Destination for one-way route: {destination}")
+
+#         # Call Google Maps Directions API for the optimized route
+#         params = {
+#             'origin': origin,
+#             'destination': destination,
+#             'waypoints': f"optimize:true|{('|').join(waypoints[:-1])}" if len(waypoints) > 1 else None,
+#             'key': api_key,
+#             'mode': 'driving',
+#         }
+
+#         try:
+#             response = requests.get(url, params=params)
+#             response.raise_for_status()
+#             data = response.json()
+#             logger.debug(f"Google Maps API response for listing {listing.productName}: {data}")
+#         except requests.RequestException as e:
+#             logger.error(f"Failed to connect to Google Maps API for listing {listing.productName}: {str(e)}")
+#             continue
+
+#         if data['status'] != 'OK':
+#             logger.error(f"Google Maps API error for listing {listing.productName}: {data.get('error_message', 'Unknown error')}")
+#             continue
+
+#         # Extract optimized route
+#         try:
+#             route = data['routes'][0]
+#             waypoint_order = route.get('waypoint_order', list(range(len(waypoints) - 1)))
+#             legs = route['legs']
+#             total_distance = sum(leg['distance']['value'] for leg in legs) / 1000  # Convert meters to km
+#             total_duration = sum(leg['duration']['value'] for leg in legs) / 60  # Convert seconds to minutes
+#             # Calculate estimated cost (example: KSh 70 per km)
+#             estimated_cost = total_distance * 70  # Adjust cost calculation as needed
+
+#             # Calculate individual distance and time for each order
+#             optimized_orders = []
+#             for i, order in enumerate(listing_orders):
+#                 optimized_index = waypoint_order[i] if i < len(waypoint_order) else len(waypoint_order)
+#                 order_location = f"{order.latitude},{order.longitude}"
+
+#                 # Call Directions API for individual distance from origin to order
+#                 individual_params = {
+#                     'origin': origin,
+#                     'destination': order_location,
+#                     'key': api_key,
+#                     'mode': 'driving',
+#                 }
+#                 try:
+#                     individual_response = requests.get(url, params=individual_params)
+#                     individual_response.raise_for_status()
+#                     individual_data = individual_response.json()
+#                     if individual_data['status'] == 'OK':
+#                         individual_leg = individual_data['routes'][0]['legs'][0]
+#                         individual_distance = individual_leg['distance']['value'] / 1000  # km
+#                         individual_duration = individual_leg['duration']['value'] / 60  # minutes
+#                         individual_cost = individual_distance * 70  # Adjust cost calculation
+#                         # Estimate arrival time (example: current time + duration)
+#                         estimated_arrival = (timezone.now() + timedelta(minutes=individual_duration)).strftime('%I:%M %p')
+#                         logger.debug(f"Individual estimate for order {order.id} to {order.location}: {individual_distance} km, {individual_duration} minutes")
+#                     else:
+#                         logger.warning(f"Individual API error for order {order.id}: {individual_data.get('error_message', 'Unknown error')}")
+#                         individual_distance = None
+#                         individual_duration = None
+#                         individual_cost = None
+#                         estimated_arrival = None
+#                 except requests.RequestException as e:
+#                     logger.error(f"Failed to get individual distance for order {order.id}: {str(e)}")
+#                     individual_distance = None
+#                     individual_duration = None
+#                     individual_cost = None
+#                     estimated_arrival = None
+
+#                 optimized_orders.append({
+#                     'order_id': order.id,
+#                     'product_name': order.listing.productName,
+#                     'quantity': order.quantity,
+#                     'location': order.location,
+#                     'latitude': order.latitude,
+#                     'longitude': order.longitude,
+#                     'customer': order.requester.user.username,
+#                     'individual_distance_km': individual_distance,
+#                     'individual_duration_minutes': individual_duration,
+#                     'individual_cost_ksh': individual_cost,
+#                     'estimated_arrival': estimated_arrival,
+#                     'origin_location': origin_location,  # Add origin location for display
+#                 })
+
+#             # Save waypoint order to orders
+#             for i, index in enumerate(waypoint_order + [len(waypoint_order)]):
+#                 listing_orders[index].delivery_route = {'route_index': i, 'listing_id': listing_id}
+#                 listing_orders[index].save()
+
+#             routes.append({
+#                 'listing_id': listing_id,
+#                 'listing_name': listing.productName,
+#                 'listing_location': origin_location,  # Use farmer's location or listing's location
+#                 'origin': origin,
+#                 'orders': optimized_orders,
+#                 'total_distance_km': total_distance,
+#                 'total_duration_minutes': total_duration,
+#                 'estimated_cost_ksh': estimated_cost,
+#                 'polyline': route['overview_polyline']['points'],
+#             })
+#             logger.info(f"Route optimization successful for listing {listing.productName}")
+#         except (KeyError, IndexError) as e:
+#             logger.error(f"Error processing Google Maps API response for listing {listing.productName}: {str(e)}")
+#             continue
+
+#     if not routes:
+#         logger.error("No routes could be optimized")
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': 'No routes could be optimized. Ensure at least one listing or the farmer has valid coordinates, and orders have valid delivery locations.'
+#         }, status=400)
+
+#     logger.info(f"Optimized {len(routes)} routes")
+#     return JsonResponse({
+#         'status': 'success',
+#         'routes': routes
+#     })
+
+# ORIGINAL FUNCTION
+# @farmer_required
+# def update_farmer_location(request):
+#     if request.method != "POST":
+#         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+#     try:
+#         data = json.loads(request.body)
+#         latitude = data.get('latitude')
+#         longitude = data.get('longitude')
+#         logger.debug(f"Updating farmer location: latitude={latitude}, longitude={longitude}")
+
+#         if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+#             logger.error(f"Invalid coordinates: latitude={latitude}, longitude={longitude}")
+#             return JsonResponse({
+#                 'status': 'error',
+#                 'message': 'Invalid latitude or longitude values.'
+#             }, status=400)
+
+#         user_profile = request.user.userprofile
+#         user_profile.latitude = latitude
+#         user_profile.longitude = longitude
+#         user_profile.save()
+#         logger.info(f"Farmer location updated for user: {user_profile.user.username}")
+
+#         return JsonResponse({
+#             'status': 'success',
+#             'message': 'Farmer location updated successfully.'
+#         })
+#     except (json.JSONDecodeError, ValueError) as e:
+#         logger.error(f"Invalid request data: {str(e)}")
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': f"Invalid request data: {str(e)}"
+#         }, status=400)
 
 @farmer_required
 def update_farmer_location(request):
@@ -245,20 +531,45 @@ def update_farmer_location(request):
         user_profile = request.user.userprofile
         user_profile.latitude = latitude
         user_profile.longitude = longitude
+
+        # Reverse geocode to get a human-readable address
+        try:
+            geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+            params = {'latlng': f"{latitude},{longitude}", 'key': settings.GOOGLE_MAPS_API_KEY}
+            response = requests.get(geocode_url, params=params)
+            response.raise_for_status()
+            geocode_data = response.json()
+            if geocode_data['status'] == 'OK' and geocode_data['results']:
+                # Prioritize address types: street_address, neighborhood, locality, etc.
+                for result in geocode_data['results']:
+                    if 'plus_code' not in result['types']:  # Skip Plus Code results
+                        user_profile.geocoded_address = result['formatted_address']
+                        logger.debug(f"Geocoded address: {user_profile.geocoded_address}")
+                        break
+                else:
+                    # Fallback to county if no suitable address is found
+                    user_profile.geocoded_address = user_profile.county or "Nairobi, Kenya"
+                    logger.warning(f"No suitable address found, using fallback: {user_profile.geocoded_address}")
+            else:
+                user_profile.geocoded_address = user_profile.county or "Nairobi, Kenya"
+                logger.warning(f"Geocoding failed, using fallback: {user_profile.geocoded_address}")
+        except requests.RequestException as e:
+            logger.warning(f"Failed to reverse geocode: {str(e)}")
+            user_profile.geocoded_address = user_profile.county or "Nairobi, Kenya"
+
         user_profile.save()
         logger.info(f"Farmer location updated for user: {user_profile.user.username}")
-
         return JsonResponse({
             'status': 'success',
-            'message': 'Farmer location updated successfully.'
+            'message': 'Farmer location updated successfully.',
+            'geocoded_address': user_profile.geocoded_address
         })
     except (json.JSONDecodeError, ValueError) as e:
         logger.error(f"Invalid request data: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f"Invalid request data: {str(e)}"
-        }, status=400)
-    
+        }, status=400)   
 
 
 @farmer_required
@@ -898,7 +1209,7 @@ def initiate_payment(request, order_id):
         amount = 1  # for testing; use `int(order.total_price)` in production
         account_reference = f"Order{order.id}"
         transaction_desc = f"Payment for Order {order.id} for {order.listing}"
-        callback_url = 'https://da0b-197-136-99-52.ngrok-free.app/market/mpesa/callback/'
+        callback_url = 'https://d856-197-136-99-87.ngrok-free.app/market/mpesa/callback/'
 
         response = cl.stk_push(phone_number, amount, account_reference, transaction_desc, callback_url)
 

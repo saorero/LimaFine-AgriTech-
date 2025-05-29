@@ -168,6 +168,23 @@ class productListing(models.Model):
             self.location = self.farmer.county
         super().save(*args, **kwargs)
 
+        # THIS COMMENTED FUNCTION PICKS THE LOCATION OF THE LISTING, LIKE THE CO-ORDINATES OF THE LISTINGS BUT DUE TO LIMITS IT IS COMMENTED OUT
+        # AND THE ABOVE SAVE FUNCTION IS USED INSTEAD
+    # def save(self, *args, **kwargs):
+    #     if not self.location:
+    #         self.location = self.farmer.county
+    #     if self.location and (self.latitude is None or self.longitude is None):
+    #         try:
+    #             # Use Google Maps Geocoding API to get coordinates
+    #             geocoder = google.GoogleGeocoder(api_key=settings.GOOGLE_MAPS_API_KEY)
+    #             result = geocoder.geocode(self.location)
+    #             if result:
+    #                 self.latitude = result[0].latitude
+    #                 self.longitude = result[0].longitude
+    #         except Exception as e:
+    #             logger.error(f"Failed to geocode location {self.location}: {str(e)}")
+    #     super().save(*args, **kwargs)
+
     def get_image_url(self):
         # if image is uploaded fetch the image url 
         if self.image and hasattr(self.image, 'url'):
