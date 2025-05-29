@@ -34,6 +34,11 @@ module.exports = {
         italianno: ["Italianno", "cursive"],
       },
 
+      // For the myProducts Images
+      aspectRatio: {
+                '4/3': '4 / 3',
+            },
+
       
       
     },

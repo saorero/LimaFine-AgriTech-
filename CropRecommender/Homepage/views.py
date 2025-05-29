@@ -56,6 +56,7 @@ cropImages = {
     "Banana": "banana.jpg",
     "Cabbage": "cabbage.jpg",
     "papaya": "papaya.jpg",
+    "FingerMillet": "FingerMillet.jpg",
     
 
 }
@@ -332,7 +333,15 @@ def cropPrediction(lat, lon):
             "image": imagePath,
             "gap": gap_data
         })
-    return results
+    return {
+        "crops": results,
+        "weather": {
+            "rainfall": round(totalRain, 2),
+            "temperature": round(avgTemp, 2),
+            "humidity": round(avgHumidity, 2)
+        },
+        "soil": soilProperties
+    }
 
 @csrf_exempt
 def predict(request):
@@ -408,11 +417,17 @@ def predict(request):
                 return JsonResponse({"error": "Provide either latitude/longitude or constituency/ward"}, status=400)
             
             # Call cropPrediction with coordinates found and stores the predictions in crop_results
-            crop_results = cropPrediction(coordinates["lat"], coordinates["lng"])
+            data = cropPrediction(coordinates["lat"], coordinates["lng"])
             # Returns this result to frontend that is coordinates and crop_results gotten from cropPrediction function that was called
+            # Convert weather and soil values to Python native types
+            weather_summary = {k: float(v) for k, v in data["weather"].items()}
+            soil_info = {k: float(v) for k, v in data["soil"].items()}
+
             return JsonResponse({
                 "coordinates": coordinates,
-                "crop_predictions": crop_results#results from cropPrediction function
+                "crop_predictions": data["crops"],
+                "weather_summary": weather_summary,
+                "soil_info": soil_info
             })
         
         except Exception as e:#when an error occurs 

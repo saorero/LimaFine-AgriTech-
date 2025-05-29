@@ -71,13 +71,13 @@
                         </div>
                     </div>
 
-                    <!-- Competitor Analysis Card -->
-                    <div class="bg-white border border-teal-100 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+                    <!-- Competitor Analysis Card COMMENTED OUT FOR NOW-->
+                    <!-- <div class="bg-white border border-teal-100 p-6 rounded-2xl shadow-sm hover:shadow-md transition">
                         <h3 class="text-xl font-semibold mb-3 text-teal-800"><i class="fas fa-balance-scale mr-2 text-teal-600"></i>Competitor Analysis</h3>
                         <p class="text-gray-700">Avg. Competitor Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.avg_price|floatformat:2 }}</span></p>
                         <p class="text-gray-700">Your Avg. Price: <span class="font-semibold text-teal-600">KES {{ competitor_analysis.my_avg_price|floatformat:2 }}</span></p>
                         <p class="text-gray-700">Competing Listings: <span class="font-semibold text-teal-600">{{ competitor_analysis.listing_count }}</span></p>
-                    </div>
+                    </div> -->
 
                     <!-- Top Selling Products Card -->
                     <div class="bg-emerald-100 border border-emerald-200 text-emerald-800 p-6 rounded-2xl shadow-sm hover:shadow-md" onclick="showTopProductsDetails()">
@@ -98,8 +98,8 @@
                     <div class="flex flex-col lg:flex-row gap-6">
                         <!-- Orders Made Card -->
                         <!-- <div class="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full lg:w-1/2"> ORIGINAL-->
-                        <div class="bg-cyan-100 border border-cyan-200 text-cyan-800 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 w-full lg:w-1/2">
-                                               
+                        <div class="bg-emerald-100 border border-emerald-200 text-emerald-800 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 w-full lg:w-1/2">
+                                         
                             <button id="farmerOrdersTab" class="w-full text-left text-xl font-semibold text-teal-800 hover:text-teal-600 focus:outline-none tab-button mb-3" onclick="showFarmerOrders()">
                                 <i class="fas fa-shopping-cart mr-2 text-teal-600"></i>Orders Overview
                             </button>
@@ -162,8 +162,9 @@
                         {% if listings %}
                             {% for listing in listings %}
                                 <div class="bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-[19rem] hover:shadow-lg transition-shadow duration-300" data-category="{{ listing.productCategory }}">
-                                    <div class="h-80 w-full overflow-hidden">
-                                        <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                                    <div class="w-full h-36 overflow-hidden flex items-center justify-center bg-gray-50">
+                                        <img src="{{ listing.get_image_url }}" alt="{{ listing.productName }}" 
+                                            class="max-h-full max-w-full object-contain transition-transform duration-300">
                                     </div>
                                     <div class="p-4 flex flex-col flex-grow">
                                         <h2 class="text-lg font-semibold text-teal-800 line-clamp-1">{{ listing.productName }}</h2>
@@ -265,7 +266,7 @@
     <!-- Create Listing Section -->
     <div id="createListingSection" class="tab-content hidden">
         {% if user.userprofile.role == 'farmer' %}
-            <div class="bg-white p-6 rounded-2xl shadow-lg w-full">
+            <div class="bg-teal-50 p-6 rounded-2xl shadow-lg w-full">
                 <h2 class="text-2xl font-bold mb-4 text-center text-teal-800">Create a New Listing</h2>
                 <form method="POST" id="listingForm" class="space-y-4" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -377,7 +378,8 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <p class="text-gray-500 text-xs mt-2">Listed: {{ listing.created_at|localtime|date:"Y-m-d" }}</p>
+                                    <p class="text-gray-500 text-xs mt-2">Listed on: {{ listing.created_at|localtime|date:"Y-m-d" }}</p>
+                                    <p class="text-gray-500 text-sm"><i class="fa-solid fa-location-dot"></i>{{ listing.location }}</p>
                                 </div>
                             </div>
                         {% endfor %}
@@ -549,8 +551,8 @@
 
             <!-- Left: Location + Delivery Inputs -->
             <div class="space-y-6">
-                <!-- Location Form -->
-                <div class="bg-gray-50 p-5 rounded-xl shadow">
+                <!-- Location Form bg-gray-50-->
+                <div class="bg-teal-50 p-5 rounded-xl shadow">
                     <h3 class="text-xl font-semibold text-gray-700 mb-3">Set Your Location</h3>
                     <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
                         <input id="farmerLocation" type="text" placeholder="Enter your address (e.g., Nairobi, Kenya)" 
@@ -570,7 +572,7 @@
                 </div>
 
                 <!-- Delivery Estimations -->
-                <div class="bg-gray-50 p-5 rounded-xl shadow">
+                <div class=" bg-teal-50 p-5 rounded-xl shadow">
                     <h3 class="text-xl font-semibold text-gray-700 mb-3">Delivery Estimations</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -818,7 +820,7 @@
 
     <!-- Order Modal -->
     <div id="orderModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+        <div class="bg-teal-50 p-6 rounded-2xl shadow-lg w-full max-w-md">
             <h2 class="text-xl font-semibold mb-4 text-teal-800">Place Order</h2>
             <form id="orderForm" class="space-y-4">
                 <div>
@@ -1491,6 +1493,7 @@
                             <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
                             <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
                             <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                            
                             
                         </select>
                     </td>

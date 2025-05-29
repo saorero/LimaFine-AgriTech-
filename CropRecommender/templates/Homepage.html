@@ -186,6 +186,28 @@ $(document).ready(function () {
               $("#resultModal").removeClass("hidden");
               $("#coordinates").text(`Coordinates: Latitude: ${response.coordinates.lat}, Longitude: ${response.coordinates.lng}`);
               $("#cropPredictions").empty();
+              // displays the weather and soil content
+              $("#cropPredictions").append(`
+                  <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <!-- Weather Summary Card -->
+                    <div class="bg-gray-100 rounded-md p-4 shadow flex-1">
+                      <h3 class="text-teal-800 font-bold mb-2 text-lg">🌦 Weather Summary</h3>
+                      <p>Total Rainfall: <strong>${response.weather_summary.rainfall.toFixed(2)} mm</strong></p>
+                      <p>Average Temperature: <strong>${response.weather_summary.temperature.toFixed(2)} °C</strong></p>
+                      <p>Average Humidity: <strong>${response.weather_summary.humidity.toFixed(2)} %</strong></p>
+                    </div>
+
+                    <!-- Soil Info Card -->
+                    <div class="bg-green-100 rounded-md p-4 shadow flex-1">
+                      <h3 class="text-teal-800 font-bold mb-2 text-lg">🌱 Soil Properties</h3>
+                      <p>pH Level: <strong>${response.soil_info.ph}</strong></p>
+                      <p>Sand Content: <strong>${response.soil_info.sand_content}</strong></p>
+                      <p>Clay Content: <strong>${response.soil_info.clay_content}</strong></p>
+                    </div>
+                  </div>
+                `);
+
+
               let cropData = [];
               let gapData = {};
               response.crop_predictions.forEach(function (prediction) {
@@ -270,6 +292,29 @@ $(document).ready(function () {
           // $("#coordinates").text(`Coordinates: Latitude - ${response.coordinates.lat}, Longitude - ${response.coordinates.lng}`);
           $("#coordinates").text(`Constituency: ${constituency} Ward: ${ward} (Latitude: ${response.coordinates.lat}, Longitude: ${response.coordinates.lng})`);
           $("#cropPredictions").empty();//clears previous predictions
+
+          // Displays weather and soil data in the prediction modal
+          $("#cropPredictions").append(`
+            <div class="flex flex-col md:flex-row gap-4 mb-4">
+              <!-- Weather Summary Card -->
+              <div class="bg-gray-100 rounded-md p-4 shadow flex-1">
+                <h3 class="text-teal-800 font-bold mb-2 text-lg">🌦 Weather Summary</h3>
+                <p>Total Rainfall: <strong>${response.weather_summary.rainfall.toFixed(2)} mm</strong></p>
+                <p>Average Temperature: <strong>${response.weather_summary.temperature.toFixed(2)} °C</strong></p>
+                <p>Average Humidity: <strong>${response.weather_summary.humidity.toFixed(2)} %</strong></p>
+              </div>
+
+              <!-- Soil Info Card -->
+              <div class="bg-green-100 rounded-md p-4 shadow flex-1">
+                <h3 class="text-teal-800 font-bold mb-2 text-lg">🌱 Soil Properties</h3>
+                <p>pH Level: <strong>${response.soil_info.ph}</strong></p>
+                <p>Sand Content: <strong>${response.soil_info.sand_content}</strong></p>
+                <p>Clay Content: <strong>${response.soil_info.clay_content}</strong></p>
+              </div>
+            </div>
+          `);
+
+
           cropData = [];//storing data
           gapData = {};
           response.crop_predictions.forEach(function (prediction) {

@@ -1209,7 +1209,7 @@ def initiate_payment(request, order_id):
         amount = 1  # for testing; use `int(order.total_price)` in production
         account_reference = f"Order{order.id}"
         transaction_desc = f"Payment for Order {order.id} for {order.listing}"
-        callback_url = 'https://d856-197-136-99-87.ngrok-free.app/market/mpesa/callback/'
+        callback_url = 'https://4638-197-136-101-176.ngrok-free.app/market/mpesa/callback/'
 
         response = cl.stk_push(phone_number, amount, account_reference, transaction_desc, callback_url)
 
