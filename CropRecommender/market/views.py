@@ -1209,7 +1209,7 @@ def initiate_payment(request, order_id):
         amount = 1  # for testing; use `int(order.total_price)` in production
         account_reference = f"Order{order.id}"
         transaction_desc = f"Payment for Order {order.id} for {order.listing}"
-        callback_url = 'https://4638-197-136-101-176.ngrok-free.app/market/mpesa/callback/'
+        callback_url = 'https://6033-102-215-13-26.ngrok-free.app/market/mpesa/callback/'
 
         response = cl.stk_push(phone_number, amount, account_reference, transaction_desc, callback_url)
 
@@ -1225,14 +1225,11 @@ def initiate_payment(request, order_id):
         return JsonResponse({'success': False, 'error': str(e)})
 
 @csrf_exempt
-def mpesa_callback(request):
-    
+def mpesa_callback(request):    
     print("✅ MPESA CALLBACK RECEIVED:")
     if request.method == 'POST':
-        data = json.loads(request.body)
-        print("✅ MPESA CALLBACK RECEIVED:")
+        data = json.loads(request.body)        
         print(json.dumps(data, indent=2))
-
         try:
             result_code = data['Body']['stkCallback']['ResultCode']
             checkout_id = data['Body']['stkCallback']['CheckoutRequestID']
@@ -1252,7 +1249,6 @@ def mpesa_callback(request):
         except Exception as e:
             print("❌ Callback error:", e)
             return JsonResponse({'ResultCode': 1, 'ResultDesc': str(e)})
-
     return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Invalid request method'})
 
 

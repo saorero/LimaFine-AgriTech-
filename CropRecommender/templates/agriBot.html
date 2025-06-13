@@ -1,42 +1,43 @@
 {% extends "base2.html" %}
 
 {% block content %}
-<div class="w-full max-w-7xl mx-auto px-4 flex">
-       
+<div class="w-full max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
+    
     <!-- Chat History Sidebar -->
-    <div class="w-1/4 pr-4">
-        <h2 class="text-xl font-bold text-teal-700 mb-4">Chat History</h2>
-        <div id="chat-history" class="space-y-2 max-h-[500px] overflow-y-auto">
+    <div class="w-full md:w-1/4 bg-white rounded-xl shadow-md p-4">
+        <h2 class="text-xl font-bold text-teal-700 mb-4 border-b pb-2">Chat History</h2>
+        <div id="chat-history" class="space-y-3 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-teal-300 scrollbar-track-teal-50">
             <!-- History items will be appended here -->
         </div>
     </div>
 
     <!-- Chat Area -->
-    <div class="w-3/4">
-        <h1 class="text-3xl font-extrabold text-teal-700 mb-6 text-center">🌾 AgriBot</h1>
+    <div class="w-full md:w-3/4 bg-white rounded-xl shadow-md p-6 flex flex-col">
+        <h1 class="text-3xl font-extrabold text-teal-700 mb-4 text-center">🌾 AgriBot</h1>
         
         <!-- Chatbox -->
-        <div id="chatbox" class="space-y-4 h-80 overflow-y-auto p-4 bg-gray-50 rounded-lg shadow-inner scroll-smooth">
+        <div id="chatbox" class="space-y-4 h-80 overflow-y-auto p-4 bg-gray-50 rounded-lg shadow-inner scroll-smooth border border-gray-200">
             <!-- Messages will be appended here -->
         </div>
 
         <!-- Loading Spinner -->
-        <div id="loading" class="flex items-center gap-2 text-sm text-gray-500 mt-2 hidden text-teal-700">
-            <i class="fas fa-spinner fa-spin text-teal-700 fa-2x"></i>
+        <div id="loading" class="flex items-center gap-2 text-sm text-gray-500 mt-3 hidden text-teal-700">
+            <i class="fas fa-spinner fa-spin text-teal-700 fa-lg"></i>
             Thinking...
         </div>
 
         <!-- Input Field -->
-        <div class="mt-4 flex gap-2">
+        <div class="mt-4 flex gap-3">
             <input type="text" id="textInput" placeholder="Ask me about agriculture..."
-                class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
+                class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-600 bg-white placeholder-gray-400">
             <button onclick="sendMessage()" 
-                class="px-4 py-2 rounded-lg hover:bg-teal-700 hover:text-white transition">
-                <i class="fa-solid fa-paper-plane fa-xl text-teal-700"></i>
+                class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-3 rounded-lg transition flex items-center justify-center">
+                <i class="fa-solid fa-paper-plane fa-lg"></i>
             </button>
         </div>
     </div>
 </div>
+
 {% endblock content %}
 
 {% block script %}
@@ -88,7 +89,7 @@
                     $("#chatbox").append(`
                         <div class="flex justify-start">
                             <div class="bg-white border border-gray-300 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
-                                <strong>AgriBot:</strong> ${msg.rag_response}<br>
+                                <strong>What the expert says:</strong> ${msg.rag_response}<br>
                                 <span class="text-xs text-gray-600">${new Date(msg.timestamp).toLocaleString()}</span>
                             </div>
                         </div>
@@ -97,7 +98,7 @@
                     $("#chatbox").append(`
                         <div class="flex justify-start">
                             <div class="bg-gray-100 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
-                                <strong>Just Me:</strong> ${msg.general_response}<br>
+                                <strong>AgriBot:</strong> ${msg.general_response}<br>
                                 <span class="text-xs text-gray-600">${new Date(msg.timestamp).toLocaleString()}</span>
                             </div>
                         </div>
@@ -140,7 +141,7 @@
                 $("#chatbox").append(`
                     <div class="flex justify-start">
                         <div class="bg-white border border-gray-300 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
-                            <strong>AgriBot:</strong> ${response.rag_response}<br>
+                            <strong>What the expert says:</strong> ${response.rag_response}<br>
                             <span class="text-xs text-gray-600">${new Date(response.timestamp).toLocaleString()}</span>
                         </div>
                     </div>
@@ -148,7 +149,7 @@
                 $("#chatbox").append(`
                     <div class="flex justify-start">
                         <div class="bg-gray-100 text-teal-800 px-4 py-2 rounded-lg max-w-5xl shadow">
-                            <strong>Just Me:</strong> ${response.general_response}<br>
+                            <strong>AgriBot:</strong> ${response.general_response}<br>
                             <span class="text-xs text-gray-600">${new Date(response.timestamp).toLocaleString()}</span>
                         </div>
                     </div>
