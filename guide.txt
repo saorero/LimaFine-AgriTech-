@@ -50,3 +50,5 @@ Command Azerty@123 ***not sure though i used a diff password to access postgre c
 E-commerce for farmers to sell their produce
 
 
+./ngrok.exe http 8000
+cd C:/Users/admin/Downloads/AppInstalls/NGROK/ngrok-v3-stable-windows-amd64
